@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Box, TextField, Button, Typography, Link as MuiLink, Divider, Alert } from '@mui/material';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import PageContainer from '@/components/PageContainer';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { loginUser, clearAuthError } from '@/features/auth/authSlice';
@@ -8,6 +8,8 @@ import { loginUser, clearAuthError } from '@/features/auth/authSlice';
 const Login: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
+  const resetSuccess = (location.state as { resetSuccess?: boolean } | null)?.resetSuccess;
   const { status, error } = useAppSelector((state) => state.auth);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -31,6 +33,11 @@ const Login: React.FC = () => {
         <Typography variant="body1" sx={{ textAlign: 'center', color: 'text.secondary', mb: 4 }}>
           Влезте в акаунта си
         </Typography>
+        {resetSuccess && (
+          <Alert severity="success" sx={{ mb: 2 }}>
+            Паролата ви е нулирана успешно. Влезте с новата си парола.
+          </Alert>
+        )}
         {error && (
           <Alert severity="error" sx={{ mb: 2 }} onClose={() => dispatch(clearAuthError())}>
             {error}
@@ -38,7 +45,12 @@ const Login: React.FC = () => {
         )}
         <Box component="form" onSubmit={handleSubmit}>
           <TextField fullWidth label="Имейл" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required sx={{ mb: 2.5 }} />
-          <TextField fullWidth label="Парола" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required sx={{ mb: 3 }} />
+          <TextField fullWidth label="Парола" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required sx={{ mb: 1.5 }} />
+          <Typography variant="body2" sx={{ mb: 2, textAlign: 'right' }}>
+            <MuiLink component={Link} to="/forgot-password" sx={{ color: 'primary.dark', fontWeight: 500 }}>
+              Забравена парола?
+            </MuiLink>
+          </Typography>
           <Button type="submit" variant="contained" fullWidth size="large" sx={{ py: 1.5, mb: 2 }} disabled={status === 'loading'}>
             Вход
           </Button>

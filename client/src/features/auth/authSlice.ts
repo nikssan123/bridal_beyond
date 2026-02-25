@@ -58,6 +58,52 @@ export const fetchMe = createAsyncThunk('auth/me', async () => {
   return data.user;
 });
 
+export const verifyEmail = createAsyncThunk(
+  'auth/verifyEmail',
+  async (payload: { email: string; code: string }, { rejectWithValue }) => {
+    try {
+      const { data } = await api.post<{ user: User; token: string }>('/auth/verify-email', payload);
+      localStorage.setItem('token', data.token);
+      return data.user;
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message
+        || (err as Error)?.message
+        || 'Invalid or expired verification code';
+      return rejectWithValue(message);
+    }
+  }
+);
+
+export const forgotPassword = createAsyncThunk(
+  'auth/forgotPassword',
+  async (payload: { email: string }, { rejectWithValue }) => {
+    try {
+      await api.post('/auth/forgot-password', payload);
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message
+        || (err as Error)?.message
+        || 'Request failed';
+      return rejectWithValue(message);
+    }
+  }
+);
+
+export const resetPassword = createAsyncThunk(
+  'auth/resetPassword',
+  async (payload: { token: string; password: string }, { rejectWithValue }) => {
+    try {
+      const { data } = await api.post<{ user: User; token: string }>('/auth/reset-password', payload);
+      localStorage.setItem('token', data.token);
+      return data.user;
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message
+        || (err as Error)?.message
+        || 'Invalid or expired reset link';
+      return rejectWithValue(message);
+    }
+  }
+);
+
 const authSlice = createSlice({
   name: 'auth',
   initialState,
@@ -112,6 +158,46 @@ const authSlice = createSlice({
       .addCase(registerUser.rejected, (state, action) => {
         state.status = 'failed';
         state.error = (action.payload as string) || action.error.message || 'Registration failed';
+      })
+      .addCase(verifyEmail.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(verifyEmail.fulfilled, (state, action) => {
+        state.user = action.payload;
+        state.isAuthenticated = true;
+        state.status = 'succeeded';
+        state.error = null;
+      })
+      .addCase(verifyEmail.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = (action.payload as string) || action.error.message || 'Verification failed';
+      })
+      .addCase(forgotPassword.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(forgotPassword.fulfilled, (state) => {
+        state.status = 'idle';
+        state.error = null;
+      })
+      .addCase(forgotPassword.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = (action.payload as string) || action.error.message || 'Request failed';
+      })
+      .addCase(resetPassword.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(resetPassword.fulfilled, (state, action) => {
+        state.user = action.payload;
+        state.isAuthenticated = true;
+        state.status = 'succeeded';
+        state.error = null;
+      })
+      .addCase(resetPassword.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = (action.payload as string) || action.error.message || 'Reset failed';
       })
       .addCase(fetchMe.fulfilled, (state, action) => {
         state.user = action.payload;

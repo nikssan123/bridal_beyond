@@ -19,10 +19,11 @@ const Register: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    dispatch(registerUser({ name, email, password }))
-      .then((result) => {
-        if (registerUser.fulfilled.match(result)) navigate('/');
-      });
+    dispatch(registerUser({ name, email, password })).then((result) => {
+      if (registerUser.fulfilled.match(result)) {
+        navigate('/verify-email', { state: { email } });
+      }
+    });
   };
 
   return (
