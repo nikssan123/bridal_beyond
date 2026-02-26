@@ -3,6 +3,10 @@ import authReducer from '../features/auth/authSlice';
 import listingsReducer from '../features/listings/listingsSlice';
 import reviewsReducer from '../features/reviews/reviewsSlice';
 import filtersReducer from '../features/filters/filtersSlice';
+import favoritesReducer from '../features/favorites/favoritesSlice';
+import conversationsReducer from '../features/conversations/conversationsSlice';
+import paymentsReducer from '../features/payments/paymentsSlice';
+import stripeReducer from '../features/stripe/stripeSlice';
 
 export const store = configureStore({
   reducer: {
@@ -10,6 +14,10 @@ export const store = configureStore({
     listings: listingsReducer,
     reviews: reviewsReducer,
     filters: filtersReducer,
+    favorites: favoritesReducer,
+    conversations: conversationsReducer,
+    payments: paymentsReducer,
+    stripe: stripeReducer,
   },
 });
 

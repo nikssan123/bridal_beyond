@@ -15,6 +15,10 @@ export async function listBySeller(req: Request, res: Response, next: NextFuncti
 export async function create(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const { sellerId } = req.params;
+    if (req.user?.id && req.user.id === sellerId) {
+      res.status(403).json({ message: 'You cannot review your own listing.' });
+      return;
+    }
     const { rating, comment, userName } = req.body;
     const authorName = (userName && String(userName).trim()) ? String(userName).trim() : (req.user ? req.user.email : 'Anonymous');
     const review = await reviewsRepo.create({

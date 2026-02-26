@@ -1,6 +1,8 @@
+import http from 'http';
 import app from './app';
 import { env } from './config/env';
 import { getPool } from './config/database';
+import { attachSocketIO } from './websocket';
 
 async function main(): Promise<void> {
   try {
@@ -11,7 +13,10 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  app.listen(env.port, () => {
+  const httpServer = http.createServer(app);
+  attachSocketIO(httpServer);
+
+  httpServer.listen(env.port, () => {
     console.log(`Server listening on port ${env.port}`);
   });
 }

@@ -14,10 +14,11 @@ export async function getSeller(req: Request, res: Response, next: NextFunction)
       id: row.id,
       name: row.name,
       avatar: row.avatar_url ?? '',
-      rating: row.rating != null ? parseFloat(row.rating) : 0,
-      listings: parseInt(row.listings_count, 10),
+      rating: row.rating,
+      listings: row.listings_count,
       location: row.location ?? '',
       memberSince: row.member_since ? String(row.member_since.getFullYear()) : '',
+      isVerified: row.is_verified,
     });
   } catch (e) {
     next(e);

@@ -1,4 +1,4 @@
-import { getPool } from '../../config/database';
+import { prisma } from '../../prisma';
 
 export interface SellerSummaryRow {
   id: string;
@@ -6,20 +6,36 @@ export interface SellerSummaryRow {
   avatar_url: string | null;
   location: string | null;
   member_since: Date;
-  rating: string | null;
-  listings_count: string;
+  rating: number;
+  listings_count: number;
+  is_verified: boolean;
 }
 
 export async function getSellerSummary(sellerId: string): Promise<SellerSummaryRow | null> {
-  const pool = getPool();
-  const res = await pool.query(
-    `SELECT
-      u.id, u.name, u.avatar_url, u.location, u.member_since,
-      (SELECT COALESCE(ROUND(AVG(r.rating)::numeric, 2), 0)::text FROM reviews r WHERE r.seller_id = u.id) AS rating,
-      (SELECT COUNT(*)::text FROM listings l WHERE l.seller_id = u.id) AS listings_count
-    FROM users u
-    WHERE u.id = $1`,
-    [sellerId]
-  );
-  return (res.rows[0] as SellerSummaryRow) ?? null;
+  const user = await prisma.user.findUnique({
+    where: { id: sellerId },
+    include: {
+      listings: true,
+      reviewsReceived: true,
+    },
+  });
+  if (!user) return null;
+
+  const listings_count = user.listings.length;
+  const rating =
+    user.reviewsReceived.length > 0
+      ? user.reviewsReceived.reduce((sum: number, r: any) => sum + r.rating, 0) / user.reviewsReceived.length
+      : 0;
+
+  return {
+    id: user.id,
+    name: user.name,
+    avatar_url: user.avatar_url,
+    location: user.location,
+    member_since: user.member_since,
+    rating,
+    listings_count,
+    is_verified: !!user.email_verified_at,
+  };
 }
+

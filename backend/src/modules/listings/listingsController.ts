@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import * as listingsRepo from './listingsRepository';
-import { notFound, unauthorized } from '../../middleware/errorHandler';
+import { notFound, unauthorized, badRequest } from '../../middleware/errorHandler';
 import { ListingCreateInput } from './listingsTypes';
 
 export async function list(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -12,7 +12,11 @@ export async function list(req: Request, res: Response, next: NextFunction): Pro
     const maxPrice = req.query.maxPrice != null ? Number(req.query.maxPrice) : undefined;
     const search = (req.query.search as string) || undefined;
     const sortBy = (req.query.sortBy as 'newest' | 'price-asc' | 'price-desc') || 'newest';
-    const listings = await listingsRepo.list({
+    const sellerId = (req.query.sellerId as string) || undefined;
+    const status = (req.query.status as string) || undefined;
+    const limit = Math.min(Math.max(1, Number(req.query.limit) || 24), 50);
+    const offset = Math.max(0, Number(req.query.offset) || 0);
+    const result = await listingsRepo.list({
       category,
       size,
       condition,
@@ -20,8 +24,12 @@ export async function list(req: Request, res: Response, next: NextFunction): Pro
       maxPrice,
       search,
       sortBy,
+      sellerId,
+      status,
+      limit,
+      offset,
     });
-    res.json(listings);
+    res.json(result);
   } catch (e) {
     next(e);
   }
@@ -66,6 +74,23 @@ export async function create(req: Request, res: Response, next: NextFunction): P
       images: Array.isArray(body.images) ? body.images : body.images ? [body.images] : [],
     });
     res.status(201).json(listing);
+  } catch (e) {
+    next(e);
+  }
+}
+
+export async function uploadImage(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    if (!req.user) {
+      next(unauthorized());
+      return;
+    }
+    if (!req.file) {
+      next(badRequest('No file uploaded or invalid file type. Use JPEG, PNG or WebP (max 5MB).'));
+      return;
+    }
+    const url = `/uploads/listings/${req.file.filename}`;
+    res.status(201).json({ url });
   } catch (e) {
     next(e);
   }

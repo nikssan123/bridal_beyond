@@ -4,8 +4,11 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import PageContainer from '@/components/PageContainer';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { resetPassword, clearAuthError } from '@/features/auth/authSlice';
+import { useTranslation } from 'react-i18next';
+import { getAuthErrorKey } from '@/lib/authErrors';
 
 const ResetPassword: React.FC = () => {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -23,11 +26,11 @@ const ResetPassword: React.FC = () => {
     e.preventDefault();
     setLocalError('');
     if (password !== confirmPassword) {
-      setLocalError('Паролите не съвпадат.');
+      setLocalError(t('auth.passwordsMismatch'));
       return;
     }
     if (password.length < 6) {
-      setLocalError('Паролата трябва да е поне 6 символа.');
+      setLocalError(t('auth.passwordMinLength'));
       return;
     }
     dispatch(resetPassword({ token, password })).then((result) => {
@@ -42,14 +45,14 @@ const ResetPassword: React.FC = () => {
       <PageContainer maxWidth="xs">
         <Box sx={{ py: 4 }}>
           <Typography variant="h4" sx={{ textAlign: 'center', mb: 1, fontWeight: 600 }}>
-            Невалидна връзка
+            {t('auth.invalidLink')}
           </Typography>
           <Typography variant="body1" sx={{ textAlign: 'center', color: 'text.secondary', mb: 4 }}>
-            Липсва или е невалидна връзка за нулиране на парола. Моля, заявете нова.
+            {t('auth.invalidLinkMessage')}
           </Typography>
           <Typography variant="body2" sx={{ textAlign: 'center', mt: 2 }}>
             <MuiLink component={Link} to="/forgot-password" sx={{ color: 'primary.dark', fontWeight: 500 }}>
-              Заявка за нова парола
+              {t('auth.requestNewLink')}
             </MuiLink>
           </Typography>
         </Box>
@@ -61,10 +64,10 @@ const ResetPassword: React.FC = () => {
     <PageContainer maxWidth="xs">
       <Box sx={{ py: 4 }}>
         <Typography variant="h4" sx={{ textAlign: 'center', mb: 1, fontWeight: 600 }}>
-          Нова парола
+          {t('auth.newPasswordTitle')}
         </Typography>
         <Typography variant="body1" sx={{ textAlign: 'center', color: 'text.secondary', mb: 4 }}>
-          Въведете новата си парола.
+          {t('auth.newPasswordSubtitle')}
         </Typography>
         {(localError || error) && (
           <Alert
@@ -75,13 +78,13 @@ const ResetPassword: React.FC = () => {
               dispatch(clearAuthError());
             }}
           >
-            {localError || error}
+            {localError || (error ? t(`authErrors.${getAuthErrorKey(error)}`) : '')}
           </Alert>
         )}
         <Box component="form" onSubmit={handleSubmit}>
           <TextField
             fullWidth
-            label="Нова парола"
+            label={t('auth.newPassword')}
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -90,7 +93,7 @@ const ResetPassword: React.FC = () => {
           />
           <TextField
             fullWidth
-            label="Потвърдете паролата"
+            label={t('auth.confirmPassword')}
             type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
@@ -105,11 +108,11 @@ const ResetPassword: React.FC = () => {
             sx={{ py: 1.5, mb: 2 }}
             disabled={status === 'loading'}
           >
-            Нулиране на парола
+            {t('auth.resetPassword')}
           </Button>
           <Typography variant="body2" sx={{ textAlign: 'center', mt: 2 }}>
             <MuiLink component={Link} to="/forgot-password" sx={{ color: 'primary.dark', fontWeight: 500 }}>
-              Заявка за нова парола
+              {t('auth.requestNewLink')}
             </MuiLink>
           </Typography>
         </Box>

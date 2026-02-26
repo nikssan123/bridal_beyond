@@ -1,10 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
-  Box, Grid, Typography, Chip, CircularProgress, Divider, Button,
+  Box, Grid, Typography, Chip, CircularProgress, Divider, Button, IconButton,
+  Snackbar,
 } from '@mui/material';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
+import FavoriteIcon from '@mui/icons-material/Favorite';
 import ShareIcon from '@mui/icons-material/Share';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import PageContainer from '@/components/PageContainer';
 import SellerCard from '@/components/SellerCard';
 import ReviewList from '@/components/ReviewList';
@@ -12,8 +17,13 @@ import ReviewForm from '@/components/ReviewForm';
 import RatingDisplay from '@/components/RatingDisplay';
 import SectionHeader from '@/components/SectionHeader';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { getAvatarUrl } from '@/lib/avatarUrl';
 import { fetchListingById } from '@/features/listings/listingsSlice';
 import { fetchReviewsBySellerId } from '@/features/reviews/reviewsSlice';
+import { toggleFavorite, fetchFavorites } from '@/features/favorites/favoritesSlice';
+import { createOrGetConversation } from '@/features/conversations/conversationsSlice';
+import { createPaymentIntent, clearCurrentPayment } from '@/features/payments/paymentsSlice';
+import PaymentDialog from '@/components/PaymentDialog';
 
 const conditionLabels: Record<string, string> = {
   new: 'Нова', 'like-new': 'Като нова', good: 'Добро', fair: 'Задоволително',
@@ -21,11 +31,25 @@ const conditionLabels: Record<string, string> = {
 
 const ListingDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const { selectedListing: listing, status } = useAppSelector((state) => state.listings);
+  const listingIds = useAppSelector((state) => state.favorites.listingIds);
+  const favoritesStatus = useAppSelector((state) => state.favorites.status);
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
+  const currentUser = useAppSelector((state) => state.auth.user);
+  const isFavorite = listing && listingIds.includes(listing.id);
+  const isOwnListing = currentUser?.id != null && listing?.seller.id != null && currentUser.id === listing.seller.id;
+  const listingActive = listing?.status === undefined || listing?.status === 'active';
   const sellerId = listing?.seller.id;
+  const { currentPayment, status: paymentsStatus, error: paymentsError } = useAppSelector((state) => state.payments);
   const reviews = useAppSelector((state) => (sellerId ? state.reviews.reviewsBySeller[sellerId] || [] : []));
   const [selectedImg, setSelectedImg] = useState(0);
+  const [advanceReset, setAdvanceReset] = useState(0);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -34,10 +58,73 @@ const ListingDetails: React.FC = () => {
   }, [dispatch, id]);
 
   useEffect(() => {
+    if (!listing || listing.images.length <= 1) return;
+    const intervalId = setInterval(() => {
+      setSelectedImg((i) => (i + 1) % listing.images.length);
+    }, 4000);
+    return () => clearInterval(intervalId);
+  }, [listing?.id, listing?.images?.length, advanceReset]);
+
+  useEffect(() => {
     if (sellerId) {
       dispatch(fetchReviewsBySellerId(sellerId));
     }
   }, [dispatch, sellerId]);
+
+  useEffect(() => {
+    if (isAuthenticated && id && favoritesStatus === 'idle' && listingIds.length === 0) {
+      dispatch(fetchFavorites());
+    }
+  }, [dispatch, isAuthenticated, id, favoritesStatus, listingIds.length]);
+
+  useEffect(() => {
+    if (paymentsError) {
+      setSnackbarMessage(paymentsError);
+      setSnackbarOpen(true);
+    }
+  }, [paymentsError]);
+
+  useEffect(() => {
+    if (paymentsStatus === 'succeeded' && currentPayment?.clientSecret) {
+      setPaymentDialogOpen(true);
+    }
+  }, [paymentsStatus, currentPayment?.clientSecret]);
+
+  const handleShare = async () => {
+    if (!listing) return;
+    const url = `${window.location.origin}/listings/${listing.id}`;
+    const title = listing.title;
+    const text = `${listing.title} - ${listing.price} лв.`;
+    try {
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        await navigator.share({ title, text, url });
+        setSnackbarMessage(t('listing.shareSuccess'));
+      } else {
+        throw new Error('Share not supported');
+      }
+    } catch (err: unknown) {
+      const e = err as { name?: string };
+      if (e?.name === 'AbortError') return;
+      try {
+        await navigator.clipboard.writeText(url);
+        setSnackbarMessage(t('listing.shareLinkCopied'));
+      } catch {
+        const textarea = document.createElement('textarea');
+        textarea.value = url;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+          document.execCommand('copy');
+          setSnackbarMessage(t('listing.shareLinkCopied'));
+        } finally {
+          document.body.removeChild(textarea);
+        }
+      }
+    }
+    setSnackbarOpen(true);
+  };
 
   if (status === 'loading' || !listing) {
     return (
@@ -56,12 +143,86 @@ const ListingDetails: React.FC = () => {
       <Grid container spacing={4}>
         {/* Images */}
         <Grid item xs={12} md={7}>
-          <Box sx={{ borderRadius: 3, overflow: 'hidden', mb: 2 }}>
+          <Box sx={{ position: 'relative', borderRadius: 3, overflow: 'hidden', mb: 2 }}>
             <img
-              src={listing.images[selectedImg]}
+              key={selectedImg}
+              src={getAvatarUrl(listing.images[selectedImg]) || listing.images[selectedImg]}
               alt={listing.title}
-              style={{ width: '100%', maxHeight: 560, objectFit: 'cover', borderRadius: 12 }}
+              style={{
+                width: '100%',
+                maxHeight: 560,
+                objectFit: 'cover',
+                borderRadius: 12,
+                transition: 'opacity 0.3s ease',
+              }}
             />
+            {listing.images.length > 1 && (
+              <>
+                <IconButton
+                  onClick={() => {
+                    setSelectedImg((i) => (i - 1 + listing.images.length) % listing.images.length);
+                    setAdvanceReset((k) => k + 1);
+                  }}
+                  size="large"
+                  sx={{
+                    position: 'absolute',
+                    left: 8,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    bgcolor: 'rgba(255,255,255,0.9)',
+                    '&:hover': { bgcolor: 'rgba(255,255,255,0.95)' },
+                  }}
+                  aria-label="Previous image"
+                >
+                  <ChevronLeftIcon sx={{ color: 'primary.main', fontSize: 32 }} />
+                </IconButton>
+                <IconButton
+                  onClick={() => {
+                    setSelectedImg((i) => (i + 1) % listing.images.length);
+                    setAdvanceReset((k) => k + 1);
+                  }}
+                  size="large"
+                  sx={{
+                    position: 'absolute',
+                    right: 8,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    bgcolor: 'rgba(255,255,255,0.9)',
+                    '&:hover': { bgcolor: 'rgba(255,255,255,0.95)' },
+                  }}
+                  aria-label="Next image"
+                >
+                  <ChevronRightIcon sx={{ color: 'primary.main', fontSize: 32 }} />
+                </IconButton>
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    bottom: 12,
+                    left: 0,
+                    right: 0,
+                    display: 'flex',
+                    justifyContent: 'center',
+                    gap: 0.75,
+                  }}
+                >
+                  {listing.images.map((_, idx) => (
+                    <Box
+                      key={idx}
+                      onClick={() => setSelectedImg(idx)}
+                      sx={{
+                        width: selectedImg === idx ? 10 : 8,
+                        height: 8,
+                        borderRadius: 4,
+                        bgcolor: selectedImg === idx ? 'primary.main' : 'rgba(255,255,255,0.8)',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                      }}
+                      aria-label={`Image ${idx + 1} of ${listing.images.length}`}
+                    />
+                  ))}
+                </Box>
+              </>
+            )}
           </Box>
           {listing.images.length > 1 && (
             <Box sx={{ display: 'flex', gap: 1 }}>
@@ -77,7 +238,7 @@ const ListingDetails: React.FC = () => {
                     transition: 'all 0.2s',
                   }}
                 >
-                  <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img src={getAvatarUrl(img) || img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </Box>
               ))}
             </Box>
@@ -103,9 +264,66 @@ const ListingDetails: React.FC = () => {
           </Box>
 
           <Box sx={{ display: 'flex', gap: 1.5, mb: 3 }}>
-            <Button variant="contained" fullWidth size="large">Свържи се с продавача</Button>
-            <Button variant="outlined" sx={{ minWidth: 50 }}><FavoriteBorderIcon /></Button>
-            <Button variant="outlined" sx={{ minWidth: 50 }}><ShareIcon /></Button>
+            {!isOwnListing && (
+              <Button
+                variant="contained"
+                fullWidth
+                size="large"
+                onClick={async () => {
+                  if (!isAuthenticated) {
+                    navigate(`/login?redirect=/listings/${id}`);
+                    return;
+                  }
+                  const result = await dispatch(
+                    createOrGetConversation({
+                      otherUserId: listing.seller.id,
+                      listingId: listing.id,
+                    })
+                  );
+                  if (createOrGetConversation.fulfilled.match(result)) {
+                    navigate(`/messages/${result.payload.id}`);
+                  }
+                }}
+              >
+                {t('listing.contactSeller')}
+              </Button>
+            )}
+            {isAuthenticated && !isOwnListing && listingActive && (
+              <Button
+                variant="contained"
+                color="secondary"
+                size="large"
+                disabled={paymentsStatus === 'loading'}
+                onClick={async () => {
+                  if (!listing?.id) return;
+                  await dispatch(createPaymentIntent(listing.id));
+                }}
+              >
+                {paymentsStatus === 'loading' ? (
+                  <CircularProgress size={24} color="inherit" />
+                ) : (
+                  t('listing.buyWithProtection', 'Buy with Protection')
+                )}
+              </Button>
+            )}
+            {isAuthenticated && (
+              <Button
+                variant="outlined"
+                sx={{ minWidth: 50 }}
+                onClick={() => dispatch(toggleFavorite(listing.id))}
+                aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+              >
+                {isFavorite ? <FavoriteIcon color="primary" /> : <FavoriteBorderIcon />}
+              </Button>
+            )}
+            <Button
+              variant="outlined"
+              sx={{ minWidth: 50 }}
+              onClick={handleShare}
+              aria-label={t('listing.share')}
+            >
+              <ShareIcon />
+            </Button>
           </Box>
 
           <Divider sx={{ my: 3 }} />
@@ -147,8 +365,35 @@ const ListingDetails: React.FC = () => {
         {reviews.length > 0 && <RatingDisplay rating={avgRating} count={reviews.length} />}
         <ReviewList reviews={reviews} />
         <Divider sx={{ my: 3 }} />
-        <ReviewForm sellerId={listing.seller.id} />
+        {!isOwnListing && <ReviewForm sellerId={listing.seller.id} />}
+        {isOwnListing && (
+          <Typography variant="body2" color="text.secondary">
+            {t('listing.cannotReviewOwnListing')}
+          </Typography>
+        )}
       </Box>
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={3000}
+        onClose={() => setSnackbarOpen(false)}
+        message={snackbarMessage}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
+      {currentPayment?.clientSecret && (
+        <PaymentDialog
+          open={paymentDialogOpen}
+          onClose={() => {
+            setPaymentDialogOpen(false);
+            dispatch(clearCurrentPayment());
+          }}
+          clientSecret={currentPayment.clientSecret}
+          paymentIntentId={currentPayment.paymentIntentId}
+          onSuccess={() => {
+            setSnackbarMessage(t('listing.paymentAuthorized', 'Payment authorized'));
+            setSnackbarOpen(true);
+          }}
+        />
+      )}
     </PageContainer>
   );
 };

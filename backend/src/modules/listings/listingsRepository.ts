@@ -1,5 +1,5 @@
-import { getPool } from '../../config/database';
-import { ListingDTO, SellerSummary } from './listingsTypes';
+import { prisma } from '../../prisma';
+import { ListingDTO } from './listingsTypes';
 
 interface ListingRow {
   id: string;
@@ -17,6 +17,7 @@ interface ListingRow {
   hips: string;
   length: string;
   seller_id: string;
+  status: string | null;
   created_at: Date;
   seller_name: string;
   seller_avatar_url: string | null;
@@ -24,6 +25,7 @@ interface ListingRow {
   seller_member_since: Date | null;
   seller_rating: string | null;
   seller_listings_count: string;
+  seller_is_verified: boolean;
 }
 
 function rowToDto(row: ListingRow, images: string[]): ListingDTO {
@@ -48,7 +50,9 @@ function rowToDto(row: ListingRow, images: string[]): ListingDTO {
       listings: parseInt(row.seller_listings_count, 10),
       location: row.seller_location ?? '',
       memberSince: row.seller_member_since ? String(row.seller_member_since.getFullYear()) : '',
+      isVerified: row.seller_is_verified,
     },
+    status: row.status ?? undefined,
     createdAt: row.created_at.toISOString().split('T')[0],
   };
 }
@@ -61,93 +65,158 @@ export interface ListFilters {
   maxPrice?: number;
   search?: string;
   sortBy?: 'newest' | 'price-asc' | 'price-desc';
+  sellerId?: string;
+  status?: string;
+  limit?: number;
+  offset?: number;
 }
 
-const listQuery = `
-  SELECT
-    l.id, l.title, l.description, l.price, l.original_price, l.category, l.size, l.condition,
-    l.color, l.brand, l.bust, l.waist, l.hips, l.length, l.seller_id, l.created_at,
-    u.name AS seller_name, u.avatar_url AS seller_avatar_url, u.location AS seller_location,
-    u.member_since AS seller_member_since,
-    (SELECT COALESCE(ROUND(AVG(r.rating)::numeric, 2), 0) FROM reviews r WHERE r.seller_id = l.seller_id) AS seller_rating,
-    (SELECT COUNT(*)::text FROM listings ll WHERE ll.seller_id = l.seller_id) AS seller_listings_count
-  FROM listings l
-  JOIN users u ON u.id = l.seller_id
-  WHERE 1=1
-`;
+export interface ListResult {
+  listings: ListingDTO[];
+  total: number;
+}
 
-export async function list(filters: ListFilters): Promise<ListingDTO[]> {
-  const pool = getPool();
-  const params: unknown[] = [];
-  let paramIndex = 1;
-  let sql = listQuery;
-
-  if (filters.category) {
-    sql += ` AND l.category = $${paramIndex++}`;
-    params.push(filters.category);
-  }
-  if (filters.size) {
-    sql += ` AND l.size = $${paramIndex++}`;
-    params.push(filters.size);
-  }
-  if (filters.condition) {
-    sql += ` AND l.condition = $${paramIndex++}`;
-    params.push(filters.condition);
-  }
-  if (filters.minPrice != null) {
-    sql += ` AND l.price >= $${paramIndex++}`;
-    params.push(filters.minPrice);
-  }
-  if (filters.maxPrice != null) {
-    sql += ` AND l.price <= $${paramIndex++}`;
-    params.push(filters.maxPrice);
-  }
+export async function list(filters: ListFilters): Promise<ListResult> {
+  const where: any = {};
+  if (filters.category) where.category = filters.category;
+  if (filters.size) where.size = filters.size;
+  if (filters.condition) where.condition = filters.condition;
   if (filters.search && filters.search.trim()) {
-    sql += ` AND (l.title ILIKE $${paramIndex} OR l.description ILIKE $${paramIndex})`;
-    params.push(`%${filters.search.trim()}%`);
-    paramIndex++;
+    const q = filters.search.trim();
+    where.OR = [
+      { title: { contains: q, mode: 'insensitive' } },
+      { description: { contains: q, mode: 'insensitive' } },
+    ];
   }
-
-  const sort =
-    filters.sortBy === 'price-asc'
-      ? ' ORDER BY l.price ASC'
-      : filters.sortBy === 'price-desc'
-        ? ' ORDER BY l.price DESC'
-        : ' ORDER BY l.created_at DESC';
-  sql += sort;
-
-  const res = await pool.query(sql, params);
-  const rows = res.rows as ListingRow[];
-  const listingIds = rows.map((r) => r.id);
-  const imagesRes =
-    listingIds.length > 0
-      ? await pool.query(
-          'SELECT listing_id, url FROM listing_images WHERE listing_id = ANY($1) ORDER BY listing_id, position',
-          [listingIds]
-        )
-      : { rows: [] };
-  const imagesByListing: Record<string, string[]> = {};
-  for (const r of imagesRes.rows as { listing_id: string; url: string }[]) {
-    if (!imagesByListing[r.listing_id]) imagesByListing[r.listing_id] = [];
-    imagesByListing[r.listing_id].push(r.url);
+  if (filters.minPrice != null || filters.maxPrice != null) {
+    where.price = {};
+    if (filters.minPrice != null) where.price.gte = filters.minPrice;
+    if (filters.maxPrice != null) where.price.lte = filters.maxPrice;
   }
-  return rows.map((row) => rowToDto(row, imagesByListing[row.id] ?? []));
+  if (filters.sellerId) where.seller_id = filters.sellerId;
+  if (filters.status) where.status = filters.status;
+
+  const limit = filters.limit ?? 24;
+  const offset = filters.offset ?? 0;
+
+  const [total, rows] = await Promise.all([
+    prisma.listing.count({ where }),
+    prisma.listing.findMany({
+      where,
+      skip: offset,
+      take: limit,
+      include: {
+        images: {
+          orderBy: { position: 'asc' },
+        },
+        seller: {
+          include: {
+            reviewsReceived: true,
+            listings: true,
+          },
+        },
+      },
+      orderBy: (() => {
+        let orderBy: any = { created_at: 'desc' as const };
+        if (filters.sortBy === 'price-asc') orderBy = { price: 'asc' as const };
+        else if (filters.sortBy === 'price-desc') orderBy = { price: 'desc' as const };
+        return orderBy;
+      })(),
+    }),
+  ]);
+
+  const listings = rows.map((l: any) => {
+    const reviews = (l.seller.reviewsReceived as any[]) || [];
+    const avgRating =
+      reviews.length > 0
+        ? reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / reviews.length
+        : 0;
+    const listingsCount = ((l.seller.listings as any[]) || []).length;
+    return rowToDto(
+      {
+        id: l.id,
+        title: l.title,
+        description: l.description,
+        price: l.price.toString(),
+        original_price: l.original_price ? l.original_price.toString() : null,
+        category: l.category,
+        size: l.size,
+        condition: l.condition,
+        color: l.color,
+        brand: l.brand,
+        bust: l.bust,
+        waist: l.waist,
+        hips: l.hips,
+        length: l.length,
+        seller_id: l.seller_id,
+        status: l.status,
+        created_at: l.created_at,
+        seller_name: l.seller.name,
+        seller_avatar_url: l.seller.avatar_url,
+        seller_location: l.seller.location,
+        seller_member_since: l.seller.member_since,
+        seller_rating: avgRating.toString(),
+        seller_listings_count: listingsCount.toString(),
+        seller_is_verified: !!l.seller.email_verified_at,
+      },
+      l.images.map((img: any) => img.url)
+    );
+  });
+
+  return { listings, total };
 }
 
 export async function findById(id: string): Promise<ListingDTO | null> {
-  const pool = getPool();
-  const res = await pool.query(
-    `
-    ${listQuery}
-    AND l.id = $1
-    `,
-    [id]
+  const l: any = await prisma.listing.findUnique({
+    where: { id },
+    include: {
+      seller: {
+        include: {
+          reviewsReceived: true,
+          listings: true,
+        },
+      },
+      images: {
+        orderBy: { position: 'asc' },
+      },
+    },
+  });
+  if (!l) return null;
+  const reviews = (l.seller.reviewsReceived as any[]) || [];
+  const avgRating =
+    reviews.length > 0
+      ? reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / reviews.length
+      : 0;
+  const listingsCount = ((l.seller.listings as any[]) || []).length;
+  return rowToDto(
+    {
+      id: l.id,
+      title: l.title,
+      description: l.description,
+      price: l.price.toString(),
+      original_price: l.original_price ? l.original_price.toString() : null,
+      category: l.category,
+      size: l.size,
+      condition: l.condition,
+      color: l.color,
+      brand: l.brand,
+      bust: l.bust,
+      waist: l.waist,
+      hips: l.hips,
+      length: l.length,
+      seller_id: l.seller_id,
+      status: l.status,
+      created_at: l.created_at,
+      seller_name: l.seller.name,
+      seller_avatar_url: l.seller.avatar_url,
+      seller_location: l.seller.location,
+      seller_member_since: l.seller.member_since,
+      seller_rating: avgRating.toString(),
+      seller_listings_count: listingsCount.toString(),
+      seller_is_verified: !!l.seller.email_verified_at,
+    },
+    l.images.map((img: any) => img.url)
   );
-  const row = res.rows[0] as ListingRow | undefined;
-  if (!row) return null;
-  const imgRes = await pool.query('SELECT url FROM listing_images WHERE listing_id = $1 ORDER BY position', [id]);
-  const images = (imgRes.rows as { url: string }[]).map((r) => r.url);
-  return rowToDto(row, images);
 }
 
 export async function create(
@@ -169,36 +238,29 @@ export async function create(
     images: string[];
   }
 ): Promise<ListingDTO> {
-  const pool = getPool();
-  const res = await pool.query(
-    `INSERT INTO listings (title, description, price, original_price, category, size, condition, color, brand, bust, waist, hips, length, seller_id)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-     RETURNING id`,
-    [
-      data.title,
-      data.description,
-      data.price,
-      data.originalPrice ?? null,
-      data.category,
-      data.size,
-      data.condition,
-      data.color,
-      data.brand,
-      data.bust,
-      data.waist,
-      data.hips,
-      data.length,
-      sellerId,
-    ]
-  );
-  const listingId = (res.rows[0] as { id: string }).id;
-  for (let i = 0; i < data.images.length; i++) {
-    await pool.query(
-      'INSERT INTO listing_images (listing_id, url, position) VALUES ($1, $2, $3)',
-      [listingId, data.images[i], i]
-    );
-  }
-  const listing = await findById(listingId);
-  if (!listing) throw new Error('Failed to load created listing');
-  return listing;
+  const listing = await prisma.listing.create({
+    data: {
+      title: data.title,
+      description: data.description,
+      price: data.price,
+      original_price: data.originalPrice ?? null,
+      category: data.category,
+      size: data.size,
+      condition: data.condition,
+      color: data.color,
+      brand: data.brand,
+      bust: data.bust,
+      waist: data.waist,
+      hips: data.hips,
+      length: data.length,
+      seller_id: sellerId,
+      status: 'active',
+      images: {
+        create: data.images.map((url, index) => ({ url, position: index })),
+      },
+    },
+  });
+  const full = await findById(listing.id);
+  if (!full) throw new Error('Failed to load created listing');
+  return full;
 }

@@ -5,6 +5,10 @@ interface User {
   id: string;
   name: string;
   email: string;
+  isVerified?: boolean;
+  location?: string;
+  memberSince?: string;
+  avatarUrl?: string;
 }
 
 interface AuthState {
@@ -57,6 +61,38 @@ export const fetchMe = createAsyncThunk('auth/me', async () => {
   const { data } = await api.get<{ user: User }>('/auth/me');
   return data.user;
 });
+
+export const updateProfile = createAsyncThunk(
+  'auth/updateProfile',
+  async (payload: { name?: string; location?: string | null; avatarUrl?: string | null }, { rejectWithValue }) => {
+    try {
+      const { data } = await api.patch<{ user: User }>('/auth/profile', payload);
+      return data.user;
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message
+        || (err as Error)?.message
+        || 'Update failed';
+      return rejectWithValue(message);
+    }
+  }
+);
+
+export const uploadAvatar = createAsyncThunk(
+  'auth/uploadAvatar',
+  async (file: File, { rejectWithValue }) => {
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+      const { data } = await api.post<{ user: User }>('/auth/profile/avatar', formData);
+      return data.user;
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message
+        || (err as Error)?.message
+        || 'Upload failed';
+      return rejectWithValue(message);
+    }
+  }
+);
 
 export const verifyEmail = createAsyncThunk(
   'auth/verifyEmail',
@@ -171,7 +207,10 @@ const authSlice = createSlice({
       })
       .addCase(verifyEmail.rejected, (state, action) => {
         state.status = 'failed';
-        state.error = (action.payload as string) || action.error.message || 'Verification failed';
+        state.error =
+          (action.payload as string) ||
+          action.error.message ||
+          'Invalid or expired verification code';
       })
       .addCase(forgotPassword.pending, (state) => {
         state.status = 'loading';
@@ -197,7 +236,10 @@ const authSlice = createSlice({
       })
       .addCase(resetPassword.rejected, (state, action) => {
         state.status = 'failed';
-        state.error = (action.payload as string) || action.error.message || 'Reset failed';
+        state.error =
+          (action.payload as string) ||
+          action.error.message ||
+          'Invalid or expired reset link';
       })
       .addCase(fetchMe.fulfilled, (state, action) => {
         state.user = action.payload;
@@ -208,6 +250,15 @@ const authSlice = createSlice({
         state.user = null;
         state.isAuthenticated = false;
         state.status = 'idle';
+      })
+      .addCase(updateProfile.fulfilled, (state, action) => {
+        state.user = action.payload;
+      })
+      .addCase(uploadAvatar.fulfilled, (state, action) => {
+        state.user = action.payload;
+      })
+      .addCase(uploadAvatar.rejected, (state, action) => {
+        state.error = (action.payload as string) || action.error.message || 'Upload failed';
       });
   },
 });

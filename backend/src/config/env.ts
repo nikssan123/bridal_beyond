@@ -17,4 +17,9 @@ export const env = {
   jwtSecret: getEnv('JWT_SECRET'),
   jwtExpiresIn: getEnv('JWT_EXPIRES_IN', '7d'),
   corsOrigin: getEnv('CORS_ORIGIN', 'http://localhost:3000'),
+  stripeSecretKey: getEnv('STRIPE_SECRET_KEY'),
+  stripeWebhookSecret: getEnv('STRIPE_WEBHOOK_SECRET', ''),
+  stripePlatformFeePercent: parseInt(getEnv('STRIPE_PLATFORM_FEE_PERCENT', '5'), 10),
+  clientUrl: getEnv('CLIENT_URL', 'http://localhost:5173'),
+  stripeCurrency: (getEnv('STRIPE_CURRENCY', 'eur') || 'eur').toLowerCase(),
 };

@@ -1,0 +1,161 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                             String    @id @db.Uuid @default(dbgenerated("uuid_generate_v4()"))
+  name                           String    @db.VarChar(255)
+  email                          String    @unique @db.VarChar(255)
+  password_hash                  String    @db.VarChar(255)
+  role                           String    @default("user") @db.VarChar(50)
+  avatar_url                     String?   @db.Text
+  location                       String?   @db.VarChar(255)
+  member_since                   DateTime  @db.Date
+  created_at                     DateTime  @default(now())
+  updated_at                     DateTime  @default(now())
+  email_verified_at              DateTime?
+  email_verification_code        String?   @db.VarChar(10)
+  email_verification_expires_at  DateTime?
+  reset_password_token_hash      String?   @db.VarChar(255)
+  reset_password_expires_at      DateTime?
+
+  stripe_account_id               String?   @db.VarChar(255)
+
+  listings         Listing[] @relation("UserListings")
+  reviewsAuthored  Review[]  @relation("UserReviewsAuthored")
+  reviewsReceived  Review[]  @relation("UserReviewsReceived")
+  favorites        Favorite[]
+
+  conversationParticipants ConversationParticipant[]
+  messagesSent              Message[]
+
+  paymentsAsBuyer           Payment[]  @relation("paymentsAsBuyer")
+
+  @@map("users")
+}
+
+model Listing {
+  id            String   @id @db.Uuid @default(dbgenerated("uuid_generate_v4()"))
+  title         String   @db.VarChar(500)
+  description   String
+  price          Decimal   @db.Decimal(10, 2)
+  original_price Decimal?  @db.Decimal(10, 2)
+  category      String   @db.VarChar(50)
+  size          String   @db.VarChar(20)
+  condition     String   @db.VarChar(50)
+  color         String   @db.VarChar(100)
+  brand         String   @db.VarChar(255)
+  bust          String   @db.VarChar(50)
+  waist         String   @db.VarChar(50)
+  hips          String   @db.VarChar(50)
+  length        String   @db.VarChar(50)
+  seller_id     String   @db.Uuid
+  status        String?  @default("active") @db.VarChar(20)
+  created_at    DateTime @default(now())
+
+  seller User           @relation("UserListings", fields: [seller_id], references: [id])
+  images ListingImage[]
+  favoritedBy Favorite[]
+  conversations Conversation[]
+  payments Payment[]
+
+  @@map("listings")
+}
+
+model ListingImage {
+  id         String  @id @db.Uuid @default(dbgenerated("uuid_generate_v4()"))
+  listing_id String  @db.Uuid
+  url        String  @db.Text
+  position   Int     @default(0)
+
+  listing Listing @relation(fields: [listing_id], references: [id])
+
+  @@map("listing_images")
+}
+
+model Review {
+  id          String   @id @db.Uuid @default(dbgenerated("uuid_generate_v4()"))
+  seller_id   String   @db.Uuid
+  author_user_id String? @db.Uuid
+  author_name String   @db.VarChar(255)
+  rating      Int
+  comment     String
+  created_at  DateTime @default(now())
+
+  seller User  @relation("UserReviewsReceived", fields: [seller_id], references: [id])
+  author User? @relation("UserReviewsAuthored", fields: [author_user_id], references: [id])
+
+  @@map("reviews")
+}
+
+model Favorite {
+  id         String   @id @db.Uuid @default(dbgenerated("uuid_generate_v4()"))
+  user_id    String   @db.Uuid
+  listing_id String   @db.Uuid
+  created_at DateTime @default(now())
+
+  user    User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  listing Listing @relation(fields: [listing_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, listing_id])
+  @@map("favorites")
+}
+
+model Conversation {
+  id         String   @id @db.Uuid @default(dbgenerated("uuid_generate_v4()"))
+  listing_id String?  @db.Uuid
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
+
+  listing      Listing?                  @relation(fields: [listing_id], references: [id], onDelete: SetNull)
+  participants ConversationParticipant[]
+  messages     Message[]
+
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  conversation_id String @db.Uuid
+  user_id        String @db.Uuid
+  created_at     DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@id([conversation_id, user_id])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id              String   @id @db.Uuid @default(dbgenerated("uuid_generate_v4()"))
+  conversation_id String   @db.Uuid
+  sender_id      String   @db.Uuid
+  body           String   @db.Text
+  created_at     DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+  sender       User         @relation(fields: [sender_id], references: [id], onDelete: Cascade)
+
+  @@map("messages")
+}
+
+model Payment {
+  id               String   @id @db.Uuid @default(dbgenerated("uuid_generate_v4()"))
+  payment_intent_id String  @unique @db.VarChar(255)
+  listing_id       String   @db.Uuid
+  buyer_id         String   @db.Uuid
+  amount_cents     Int
+  status           String   @db.VarChar(50)
+  created_at       DateTime @default(now())
+
+  listing Listing @relation(fields: [listing_id], references: [id], onDelete: Cascade)
+  buyer   User    @relation("paymentsAsBuyer", fields: [buyer_id], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+

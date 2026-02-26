@@ -4,8 +4,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/PageContainer';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { registerUser, clearAuthError } from '@/features/auth/authSlice';
+import { useTranslation } from 'react-i18next';
+import { getAuthErrorKey } from '@/lib/authErrors';
 
 const Register: React.FC = () => {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { status, error } = useAppSelector((state) => state.auth);
@@ -29,27 +32,27 @@ const Register: React.FC = () => {
   return (
     <PageContainer maxWidth="xs">
       <Box sx={{ py: 4 }}>
-        <Typography variant="h4" sx={{ textAlign: 'center', mb: 1, fontWeight: 600 }}>Създайте акаунт</Typography>
+        <Typography variant="h4" sx={{ textAlign: 'center', mb: 1, fontWeight: 600 }}>{t('auth.createAccount')}</Typography>
         <Typography variant="body1" sx={{ textAlign: 'center', color: 'text.secondary', mb: 4 }}>
-          Присъединете се към Грация
+          {t('auth.joinGracia')}
         </Typography>
         {error && (
           <Alert severity="error" sx={{ mb: 2 }} onClose={() => dispatch(clearAuthError())}>
-            {error}
+            {t(`authErrors.${getAuthErrorKey(error)}`)}
           </Alert>
         )}
         <Box component="form" onSubmit={handleSubmit}>
-          <TextField fullWidth label="Име" value={name} onChange={(e) => setName(e.target.value)} required sx={{ mb: 2.5 }} />
-          <TextField fullWidth label="Имейл" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required sx={{ mb: 2.5 }} />
-          <TextField fullWidth label="Парола" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required sx={{ mb: 3 }} />
+          <TextField fullWidth label={t('auth.name')} value={name} onChange={(e) => setName(e.target.value)} required sx={{ mb: 2.5 }} />
+          <TextField fullWidth label={t('auth.email')} type="email" value={email} onChange={(e) => setEmail(e.target.value)} required sx={{ mb: 2.5 }} />
+          <TextField fullWidth label={t('auth.password')} type="password" value={password} onChange={(e) => setPassword(e.target.value)} required sx={{ mb: 3 }} />
           <Button type="submit" variant="contained" fullWidth size="large" sx={{ py: 1.5, mb: 2 }} disabled={status === 'loading'}>
-            Регистрация
+            {t('auth.register')}
           </Button>
-          <Divider sx={{ my: 2 }}><Typography variant="caption" color="text.secondary">или</Typography></Divider>
+          <Divider sx={{ my: 2 }}><Typography variant="caption" color="text.secondary">{t('auth.or')}</Typography></Divider>
           <Typography variant="body2" sx={{ textAlign: 'center', mt: 2 }}>
-            Вече имате акаунт?{' '}
+            {t('auth.haveAccount')}{' '}
             <MuiLink component={Link} to="/login" sx={{ color: 'primary.dark', fontWeight: 500 }}>
-              Влезте
+              {t('auth.signInLink')}
             </MuiLink>
           </Typography>
         </Box>

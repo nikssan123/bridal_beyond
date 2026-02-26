@@ -18,7 +18,7 @@ export interface Listing {
   brand: string;
   measurements: { bust: string; waist: string; hips: string; length: string };
   images: string[];
-  seller: { id: string; name: string; avatar: string; rating: number; listings: number; location: string; memberSince: string };
+  seller: { id: string; name: string; avatar: string; rating: number; listings: number; location: string; memberSince: string; isVerified?: boolean };
   createdAt: string;
 }
 

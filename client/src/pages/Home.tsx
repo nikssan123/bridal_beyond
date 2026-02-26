@@ -7,15 +7,17 @@ import ListingCard from '@/components/ListingCard';
 import SectionHeader from '@/components/SectionHeader';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { fetchListings } from '@/features/listings/listingsSlice';
+import { useTranslation } from 'react-i18next';
 
 const Home: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { listings, status } = useAppSelector((state) => state.listings);
   const featured = listings.slice(0, 3);
 
   useEffect(() => {
-    if (status === 'idle') dispatch(fetchListings());
+    if (status === 'idle') dispatch(fetchListings({}));
   }, [dispatch, status]);
 
   return (
@@ -57,7 +59,7 @@ const Home: React.FC = () => {
                 mb: 2,
               }}
             >
-              Намерете роклята на мечтите си
+              {t('home.heroTitle')}
             </Typography>
             <Typography
               variant="h6"
@@ -69,8 +71,7 @@ const Home: React.FC = () => {
                 mb: 4,
               }}
             >
-              Пазарът за предварително притежавани сватбени и абитуриентски рокли в България. 
-              Елегантност на достъпна цена.
+              {t('home.heroSubtitle')}
             </Typography>
             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
               <Button
@@ -87,7 +88,7 @@ const Home: React.FC = () => {
                   '&:hover': { bgcolor: '#E8CFC6' },
                 }}
               >
-                Разгледай обяви
+                {t('home.browseListings')}
               </Button>
               <Button
                 variant="outlined"
@@ -101,7 +102,7 @@ const Home: React.FC = () => {
                   '&:hover': { borderColor: '#FAF7F5', bgcolor: 'rgba(250,247,245,0.1)' },
                 }}
               >
-                Продай рокля
+                {t('home.sellDress')}
               </Button>
             </Box>
           </Box>
@@ -110,17 +111,17 @@ const Home: React.FC = () => {
 
       {/* Categories */}
       <Container maxWidth="lg" sx={{ py: { xs: 6, md: 8 } }}>
-        <SectionHeader title="Категории" subtitle="Намерете точно това, което търсите" align="center" />
+        <SectionHeader title={t('home.categories')} subtitle={t('home.categoriesSubtitle')} align="center" />
         <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, flexWrap: 'wrap' }}>
           {[
-            { label: 'Сватбени рокли', emoji: '👰' },
-            { label: 'Абитуриентски', emoji: '🎓' },
-            { label: 'Вечерни рокли', emoji: '✨' },
+            { label: t('home.wedding'), emoji: '👰', value: 'wedding' },
+            { label: t('home.graduation'), emoji: '🎓', value: 'graduation' },
+            { label: t('home.evening'), emoji: '✨', value: 'evening' },
           ].map((cat) => (
             <Chip
-              key={cat.label}
+              key={cat.value}
               label={`${cat.emoji}  ${cat.label}`}
-              onClick={() => navigate('/listings')}
+              onClick={() => navigate(`/listings?category=${cat.value}`)}
               sx={{
                 px: 3, py: 3, fontSize: '1rem', borderRadius: 3,
                 border: '1px solid', borderColor: 'divider',
@@ -134,7 +135,7 @@ const Home: React.FC = () => {
       {/* Featured */}
       <Box sx={{ bgcolor: 'background.paper', py: { xs: 6, md: 8 } }}>
         <Container maxWidth="lg">
-          <SectionHeader title="Избрани обяви" subtitle="Ръчно подбрани рокли от нашия екип" />
+          <SectionHeader title={t('home.featured')} subtitle={t('home.featuredSubtitle')} />
           {status === 'loading' && listings.length === 0 ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
               <CircularProgress sx={{ color: 'primary.dark' }} />
@@ -155,7 +156,7 @@ const Home: React.FC = () => {
               onClick={() => navigate('/listings')}
               sx={{ borderColor: 'secondary.main', color: 'secondary.main', px: 4 }}
             >
-              Виж всички обяви
+              {t('home.viewAllListings')}
             </Button>
           </Box>
             </>
@@ -165,18 +166,18 @@ const Home: React.FC = () => {
 
       {/* Trust */}
       <Container maxWidth="lg" sx={{ py: { xs: 6, md: 8 } }}>
-        <SectionHeader title="Защо Грация?" align="center" />
+        <SectionHeader title={t('home.whyGracia')} align="center" />
         <Grid container spacing={4}>
           {[
-            { icon: '🛡️', title: 'Проверени продавачи', desc: 'Всеки продавач е верифициран за вашата безопасност.' },
-            { icon: '💎', title: 'Качествени рокли', desc: 'Само рокли в отлично състояние от премиум марки.' },
-            { icon: '🤝', title: 'Лесна комуникация', desc: 'Директен контакт между купувач и продавач.' },
+            { icon: '🛡️', titleKey: 'home.trust1Title', descKey: 'home.trust1Desc' },
+            { icon: '💎', titleKey: 'home.trust2Title', descKey: 'home.trust2Desc' },
+            { icon: '🤝', titleKey: 'home.trust3Title', descKey: 'home.trust3Desc' },
           ].map((item) => (
-            <Grid item xs={12} md={4} key={item.title}>
+            <Grid item xs={12} md={4} key={item.titleKey}>
               <Box sx={{ textAlign: 'center', p: 3 }}>
                 <Typography variant="h3" sx={{ mb: 2 }}>{item.icon}</Typography>
-                <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>{item.title}</Typography>
-                <Typography variant="body2" color="text.secondary">{item.desc}</Typography>
+                <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>{t(item.titleKey)}</Typography>
+                <Typography variant="body2" color="text.secondary">{t(item.descKey)}</Typography>
               </Box>
             </Grid>
           ))}

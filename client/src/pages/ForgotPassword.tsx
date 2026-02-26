@@ -4,8 +4,11 @@ import { Link } from 'react-router-dom';
 import PageContainer from '@/components/PageContainer';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { forgotPassword, clearAuthError } from '@/features/auth/authSlice';
+import { useTranslation } from 'react-i18next';
+import { getAuthErrorKey } from '@/lib/authErrors';
 
 const ForgotPassword: React.FC = () => {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const { status, error } = useAppSelector((state) => state.auth);
   const [email, setEmail] = useState('');
@@ -27,25 +30,25 @@ const ForgotPassword: React.FC = () => {
     <PageContainer maxWidth="xs">
       <Box sx={{ py: 4 }}>
         <Typography variant="h4" sx={{ textAlign: 'center', mb: 1, fontWeight: 600 }}>
-          Забравена парола
+          {t('auth.forgotPasswordTitle')}
         </Typography>
         <Typography variant="body1" sx={{ textAlign: 'center', color: 'text.secondary', mb: 4 }}>
-          Въведете имейла си и ще ви изпратим инструкции за нулиране на паролата.
+          {t('auth.forgotPasswordSubtitle')}
         </Typography>
         {success && (
           <Alert severity="success" sx={{ mb: 2 }}>
-            Ако имейлът съществува, ще получите инструкции за нулиране на паролата.
+            {t('auth.forgotPasswordSuccess')}
           </Alert>
         )}
         {error && (
           <Alert severity="error" sx={{ mb: 2 }} onClose={() => dispatch(clearAuthError())}>
-            {error}
+            {t(`authErrors.${getAuthErrorKey(error)}`)}
           </Alert>
         )}
         <Box component="form" onSubmit={handleSubmit}>
           <TextField
             fullWidth
-            label="Имейл"
+            label={t('auth.email')}
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -60,11 +63,11 @@ const ForgotPassword: React.FC = () => {
             sx={{ py: 1.5, mb: 2 }}
             disabled={status === 'loading'}
           >
-            Изпрати
+            {t('auth.send')}
           </Button>
           <Typography variant="body2" sx={{ textAlign: 'center', mt: 2 }}>
             <MuiLink component={Link} to="/login" sx={{ color: 'primary.dark', fontWeight: 500 }}>
-              Обратно към вход
+              {t('auth.backToLogin')}
             </MuiLink>
           </Typography>
         </Box>

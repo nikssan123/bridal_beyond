@@ -11,6 +11,7 @@ export interface SellerSummary {
   listings: number;
   location: string;
   memberSince: string;
+  isVerified?: boolean;
 }
 
 export interface ListingDTO {
@@ -27,6 +28,7 @@ export interface ListingDTO {
   measurements: { bust: string; waist: string; hips: string; length: string };
   images: string[];
   seller: SellerSummary;
+  status?: string;
   createdAt: string;
 }
 

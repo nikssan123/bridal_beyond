@@ -1,6 +1,11 @@
-import React from 'react';
-import { Card, CardMedia, CardContent, Typography, Box, Chip } from '@mui/material';
+import React, { useState } from 'react';
+import { Card, CardMedia, CardContent, Typography, Box, Chip, IconButton } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import FavoriteIcon from '@mui/icons-material/Favorite';
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { toggleFavorite } from '@/features/favorites/favoritesSlice';
+import { getAvatarUrl } from '@/lib/avatarUrl';
 import type { Listing } from '@/data/mockData';
 
 const conditionLabels: Record<string, string> = {
@@ -18,10 +23,29 @@ const categoryLabels: Record<string, string> = {
 
 interface Props {
   listing: Listing;
+  isFavorite?: boolean;
+  onRemoveFavorite?: (e: React.MouseEvent) => void;
 }
 
-const ListingCard: React.FC<Props> = ({ listing }) => {
+const ListingCard: React.FC<Props> = ({ listing, isFavorite: isFavoriteProp, onRemoveFavorite }) => {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
+  const listingIds = useAppSelector((state) => state.favorites.listingIds);
+  const isFavorite = isFavoriteProp ?? listingIds.includes(listing.id);
+  const images = listing.images?.length ? listing.images : [listing.images?.[0]].filter(Boolean) as string[];
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const handleFavoriteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onRemoveFavorite) {
+      onRemoveFavorite(e);
+    } else {
+      dispatch(toggleFavorite(listing.id));
+    }
+  };
+
+  const displayImage = images[currentIndex] ?? images[0];
 
   return (
     <Card
@@ -43,10 +67,66 @@ const ListingCard: React.FC<Props> = ({ listing }) => {
         <CardMedia
           component="img"
           height={320}
-          image={listing.images[0]}
+          image={getAvatarUrl(displayImage) || displayImage}
           alt={listing.title}
-          sx={{ objectFit: 'cover' }}
+          sx={{
+            objectFit: 'cover',
+            transition: 'opacity 0.3s ease',
+          }}
         />
+        {images.length > 1 && (
+          <Box
+            sx={{
+              position: 'absolute',
+              bottom: 8,
+              left: 0,
+              right: 0,
+              display: 'flex',
+              justifyContent: 'center',
+              gap: 0.5,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {images.map((_, idx) => (
+              <Box
+                key={idx}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCurrentIndex(idx);
+                }}
+                sx={{
+                  width: currentIndex === idx ? 8 : 6,
+                  height: 6,
+                  borderRadius: 3,
+                  bgcolor: currentIndex === idx ? 'primary.main' : 'rgba(255,255,255,0.8)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+                aria-label={`Image ${idx + 1} of ${images.length}`}
+              />
+            ))}
+          </Box>
+        )}
+        {isAuthenticated && (
+          <IconButton
+            onClick={handleFavoriteClick}
+            size="small"
+            sx={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              bgcolor: 'rgba(255,255,255,0.9)',
+              '&:hover': { bgcolor: 'rgba(255,255,255,0.95)' },
+            }}
+            aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+          >
+            {isFavorite ? (
+              <FavoriteIcon sx={{ color: 'primary.main', fontSize: 28 }} />
+            ) : (
+              <FavoriteBorderIcon sx={{ color: 'primary.main', fontSize: 28 }} />
+            )}
+          </IconButton>
+        )}
         <Box sx={{ position: 'absolute', top: 12, left: 12, display: 'flex', gap: 0.5 }}>
           <Chip
             label={categoryLabels[listing.category]}

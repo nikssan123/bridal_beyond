@@ -40,11 +40,40 @@ export const openApiDocument = {
           password: { type: 'string' },
         },
       },
+      AuthVerifyEmailRequest: {
+        type: 'object',
+        required: ['email', 'code'],
+        properties: {
+          email: { type: 'string', format: 'email' },
+          code: { type: 'string', maxLength: 10 },
+        },
+      },
       AuthResponse: {
         type: 'object',
         properties: {
           user: { $ref: '#/components/schemas/User' },
           token: { type: 'string' },
+        },
+      },
+      AuthForgotPasswordRequest: {
+        type: 'object',
+        required: ['email'],
+        properties: {
+          email: { type: 'string', format: 'email' },
+        },
+      },
+      AuthForgotPasswordResponse: {
+        type: 'object',
+        properties: {
+          message: { type: 'string' },
+        },
+      },
+      AuthResetPasswordRequest: {
+        type: 'object',
+        required: ['token', 'password'],
+        properties: {
+          token: { type: 'string' },
+          password: { type: 'string', minLength: 6 },
         },
       },
       SellerSummary: {
@@ -184,6 +213,81 @@ export const openApiDocument = {
         },
       },
     },
+    '/auth/verify-email': {
+      post: {
+        summary: 'Verify email with code',
+        tags: ['Auth'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/AuthVerifyEmailRequest' },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Email verified',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/AuthResponse' },
+              },
+            },
+          },
+          '400': { description: 'Invalid or expired verification code', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+        },
+      },
+    },
+    '/auth/forgot-password': {
+      post: {
+        summary: 'Request password reset',
+        tags: ['Auth'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/AuthForgotPasswordRequest' },
+            },
+          },
+        },
+        responses: {
+          '202': {
+            description: 'Accepted. If the email exists, instructions were sent; response does not indicate whether the email was found.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/AuthForgotPasswordResponse' },
+              },
+            },
+          },
+          '400': { description: 'Validation error', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+        },
+      },
+    },
+    '/auth/reset-password': {
+      post: {
+        summary: 'Reset password with token',
+        tags: ['Auth'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/AuthResetPasswordRequest' },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Password reset successfully',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/AuthResponse' },
+              },
+            },
+          },
+          '400': { description: 'Invalid or expired token', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+        },
+      },
+    },
     '/auth/me': {
       get: {
         summary: 'Get current user',
@@ -219,7 +323,7 @@ export const openApiDocument = {
     },
     '/listings': {
       get: {
-        summary: 'List listings with optional filters',
+        summary: 'List listings with optional filters and pagination',
         tags: ['Listings'],
         parameters: [
           { name: 'category', in: 'query', schema: { type: 'string', enum: ['wedding', 'graduation', 'evening'] } },
@@ -229,13 +333,22 @@ export const openApiDocument = {
           { name: 'maxPrice', in: 'query', schema: { type: 'number' } },
           { name: 'search', in: 'query', schema: { type: 'string' } },
           { name: 'sortBy', in: 'query', schema: { type: 'string', enum: ['newest', 'price-asc', 'price-desc'] } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 50 }, description: 'Page size (default 24)' },
+          { name: 'offset', in: 'query', schema: { type: 'integer', minimum: 0 }, description: 'Number of items to skip' },
         ],
         responses: {
           '200': {
             description: 'OK',
             content: {
               'application/json': {
-                schema: { type: 'array', items: { $ref: '#/components/schemas/Listing' } },
+                schema: {
+                  type: 'object',
+                  required: ['listings', 'total'],
+                  properties: {
+                    listings: { type: 'array', items: { $ref: '#/components/schemas/Listing' } },
+                    total: { type: 'integer', description: 'Total count of listings matching the filters' },
+                  },
+                },
               },
             },
           },
@@ -282,6 +395,47 @@ export const openApiDocument = {
             },
           },
           '404': { description: 'Not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+        },
+      },
+    },
+    '/favorites': {
+      get: {
+        summary: 'List current user favorites',
+        tags: ['Favorites'],
+        security: [{ bearerAuth: [] }],
+        responses: {
+          '200': {
+            description: 'OK',
+            content: {
+              'application/json': {
+                schema: { type: 'array', items: { $ref: '#/components/schemas/Listing' } },
+              },
+            },
+          },
+          '401': { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+        },
+      },
+    },
+    '/favorites/{listingId}': {
+      post: {
+        summary: 'Add listing to favorites',
+        tags: ['Favorites'],
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'listingId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: {
+          '201': { description: 'Added', content: { 'application/json': { schema: { type: 'object', properties: { listingId: { type: 'string' } } } } } },
+          '401': { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+          '404': { description: 'Listing not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+        },
+      },
+      delete: {
+        summary: 'Remove listing from favorites',
+        tags: ['Favorites'],
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'listingId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: {
+          '204': { description: 'Removed' },
+          '401': { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
         },
       },
     },

@@ -7,14 +7,17 @@ import PageContainer from '@/components/PageContainer';
 import SectionHeader from '@/components/SectionHeader';
 import ImageUploader from '@/components/ImageUploader';
 import { useAppDispatch } from '@/app/hooks';
-import { createListing } from '@/features/listings/listingsSlice';
+import { createListing, uploadListingImage } from '@/features/listings/listingsSlice';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 const CreateListing: React.FC = () => {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [images, setImages] = useState<string[]>([]);
   const [submitted, setSubmitted] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
   const [form, setForm] = useState({
     title: '', description: '', price: '', originalPrice: '',
     category: '', size: '', condition: '', color: '', brand: '',
@@ -46,72 +49,90 @@ const CreateListing: React.FC = () => {
 
   return (
     <PageContainer maxWidth="md">
-      <SectionHeader title="Добави обява" subtitle="Продайте роклята си бързо и лесно" />
-      {submitted && <Alert severity="success" sx={{ mb: 3, borderRadius: 2 }}>Обявата е създадена успешно!</Alert>}
+      <SectionHeader title={t('listing.addListing')} subtitle={t('listing.addListingSubtitle')} />
+      {submitted && <Alert severity="success" sx={{ mb: 3, borderRadius: 2 }}>{t('listing.createSuccess')}</Alert>}
       <Box component="form" onSubmit={handleSubmit}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, fontFamily: "'Playfair Display', serif" }}>Снимки</Typography>
-        <ImageUploader images={images} onChange={setImages} />
+        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, fontFamily: "'Playfair Display', serif" }}>{t('listing.photos')}</Typography>
+        <ImageUploader
+          images={images}
+          onChange={(urls) => { setImages(urls); setImageError(null); }}
+          onUpload={async (file) => {
+            try {
+              const url = await dispatch(uploadListingImage(file)).unwrap();
+              return url;
+            } catch (err) {
+              const msg = (err as Error)?.message || 'Upload failed';
+              setImageError(msg);
+              throw err;
+            }
+          }}
+        />
+        {imageError && (
+          <Alert severity="error" sx={{ mt: 1, borderRadius: 2 }} onClose={() => setImageError(null)}>
+            {imageError}
+          </Alert>
+        )}
 
         <Grid container spacing={2.5} sx={{ mt: 3 }}>
           <Grid item xs={12}>
-            <TextField fullWidth label="Заглавие" value={form.title} onChange={update('title')} required />
+            <TextField fullWidth label={t('listing.titleLabel')} value={form.title} onChange={update('title')} required />
           </Grid>
           <Grid item xs={12}>
-            <TextField fullWidth label="Описание" multiline rows={4} value={form.description} onChange={update('description')} required />
+            <TextField fullWidth label={t('listing.description')} multiline rows={4} value={form.description} onChange={update('description')} required />
           </Grid>
           <Grid item xs={6}>
-            <TextField fullWidth label="Цена (лв.)" type="number" value={form.price} onChange={update('price')} required />
+            <TextField fullWidth label={t('listing.price')} type="number" value={form.price} onChange={update('price')} required />
           </Grid>
           <Grid item xs={6}>
-            <TextField fullWidth label="Оригинална цена (лв.)" type="number" value={form.originalPrice} onChange={update('originalPrice')} required />
+            <TextField fullWidth label={t('listing.originalPrice')} type="number" value={form.originalPrice} onChange={update('originalPrice')} required />
           </Grid>
           <Grid item xs={6}>
             <FormControl fullWidth required>
-              <InputLabel>Категория</InputLabel>
-              <Select value={form.category} label="Категория" onChange={update('category')}>
-                <MenuItem value="wedding">Сватбена</MenuItem>
-                <MenuItem value="graduation">Абитуриентска</MenuItem>
-                <MenuItem value="evening">Вечерна</MenuItem>
+              <InputLabel>{t('listing.category')}</InputLabel>
+              <Select value={form.category} label={t('listing.category')} onChange={update('category')}>
+                <MenuItem value="wedding">{t('listing.category_wedding')}</MenuItem>
+                <MenuItem value="graduation">{t('listing.category_graduation')}</MenuItem>
+                <MenuItem value="evening">{t('listing.category_evening')}</MenuItem>
               </Select>
             </FormControl>
           </Grid>
           <Grid item xs={6}>
             <FormControl fullWidth required>
-              <InputLabel>Размер</InputLabel>
-              <Select value={form.size} label="Размер" onChange={update('size')}>
+              <InputLabel>{t('listing.size')}</InputLabel>
+              <Select value={form.size} label={t('listing.size')} onChange={update('size')}>
                 {['XS', 'S', 'M', 'L', 'XL'].map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
               </Select>
             </FormControl>
           </Grid>
           <Grid item xs={6}>
             <FormControl fullWidth required>
-              <InputLabel>Състояние</InputLabel>
-              <Select value={form.condition} label="Състояние" onChange={update('condition')}>
-                <MenuItem value="new">Нова</MenuItem>
-                <MenuItem value="like-new">Като нова</MenuItem>
-                <MenuItem value="good">Добро</MenuItem>
-                <MenuItem value="fair">Задоволително</MenuItem>
+              <InputLabel>{t('listing.condition')}</InputLabel>
+              <Select value={form.condition} label={t('listing.condition')} onChange={update('condition')}>
+                <MenuItem value="new">{t('listing.condition_new')}</MenuItem>
+                <MenuItem value="like-new">{t('listing.condition_like-new')}</MenuItem>
+                <MenuItem value="good">{t('listing.condition_good')}</MenuItem>
+                <MenuItem value="fair">{t('listing.condition_fair')}</MenuItem>
               </Select>
             </FormControl>
           </Grid>
           <Grid item xs={6}>
-            <TextField fullWidth label="Цвят" value={form.color} onChange={update('color')} />
+            <TextField fullWidth label={t('listing.color')} value={form.color} onChange={update('color')} />
           </Grid>
           <Grid item xs={12}>
-            <TextField fullWidth label="Марка" value={form.brand} onChange={update('brand')} />
+            <TextField fullWidth label={t('listing.brand')} value={form.brand} onChange={update('brand')} />
           </Grid>
 
           <Grid item xs={12}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, fontFamily: "'Playfair Display', serif", mt: 1 }}>Размери</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, fontFamily: "'Playfair Display', serif", mt: 1 }}>{t('listing.measurements')}</Typography>
           </Grid>
-          <Grid item xs={6} sm={3}><TextField fullWidth label="Бюст" value={form.bust} onChange={update('bust')} /></Grid>
-          <Grid item xs={6} sm={3}><TextField fullWidth label="Талия" value={form.waist} onChange={update('waist')} /></Grid>
-          <Grid item xs={6} sm={3}><TextField fullWidth label="Ханш" value={form.hips} onChange={update('hips')} /></Grid>
-          <Grid item xs={6} sm={3}><TextField fullWidth label="Дължина" value={form.length} onChange={update('length')} /></Grid>
+          <Grid item xs={6} sm={3}><TextField fullWidth label={t('listing.bust')} value={form.bust} onChange={update('bust')} /></Grid>
+          <Grid item xs={6} sm={3}><TextField fullWidth label={t('listing.waist')} value={form.waist} onChange={update('waist')} /></Grid>
+          <Grid item xs={6} sm={3}><TextField fullWidth label={t('listing.hips')} value={form.hips} onChange={update('hips')} /></Grid>
+          <Grid item xs={6} sm={3}><TextField fullWidth label={t('listing.length')} value={form.length} onChange={update('length')} /></Grid>
         </Grid>
 
         <Button type="submit" variant="contained" size="large" fullWidth sx={{ mt: 4, py: 1.5 }}>
-          Публикувай обявата
+          {t('listing.publish')}
         </Button>
       </Box>
     </PageContainer>

@@ -1,25 +1,37 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  AppBar, Toolbar, Typography, Button, IconButton, Box, Drawer,
-  List, ListItem, ListItemText, useMediaQuery, useTheme, Container,
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  IconButton,
+  Box,
+  Drawer,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Container,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import AddIcon from '@mui/icons-material/Add';
+import ViewListIcon from '@mui/icons-material/ViewList';
+import PersonIcon from '@mui/icons-material/Person';
+import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
+import LoginIcon from '@mui/icons-material/Login';
 import { useAppSelector } from '@/app/hooks';
+import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 const Navbar: React.FC = () => {
+  const { t } = useTranslation();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const navigate = useNavigate();
   const { isAuthenticated } = useAppSelector((state) => state.auth);
 
-  const navLinks = [
-    { label: 'Начало', path: '/' },
-    { label: 'Обяви', path: '/listings' },
-  ];
+  const navLinks = [{ label: t('nav.listings'), path: '/listings', icon: <ViewListIcon /> }];
 
   return (
     <>
@@ -32,72 +44,74 @@ const Navbar: React.FC = () => {
               to="/"
               sx={{
                 textDecoration: 'none',
-                color: 'secondary.main',
+                color: 'common.black',
                 fontFamily: "'Playfair Display', serif",
                 fontWeight: 600,
                 fontStyle: 'italic',
                 letterSpacing: 1,
               }}
             >
-              Грация
+              {t('brand')}
             </Typography>
 
-            {isMobile ? (
-              <IconButton onClick={() => setDrawerOpen(true)} sx={{ color: 'secondary.main' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main' }}>
+              <Button
+                variant="outlined"
+                startIcon={<AddIcon />}
+                onClick={() => navigate('/create')}
+                sx={{
+                  borderColor: 'primary.main',
+                  color: 'primary.main',
+                  '&:hover': { borderColor: 'primary.dark', backgroundColor: 'primary.light', color: 'primary.dark' },
+                }}
+              >
+                {t('nav.addListing')}
+              </Button>
+              {isAuthenticated && (
+                <IconButton component={Link} to="/favorites" sx={{ color: 'inherit' }}>
+                  <FavoriteBorderIcon />
+                </IconButton>
+              )}
+              <Box component="span" sx={{ color: 'common.black' }}>
+                <LanguageSwitcher />
+              </Box>
+              {!isAuthenticated && (
+                <Button
+                  variant="contained"
+                  color="primary"
+                  startIcon={<LoginIcon />}
+                  onClick={() => navigate('/login')}
+                  sx={{ ml: 1 }}
+                >
+                  {t('nav.login')}
+                </Button>
+              )}
+              <IconButton
+                onClick={() => setDrawerOpen(true)}
+                sx={{ color: 'secondary.main' }}
+                aria-label={t('nav.menu')}
+              >
                 <MenuIcon />
               </IconButton>
-            ) : (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                {navLinks.map((link) => (
-                  <Button
-                    key={link.path}
-                    component={Link}
-                    to={link.path}
-                    sx={{ color: 'text.primary', fontWeight: 400, fontSize: '0.95rem' }}
-                  >
-                    {link.label}
-                  </Button>
-                ))}
-                <Button
-                  variant="outlined"
-                  startIcon={<AddIcon />}
-                  onClick={() => navigate('/create')}
-                  sx={{
-                    borderColor: 'primary.main',
-                    color: 'primary.dark',
-                    ml: 1,
-                    '&:hover': { borderColor: 'primary.dark', backgroundColor: 'primary.light' },
-                  }}
-                >
-                  Добави обява
-                </Button>
-                {isAuthenticated ? (
-                  <IconButton sx={{ color: 'primary.dark' }}>
-                    <FavoriteBorderIcon />
-                  </IconButton>
-                ) : (
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={() => navigate('/login')}
-                    sx={{ ml: 1 }}
-                  >
-                    Вход
-                  </Button>
-                )}
-              </Box>
-            )}
+            </Box>
           </Toolbar>
         </Container>
       </AppBar>
 
       <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
-        <Box sx={{ width: 280, pt: 2 }}>
+        <Box sx={{ width: 280, pt: 2, color: 'primary.main' }}>
           <Typography
             variant="h5"
-            sx={{ px: 3, pb: 2, fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontWeight: 600 }}
+            sx={{
+              px: 3,
+              pb: 2,
+              fontFamily: "'Playfair Display', serif",
+              fontStyle: 'italic',
+              fontWeight: 600,
+              color: 'common.black',
+            }}
           >
-            Грация
+            {t('brand')}
           </Typography>
           <List>
             {navLinks.map((link) => (
@@ -106,27 +120,50 @@ const Navbar: React.FC = () => {
                 component={Link}
                 to={link.path}
                 onClick={() => setDrawerOpen(false)}
-                sx={{ color: 'text.primary', '&:hover': { bgcolor: 'primary.light' } }}
+                sx={{ color: 'inherit', '&:hover': { bgcolor: 'primary.light' } }}
               >
+                <ListItemIcon sx={{ minWidth: 40, color: 'common.black' }}>{link.icon}</ListItemIcon>
                 <ListItemText primary={link.label} />
               </ListItem>
             ))}
-            <ListItem
-              component={Link}
-              to="/create"
-              onClick={() => setDrawerOpen(false)}
-              sx={{ color: 'primary.dark' }}
-            >
-              <ListItemText primary="Добави обява" />
-            </ListItem>
-            <ListItem
-              component={Link}
-              to="/login"
-              onClick={() => setDrawerOpen(false)}
-              sx={{ color: 'text.primary' }}
-            >
-              <ListItemText primary="Вход / Регистрация" />
-            </ListItem>
+            {isAuthenticated ? (
+              <>
+                <ListItem
+                  component={Link}
+                  to="/profile"
+                  onClick={() => setDrawerOpen(false)}
+                  sx={{ color: 'inherit', '&:hover': { bgcolor: 'primary.light' } }}
+                >
+                  <ListItemIcon sx={{ minWidth: 40, color: 'common.black' }}>
+                    <PersonIcon />
+                  </ListItemIcon>
+                  <ListItemText primary={t('nav.profile')} />
+                </ListItem>
+                <ListItem
+                  component={Link}
+                  to="/messages"
+                  onClick={() => setDrawerOpen(false)}
+                  sx={{ color: 'inherit', '&:hover': { bgcolor: 'primary.light' } }}
+                >
+                  <ListItemIcon sx={{ minWidth: 40, color: 'common.black' }}>
+                    <ChatBubbleOutlineIcon />
+                  </ListItemIcon>
+                  <ListItemText primary={t('nav.messages')} />
+                </ListItem>
+              </>
+            ) : (
+              <ListItem
+                component={Link}
+                to="/login"
+                onClick={() => setDrawerOpen(false)}
+                sx={{ color: 'inherit', '&:hover': { bgcolor: 'primary.light' } }}
+              >
+                <ListItemIcon sx={{ minWidth: 40, color: 'common.black' }}>
+                  <LoginIcon />
+                </ListItemIcon>
+                <ListItemText primary={t('nav.loginOrRegister')} />
+              </ListItem>
+            )}
           </List>
         </Box>
       </Drawer>

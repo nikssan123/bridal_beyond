@@ -1,3 +1,6 @@
+import { Request, Response, NextFunction } from 'express';
+import multer from 'multer';
+
 export class AppError extends Error {
   constructor(
     public readonly statusCode: number,
@@ -26,17 +29,24 @@ export function notFound(message = 'Resource not found'): AppError {
   return new AppError(404, message, 'NOT_FOUND');
 }
 
-import { Request, Response, NextFunction } from 'express';
-
 export function errorHandler(
   err: Error & { statusCode?: number; code?: string },
   _req: Request,
   res: Response,
   _next: NextFunction
 ): void {
-  const statusCode = err instanceof AppError ? err.statusCode : err.statusCode ?? 500;
-  const code = err instanceof AppError ? err.code : err.code ?? 'INTERNAL_ERROR';
-  const message = err.message || 'Internal server error';
+  let statusCode = err instanceof AppError ? err.statusCode : err.statusCode ?? 500;
+  let code = err instanceof AppError ? err.code : err.code ?? 'INTERNAL_ERROR';
+  let message = err.message || 'Internal server error';
+
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      statusCode = 400;
+      code = 'FILE_TOO_LARGE';
+      message = 'File too large.';
+    }
+  }
+
   if (statusCode >= 500) console.error(err);
   res.status(statusCode).json({ message, code });
 }

@@ -1,11 +1,4 @@
-export interface ReviewRow {
-  id: string;
-  seller_id: string;
-  author_name: string;
-  rating: number;
-  comment: string;
-  created_at: Date;
-}
+import { prisma } from '../../prisma';
 
 export interface ReviewDTO {
   id: string;
@@ -17,16 +10,11 @@ export interface ReviewDTO {
 }
 
 export async function listBySellerId(sellerId: string): Promise<ReviewDTO[]> {
-  const { getPool } = await import('../../config/database');
-  const pool = getPool();
-  const res = await pool.query(
-    `SELECT id, seller_id, author_name, rating, comment, created_at
-     FROM reviews
-     WHERE seller_id = $1
-     ORDER BY created_at DESC`,
-    [sellerId]
-  );
-  return (res.rows as ReviewRow[]).map((r) => ({
+  const reviews = await prisma.review.findMany({
+    where: { seller_id: sellerId },
+    orderBy: { created_at: 'desc' },
+  });
+  return reviews.map((r: any) => ({
     id: r.id,
     sellerId: r.seller_id,
     userName: r.author_name,
@@ -43,15 +31,15 @@ export async function create(data: {
   comment: string;
   authorUserId?: string;
 }): Promise<ReviewDTO> {
-  const { getPool } = await import('../../config/database');
-  const pool = getPool();
-  const res = await pool.query(
-    `INSERT INTO reviews (seller_id, author_user_id, author_name, rating, comment)
-     VALUES ($1, $2, $3, $4, $5)
-     RETURNING id, seller_id, author_name, rating, comment, created_at`,
-    [data.sellerId, data.authorUserId ?? null, data.authorName, data.rating, data.comment]
-  );
-  const row = res.rows[0] as ReviewRow & { created_at: Date };
+  const row = await prisma.review.create({
+    data: {
+      seller_id: data.sellerId,
+      author_user_id: data.authorUserId ?? null,
+      author_name: data.authorName,
+      rating: data.rating,
+      comment: data.comment,
+    },
+  });
   return {
     id: row.id,
     sellerId: row.seller_id,

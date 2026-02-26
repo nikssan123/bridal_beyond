@@ -2,11 +2,20 @@ import { Router } from 'express';
 import authRoutes from '../modules/auth/authRoutes';
 import listingsRoutes from '../modules/listings/listingsRoutes';
 import sellersRoutes from '../modules/sellers/sellersRoutes';
+import favoritesRoutes from '../modules/favorites/favoritesRoutes';
+import conversationsRoutes from '../modules/conversations/conversationsRoutes';
+import stripeRoutes from '../modules/stripe/stripeRoutes';
+import paymentsRoutes from '../modules/payments/paymentsRoutes';
+import { authMiddleware } from '../middleware/authMiddleware';
 
 const router = Router();
 
 router.use('/auth', authRoutes);
 router.use('/listings', listingsRoutes);
 router.use('/sellers', sellersRoutes);
+router.use('/favorites', authMiddleware, favoritesRoutes);
+router.use('/conversations', conversationsRoutes);
+router.use('/stripe', authMiddleware, stripeRoutes);
+router.use('/payments', paymentsRoutes);
 
 export default router;

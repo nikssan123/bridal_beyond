@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { validateRequest } from '../../middleware/validateRequest';
 import { authMiddleware } from '../../middleware/authMiddleware';
+import { uploadListingImage } from '../../middleware/uploadListingImage';
 import * as listingsController from './listingsController';
 
 const createListingSchema = {
@@ -34,6 +35,10 @@ const listQuerySchema = {
     maxPrice: z.coerce.number().optional(),
     search: z.string().optional(),
     sortBy: z.enum(['newest', 'price-asc', 'price-desc']).optional(),
+    sellerId: z.string().optional(),
+    status: z.string().optional(),
+    limit: z.coerce.number().min(1).max(50).optional(),
+    offset: z.coerce.number().min(0).optional(),
   }),
 };
 
@@ -44,6 +49,7 @@ const idParamSchema = {
 const router = Router();
 
 router.get('/', validateRequest(listQuerySchema), listingsController.list);
+router.post('/upload-image', authMiddleware, uploadListingImage, listingsController.uploadImage);
 router.get('/:id', validateRequest(idParamSchema), listingsController.getById);
 router.post('/', authMiddleware, validateRequest(createListingSchema), listingsController.create);
 

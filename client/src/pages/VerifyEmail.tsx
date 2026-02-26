@@ -4,8 +4,11 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import PageContainer from '@/components/PageContainer';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { verifyEmail, clearAuthError } from '@/features/auth/authSlice';
+import { useTranslation } from 'react-i18next';
+import { getAuthErrorKey } from '@/lib/authErrors';
 
 const VerifyEmail: React.FC = () => {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const location = useLocation();
@@ -25,7 +28,7 @@ const VerifyEmail: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     dispatch(verifyEmail({ email, code })).then((result) => {
-      if (verifyEmail.fulfilled.match(result)) navigate('/');
+      if (verifyEmail.fulfilled.match(result)) navigate('/profile');
     });
   };
 
@@ -33,20 +36,20 @@ const VerifyEmail: React.FC = () => {
     <PageContainer maxWidth="xs">
       <Box sx={{ py: 4 }}>
         <Typography variant="h4" sx={{ textAlign: 'center', mb: 1, fontWeight: 600 }}>
-          Потвърдете имейла си
+          {t('auth.verifyEmailTitle')}
         </Typography>
         <Typography variant="body1" sx={{ textAlign: 'center', color: 'text.secondary', mb: 4 }}>
-          Изпратихме ви код за потвърждение на имейл. Въведете го по-долу.
+          {t('auth.verifyEmailSent')}
         </Typography>
         {error && (
           <Alert severity="error" sx={{ mb: 2 }} onClose={() => dispatch(clearAuthError())}>
-            {error}
+            {t(`authErrors.${getAuthErrorKey(error)}`)}
           </Alert>
         )}
         <Box component="form" onSubmit={handleSubmit}>
           <TextField
             fullWidth
-            label="Имейл"
+            label={t('auth.email')}
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -55,11 +58,11 @@ const VerifyEmail: React.FC = () => {
           />
           <TextField
             fullWidth
-            label="Код за потвърждение (6 цифри)"
+            label={t('auth.verificationCodeLabel')}
             value={code}
             onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
             inputProps={{ maxLength: 6, inputMode: 'numeric', pattern: '[0-9]*' }}
-            placeholder="000000"
+            placeholder={t('auth.verificationCodePlaceholder')}
             required
             sx={{ mb: 3 }}
           />
@@ -71,12 +74,12 @@ const VerifyEmail: React.FC = () => {
             sx={{ py: 1.5, mb: 2 }}
             disabled={status === 'loading' || code.length !== 6}
           >
-            Потвърди
+            {t('auth.confirm')}
           </Button>
           <Typography variant="body2" sx={{ textAlign: 'center', mt: 2 }}>
-            Вече имате акаунт?{' '}
+            {t('auth.haveAccount')}{' '}
             <MuiLink component={Link} to="/login" sx={{ color: 'primary.dark', fontWeight: 500 }}>
-              Влезте
+              {t('auth.signInLink')}
             </MuiLink>
           </Typography>
         </Box>
