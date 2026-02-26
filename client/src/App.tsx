@@ -23,6 +23,7 @@ import Profile from './pages/Profile';
 import NotFound from './pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
+import AdminPortal from './pages/AdminPortal';
 import Favorites from './pages/Favorites';
 import Messages from './pages/Messages';
 import AdminDisputes from './pages/AdminDisputes';
@@ -51,6 +52,7 @@ const App = () => {
             <Route path="/listings/:id" element={<ListingDetails />} />
             <Route path="/checkout/:listingId" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
             <Route path="/orders/:orderId" element={<ProtectedRoute><OrderDetails /></ProtectedRoute>} />
+            <Route path="/admin" element={<AdminPortal />} />
             <Route path="/admin/disputes" element={<AdminRoute><AdminDisputes /></AdminRoute>} />
             <Route path="/admin/disputes/:id" element={<AdminRoute><AdminDisputeDetails /></AdminRoute>} />
             <Route path="/create" element={<CreateListing />} />

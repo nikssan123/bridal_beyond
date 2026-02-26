@@ -22,4 +22,6 @@ export const env = {
   stripePlatformFeePercent: parseInt(getEnv('STRIPE_PLATFORM_FEE_PERCENT', '5'), 10),
   clientUrl: getEnv('CLIENT_URL', 'http://localhost:5173'),
   stripeCurrency: (getEnv('STRIPE_CURRENCY', 'eur') || 'eur').toLowerCase(),
+  adminUsername: getEnv('ADMIN_USERNAME', 'admin'),
+  adminPassword: getEnv('ADMIN_PASSWORD', 'change-me'),
 };
