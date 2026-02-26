@@ -6,6 +6,7 @@ import favoritesRoutes from '../modules/favorites/favoritesRoutes';
 import conversationsRoutes from '../modules/conversations/conversationsRoutes';
 import stripeRoutes from '../modules/stripe/stripeRoutes';
 import paymentsRoutes from '../modules/payments/paymentsRoutes';
+import ordersRoutes from '../modules/orders/ordersRoutes';
 import { authMiddleware } from '../middleware/authMiddleware';
 
 const router = Router();
@@ -17,5 +18,6 @@ router.use('/favorites', authMiddleware, favoritesRoutes);
 router.use('/conversations', conversationsRoutes);
 router.use('/stripe', authMiddleware, stripeRoutes);
 router.use('/payments', paymentsRoutes);
+router.use('/orders', ordersRoutes);
 
 export default router;

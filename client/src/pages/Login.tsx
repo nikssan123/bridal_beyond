@@ -14,13 +14,19 @@ const Login: React.FC = () => {
   const location = useLocation();
   const resetSuccess = (location.state as { resetSuccess?: boolean } | null)?.resetSuccess;
   const redirectTo = new URLSearchParams(location.search).get('redirect');
-  const { status, error } = useAppSelector((state) => state.auth);
+  const { status, error, isAuthenticated } = useAppSelector((state) => state.auth);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   React.useEffect(() => {
     dispatch(clearAuthError());
   }, [dispatch]);
+
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

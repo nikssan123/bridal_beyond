@@ -44,11 +44,38 @@ export async function handleStripeWebhook(req: Request, res: Response): Promise<
           data: { status: 'sold' },
         });
       }
+      // If there is an Order associated to this PaymentIntent and it is still pending, mark as payment_secured
+      try {
+        const order = await prisma.order.findUnique({
+          where: { payment_intent_id: pi.id },
+        });
+        if (order && order.status === 'payment_pending') {
+          await prisma.order.update({
+            where: { id: order.id },
+            data: { status: 'payment_secured' },
+          });
+        }
+      } catch (e) {
+        console.error('Failed to update order from webhook:', e);
+      }
       break;
     }
     case 'payment_intent.payment_failed': {
       const pi = event.data.object as Stripe.PaymentIntent;
       await paymentsRepository.updateStatus(pi.id, 'failed');
+      try {
+        const order = await prisma.order.findUnique({
+          where: { payment_intent_id: pi.id },
+        });
+        if (order && order.status === 'payment_pending') {
+          await prisma.order.update({
+            where: { id: order.id },
+            data: { status: 'cancelled' },
+          });
+        }
+      } catch (e) {
+        console.error('Failed to cancel order from webhook:', e);
+      }
       break;
     }
     default:

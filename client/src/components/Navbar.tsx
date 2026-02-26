@@ -13,6 +13,7 @@ import {
   ListItemIcon,
   ListItemText,
   Container,
+  Divider,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
@@ -21,14 +22,17 @@ import ViewListIcon from '@mui/icons-material/ViewList';
 import PersonIcon from '@mui/icons-material/Person';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import LoginIcon from '@mui/icons-material/Login';
-import { useAppSelector } from '@/app/hooks';
+import LogoutIcon from '@mui/icons-material/Logout';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { logout } from '@/features/auth/authSlice';
 
 const Navbar: React.FC = () => {
   const { t } = useTranslation();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const { isAuthenticated } = useAppSelector((state) => state.auth);
 
   const navLinks = [{ label: t('nav.listings'), path: '/listings', icon: <ViewListIcon /> }];
@@ -99,7 +103,16 @@ const Navbar: React.FC = () => {
       </AppBar>
 
       <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
-        <Box sx={{ width: 280, pt: 2, color: 'primary.main' }}>
+        <Box
+          sx={{
+            width: 280,
+            pt: 2,
+            color: 'primary.main',
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100%',
+          }}
+        >
           <Typography
             variant="h5"
             sx={{
@@ -113,7 +126,7 @@ const Navbar: React.FC = () => {
           >
             {t('brand')}
           </Typography>
-          <List>
+          <List sx={{ flexGrow: 1 }}>
             {navLinks.map((link) => (
               <ListItem
                 key={link.path}
@@ -165,6 +178,24 @@ const Navbar: React.FC = () => {
               </ListItem>
             )}
           </List>
+          {isAuthenticated && (
+            <>
+              <Divider />
+              <ListItem
+                onClick={() => {
+                  dispatch(logout());
+                  setDrawerOpen(false);
+                  navigate('/');
+                }}
+                sx={{ color: 'inherit', '&:hover': { bgcolor: 'primary.light' } }}
+              >
+                <ListItemIcon sx={{ minWidth: 40, color: 'common.black' }}>
+                  <LogoutIcon />
+                </ListItemIcon>
+                <ListItemText primary={t('nav.logout', 'Logout')} />
+              </ListItem>
+            </>
+          )}
         </Box>
       </Drawer>
     </>

@@ -1,0 +1,58 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16
+    restart: always
+    env_file:
+      - ./.env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "6000:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    image: node:20
+    working_dir: /app
+    restart: always
+    env_file:
+      - ./backend/.env
+      - ./.env
+    environment:
+      # override DB host to use the postgres service with env credentials
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      PORT: 4000
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    command: sh -c "npm install && npm run dev"
+    ports:
+      - "6001:4000"
+    depends_on:
+      - postgres
+
+  frontend:
+    image: node:20
+    working_dir: /app
+    restart: always
+    env_file:
+      - ./client/.env
+    environment:
+      # Point frontend API URL at backend container
+      VITE_API_URL: http://localhost:6001/api
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
+    ports:
+      - "6002:5173"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+

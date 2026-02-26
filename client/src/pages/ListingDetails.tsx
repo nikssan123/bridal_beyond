@@ -293,17 +293,12 @@ const ListingDetails: React.FC = () => {
                 variant="contained"
                 color="secondary"
                 size="large"
-                disabled={paymentsStatus === 'loading'}
-                onClick={async () => {
+                onClick={() => {
                   if (!listing?.id) return;
-                  await dispatch(createPaymentIntent(listing.id));
+                  navigate(`/checkout/${listing.id}`);
                 }}
               >
-                {paymentsStatus === 'loading' ? (
-                  <CircularProgress size={24} color="inherit" />
-                ) : (
-                  t('listing.buyWithProtection', 'Buy with Protection')
-                )}
+                {t('listing.buyWithProtection', 'Buy with Protection')}
               </Button>
             )}
             {isAuthenticated && (

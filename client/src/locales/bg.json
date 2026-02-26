@@ -179,6 +179,6 @@
     "avatarUrlPlaceholder": "Или поставете връзка към снимка (https://...)",
     "fileMustBeImage": "Файлът трябва да е изображение (JPEG, PNG или WebP).",
     "fileTooLarge": "Файлът е твърде голям. Максималният размер е 2MB.",
-    "connectStripe": "Свържи Stripe"
+    "connectStripe": "Добави начин за плащане"
   }
 }

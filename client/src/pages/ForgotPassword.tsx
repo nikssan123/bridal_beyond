@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Box, TextField, Button, Typography, Link as MuiLink, Alert } from '@mui/material';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/PageContainer';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { forgotPassword, clearAuthError } from '@/features/auth/authSlice';
@@ -10,13 +10,20 @@ import { getAuthErrorKey } from '@/lib/authErrors';
 const ForgotPassword: React.FC = () => {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
-  const { status, error } = useAppSelector((state) => state.auth);
+  const navigate = useNavigate();
+  const { status, error, isAuthenticated } = useAppSelector((state) => state.auth);
   const [email, setEmail] = useState('');
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     dispatch(clearAuthError());
   }, [dispatch]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
