@@ -61,7 +61,7 @@ const FilterContent: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
         value={filters.priceRange}
         onChange={(_, val) => dispatch(setPriceRange(val as [number, number]))}
         min={0}
-        max={5000}
+        max={100000}
         step={50}
         valueLabelDisplay="auto"
         sx={{ color: 'primary.dark', mb: 1 }}
