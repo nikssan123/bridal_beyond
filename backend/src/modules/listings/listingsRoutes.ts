@@ -22,7 +22,7 @@ const createListingSchema = {
       hips: z.string(),
       length: z.string(),
     }),
-    images: z.array(z.string()).default([]),
+    images: z.array(z.string()).min(2, 'At least 2 images are required'),
   }),
 };
 
@@ -37,7 +37,7 @@ const listQuerySchema = {
     sortBy: z.enum(['newest', 'price-asc', 'price-desc']).optional(),
     sellerId: z.string().optional(),
     status: z.string().optional(),
-    limit: z.coerce.number().min(1).max(50).optional(),
+    limit: z.coerce.number().min(1).max(100).optional(),
     offset: z.coerce.number().min(0).optional(),
   }),
 };

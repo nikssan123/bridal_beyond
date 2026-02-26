@@ -28,6 +28,23 @@ export const connectStripe = createAsyncThunk(
   }
 );
 
+export const openStripeAccount = createAsyncThunk(
+  'stripe/openAccount',
+  async (_, { rejectWithValue }) => {
+    try {
+      const { data } = await api.post<{ accountLinkUrl: string }>('/stripe/account-link');
+      return data.accountLinkUrl;
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data
+          ?.message ||
+        (err as Error)?.message ||
+        'Failed to open Stripe account';
+      return rejectWithValue(message);
+    }
+  }
+);
+
 const stripeSlice = createSlice({
   name: 'stripe',
   initialState,
@@ -50,6 +67,18 @@ const stripeSlice = createSlice({
       .addCase(connectStripe.rejected, (state, action) => {
         state.connectStatus = 'failed';
         state.connectError = (action.payload as string) ?? 'Failed to connect Stripe';
+      })
+      .addCase(openStripeAccount.pending, (state) => {
+        state.connectStatus = 'loading';
+        state.connectError = null;
+      })
+      .addCase(openStripeAccount.fulfilled, (state) => {
+        state.connectStatus = 'succeeded';
+        state.connectError = null;
+      })
+      .addCase(openStripeAccount.rejected, (state, action) => {
+        state.connectStatus = 'failed';
+        state.connectError = (action.payload as string) ?? 'Failed to open Stripe account';
       });
   },
 });

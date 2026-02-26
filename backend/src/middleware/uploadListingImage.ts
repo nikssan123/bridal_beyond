@@ -5,7 +5,7 @@ import multer from 'multer';
 import { Request } from 'express';
 
 const LISTINGS_IMAGES_DIR = path.join(process.cwd(), 'uploads', 'listings');
-const MAX_SIZE = 5 * 1024 * 1024; // 5MB per image
+const MAX_SIZE = 10 * 1024 * 1024; // 10MB per image
 const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp'];
 
 function mimeToExt(mimetype: string): string {

@@ -5,10 +5,12 @@ interface User {
   id: string;
   name: string;
   email: string;
+  role?: string;
   isVerified?: boolean;
   location?: string;
   memberSince?: string;
   avatarUrl?: string;
+  hasStripeAccount?: boolean;
 }
 
 interface AuthState {

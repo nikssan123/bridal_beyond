@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import * as listingsRepo from './listingsRepository';
+import * as authRepository from '../auth/authRepository';
 import { notFound, unauthorized, badRequest } from '../../middleware/errorHandler';
 import { ListingCreateInput } from './listingsTypes';
 
@@ -56,6 +57,15 @@ export async function create(req: Request, res: Response, next: NextFunction): P
       return;
     }
     const userId = req.user.id;
+     const user = await authRepository.findById(userId);
+     if (!user) {
+       next(unauthorized());
+       return;
+     }
+     if (!user.stripe_account_id) {
+       next(badRequest('Stripe payouts are not connected. Please connect Stripe before creating a listing.'));
+       return;
+     }
     const body = req.body as ListingCreateInput;
     const listing = await listingsRepo.create(userId, {
       title: body.title,
@@ -71,7 +81,7 @@ export async function create(req: Request, res: Response, next: NextFunction): P
       waist: body.measurements.waist,
       hips: body.measurements.hips,
       length: body.measurements.length,
-      images: Array.isArray(body.images) ? body.images : body.images ? [body.images] : [],
+      images: Array.isArray(body.images) ? body.images : [],
     });
     res.status(201).json(listing);
   } catch (e) {
@@ -86,7 +96,7 @@ export async function uploadImage(req: Request, res: Response, next: NextFunctio
       return;
     }
     if (!req.file) {
-      next(badRequest('No file uploaded or invalid file type. Use JPEG, PNG or WebP (max 5MB).'));
+      next(badRequest('No file uploaded or invalid file type. Use JPEG, PNG or WebP (max 10MB).'));
       return;
     }
     const url = `/uploads/listings/${req.file.filename}`;

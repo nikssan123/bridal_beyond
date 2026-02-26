@@ -43,6 +43,7 @@ export async function register(req: Request, res: Response, next: NextFunction):
         name: user.name,
         email: user.email,
         isVerified: !!user.email_verified_at,
+        hasStripeAccount: !!user.stripe_account_id,
       },
       token,
     });
@@ -71,6 +72,7 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
         name: user.name,
         email: user.email,
         isVerified: !!user.email_verified_at,
+        hasStripeAccount: !!user.stripe_account_id,
       },
       token,
     });
@@ -95,10 +97,12 @@ export async function me(req: Request, res: Response, next: NextFunction): Promi
         id: user.id,
         name: user.name,
         email: user.email,
+        role: user.role ?? 'user',
         isVerified: !!user.email_verified_at,
         location: user.location ?? undefined,
         memberSince: user.member_since ? String(user.member_since.getFullYear()) : undefined,
         avatarUrl: user.avatar_url ?? undefined,
+        hasStripeAccount: !!user.stripe_account_id,
       },
     });
   } catch (e) {
@@ -106,7 +110,16 @@ export async function me(req: Request, res: Response, next: NextFunction): Promi
   }
 }
 
-function toMeResponse(user: { id: string; name: string; email: string; email_verified_at: Date | null; location: string | null; member_since: Date; avatar_url: string | null }) {
+function toMeResponse(user: {
+  id: string;
+  name: string;
+  email: string;
+  email_verified_at: Date | null;
+  location: string | null;
+  member_since: Date;
+  avatar_url: string | null;
+  stripe_account_id: string | null;
+}) {
   return {
     id: user.id,
     name: user.name,
@@ -115,6 +128,7 @@ function toMeResponse(user: { id: string; name: string; email: string; email_ver
     location: user.location ?? undefined,
     memberSince: user.member_since ? String(user.member_since.getFullYear()) : undefined,
     avatarUrl: user.avatar_url ?? undefined,
+    hasStripeAccount: !!user.stripe_account_id,
   };
 }
 
@@ -182,6 +196,7 @@ export async function verifyEmail(req: Request, res: Response, next: NextFunctio
         name: updated.name,
         email: updated.email,
         isVerified: !!updated.email_verified_at,
+        hasStripeAccount: !!updated.stripe_account_id,
       },
       token,
     });
@@ -229,6 +244,7 @@ export async function resetPassword(req: Request, res: Response, next: NextFunct
         name: updated.name,
         email: updated.email,
         isVerified: !!updated.email_verified_at,
+        hasStripeAccount: !!updated.stripe_account_id,
       },
       token: jwt,
     });

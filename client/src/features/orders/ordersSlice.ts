@@ -28,6 +28,7 @@ export interface Order {
   createdAt: string;
   updatedAt: string;
   listing?: Listing;
+  hasOpenDispute?: boolean;
 }
 
 interface CreateOrderResponse {
@@ -83,6 +84,7 @@ export const fetchOrderById = createAsyncThunk(
         createdAt: data.created_at,
         updatedAt: data.updated_at,
         listing: data.listing as Listing | undefined,
+        hasOpenDispute: !!data.has_open_dispute,
       };
       return order;
     } catch (err: any) {
@@ -116,6 +118,7 @@ export const fetchMySellerOrders = createAsyncThunk(
         createdAt: o.created_at,
         updatedAt: o.updated_at,
         listing: o.listing as Listing | undefined,
+        hasOpenDispute: !!o.has_open_dispute,
       }));
       return orders;
     } catch (err: any) {
@@ -155,6 +158,26 @@ export const confirmReceived = createAsyncThunk(
     } catch (err: any) {
       const message =
         err?.response?.data?.message || err?.message || 'Failed to confirm received';
+      return rejectWithValue(message);
+    }
+  }
+);
+
+export const createDispute = createAsyncThunk(
+  'orders/createDispute',
+  async (
+    payload: { orderId: string; reason: string; description?: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      const { data } = await api.post<any>(`/orders/${payload.orderId}/disputes`, {
+        reason: payload.reason,
+        description: payload.description,
+      });
+      return data;
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message || err?.message || 'Failed to open dispute';
       return rejectWithValue(message);
     }
   }
@@ -259,6 +282,13 @@ const ordersSlice = createSlice({
                 updatedAt: updatedRaw.updated_at,
               }
             : state.currentOrder;
+      })
+      .addCase(createDispute.fulfilled, (state, action) => {
+        const dispute = action.payload;
+        const orderId = dispute?.order_id;
+        if (orderId && state.currentOrder?.id === orderId) {
+          state.currentOrder = { ...state.currentOrder, hasOpenDispute: true };
+        }
       });
   },
 });

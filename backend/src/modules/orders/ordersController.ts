@@ -5,6 +5,7 @@ import { prisma } from '../../prisma';
 import * as stripeService from '../../services/stripe.service';
 import * as ordersRepository from './ordersRepository';
 import * as paymentsRepository from '../payments/paymentsRepository';
+import * as disputesRepository from '../disputes/disputesRepository';
 
 const createOrderBody = z.object({
   listingId: z.string().uuid(),
@@ -113,7 +114,8 @@ export async function getOrder(req: Request, res: Response): Promise<void> {
       res.status(404).json({ message: 'Order not found' });
       return;
     }
-    res.json(order);
+    const hasOpenDispute = !!(await disputesRepository.findOpenByOrderId(orderId));
+    res.json({ ...order, has_open_dispute: hasOpenDispute });
   } catch (err) {
     console.error('Get order error:', err);
     res.status(500).json({ message: 'Failed to load order' });
@@ -184,6 +186,12 @@ export async function confirmReceived(req: Request, res: Response): Promise<void
       return;
     }
 
+    const openDispute = await disputesRepository.findOpenByOrderId(orderId);
+    if (openDispute) {
+      res.status(400).json({ message: 'Cannot confirm receipt while a dispute is open' });
+      return;
+    }
+
     await stripeService.capturePaymentIntent(order.payment_intent_id);
 
     const updated = await prisma.order.update({
@@ -211,7 +219,13 @@ export async function listSellerOrders(req: Request, res: Response): Promise<voi
       return;
     }
     const orders = await ordersRepository.findBySellerId(userId);
-    res.json(orders);
+    const orderIds = orders.map((o) => o.id);
+    const openDisputeOrderIds = await disputesRepository.findOrderIdsWithOpenDispute(orderIds);
+    const withDisputeFlag = orders.map((o) => ({
+      ...o,
+      has_open_dispute: openDisputeOrderIds.includes(o.id),
+    }));
+    res.json(withDisputeFlag);
   } catch (err) {
     console.error('List seller orders error:', err);
     res.status(500).json({ message: 'Failed to load orders' });

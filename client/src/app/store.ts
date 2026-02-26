@@ -8,6 +8,7 @@ import conversationsReducer from '../features/conversations/conversationsSlice';
 import paymentsReducer from '../features/payments/paymentsSlice';
 import stripeReducer from '../features/stripe/stripeSlice';
 import ordersReducer from '../features/orders/ordersSlice';
+import adminDisputesReducer from '../features/admin/disputesSlice';
 
 export const store = configureStore({
   reducer: {
@@ -20,6 +21,7 @@ export const store = configureStore({
     payments: paymentsReducer,
     stripe: stripeReducer,
     orders: ordersReducer,
+    adminDisputes: adminDisputesReducer,
   },
 });
 

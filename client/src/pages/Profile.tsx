@@ -14,6 +14,7 @@ import {
   DialogActions,
   TextField,
   Tooltip,
+  Chip,
 } from '@mui/material';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
@@ -27,7 +28,7 @@ import ListingCard from '@/components/ListingCard';
 import RatingDisplay from '@/components/RatingDisplay';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { fetchMe, updateProfile, uploadAvatar } from '@/features/auth/authSlice';
-import { connectStripe } from '@/features/stripe/stripeSlice';
+import { connectStripe, openStripeAccount } from '@/features/stripe/stripeSlice';
 import { fetchReviewsBySellerId } from '@/features/reviews/reviewsSlice';
 import { fetchListingsBySeller } from '@/features/listings/listingsSlice';
 import { getAvatarUrl } from '@/lib/avatarUrl';
@@ -119,6 +120,7 @@ const Profile: React.FC = () => {
   }
 
   const avgRating = reviews.length > 0 ? reviews.reduce((a, r) => a + r.rating, 0) / reviews.length : 0;
+  const hasStripeAccount = !!user.hasStripeAccount;
 
   return (
     <PageContainer>
@@ -168,6 +170,17 @@ const Profile: React.FC = () => {
                 {t('profile.memberSince')} {user.memberSince}
               </Typography>
             )}
+            <Box sx={{ mt: 1 }}>
+              <Chip
+                size="small"
+                color={hasStripeAccount ? 'success' : 'warning'}
+                label={
+                  hasStripeAccount
+                    ? t('profile.payoutsActive', 'Payouts active')
+                    : t('profile.payoutsNotSetup', 'Payouts not set up')
+                }
+              />
+            </Box>
           </Box>
           <Button
             variant="outlined"
@@ -177,26 +190,48 @@ const Profile: React.FC = () => {
           >
             {t('profile.editProfile')}
           </Button>
-          <Button
-            variant="outlined"
-            startIcon={
-              stripeConnectStatus === 'loading' ? (
-                <CircularProgress size={20} sx={{ color: 'primary.dark' }} />
-              ) : (
-                <AccountBalanceWalletIcon />
-              )
-            }
-            disabled={stripeConnectStatus === 'loading'}
-            onClick={async () => {
-              const result = await dispatch(connectStripe());
-              if (connectStripe.fulfilled.match(result) && result.payload) {
-                window.location.href = result.payload;
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1, minWidth: 0 }}>
+            <Button
+              variant="outlined"
+              startIcon={
+                stripeConnectStatus === 'loading' ? (
+                  <CircularProgress size={20} sx={{ color: 'primary.dark' }} />
+                ) : (
+                  <AccountBalanceWalletIcon />
+                )
               }
-            }}
-            sx={{ borderColor: 'secondary.main', color: 'secondary.dark' }}
-          >
-            {t('profile.connectStripe', 'Connect Stripe')}
-          </Button>
+              disabled={stripeConnectStatus === 'loading'}
+              onClick={async () => {
+                if (hasStripeAccount) {
+                  const result = await dispatch(openStripeAccount());
+                  if (openStripeAccount.fulfilled.match(result) && result.payload) {
+                    window.location.href = result.payload as string;
+                  }
+                } else {
+                  const result = await dispatch(connectStripe());
+                  if (connectStripe.fulfilled.match(result) && result.payload) {
+                    window.location.href = result.payload as string;
+                  }
+                }
+              }}
+              sx={{ borderColor: 'secondary.main', color: 'secondary.dark', whiteSpace: 'nowrap' }}
+            >
+              {hasStripeAccount
+                ? t('profile.editPaymentInfo', 'Edit payment info')
+                : t('profile.connectStripe', 'Connect Stripe')}
+            </Button>
+            <Typography variant="caption" color="text.secondary" sx={{ maxWidth: 260, textAlign: 'right' }}>
+              {hasStripeAccount
+                ? t(
+                    'profile.payoutsDescriptionActive',
+                    'Your payouts are active via Stripe. You can update your bank details on Stripe at any time.'
+                  )
+                : t(
+                    'profile.payoutsDescriptionSetup',
+                    'To receive payouts for your sold dresses, connect your Stripe account. We will redirect you to Stripe for a quick, secure setup.'
+                  )}
+            </Typography>
+          </Box>
         </Box>
         {stripeConnectError && (
           <Typography variant="body2" color="error" sx={{ mt: 2 }}>

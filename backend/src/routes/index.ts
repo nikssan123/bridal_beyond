@@ -7,6 +7,7 @@ import conversationsRoutes from '../modules/conversations/conversationsRoutes';
 import stripeRoutes from '../modules/stripe/stripeRoutes';
 import paymentsRoutes from '../modules/payments/paymentsRoutes';
 import ordersRoutes from '../modules/orders/ordersRoutes';
+import adminDisputesRoutes from '../modules/disputes/adminDisputesRoutes';
 import { authMiddleware } from '../middleware/authMiddleware';
 
 const router = Router();
@@ -19,5 +20,6 @@ router.use('/conversations', conversationsRoutes);
 router.use('/stripe', authMiddleware, stripeRoutes);
 router.use('/payments', paymentsRoutes);
 router.use('/orders', ordersRoutes);
+router.use('/admin/disputes', adminDisputesRoutes);
 
 export default router;

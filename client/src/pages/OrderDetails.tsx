@@ -9,13 +9,29 @@ import {
   Grid,
   Chip,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import PageContainer from '@/components/PageContainer';
 import SectionHeader from '@/components/SectionHeader';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { fetchOrderById, confirmReceived } from '@/features/orders/ordersSlice';
+import { fetchOrderById, confirmReceived, createDispute } from '@/features/orders/ordersSlice';
 import { getAvatarUrl } from '@/lib/avatarUrl';
 import { useTranslation } from 'react-i18next';
+
+const DISPUTE_REASONS = [
+  { value: 'delayed', labelKey: 'order.disputeReasonDelayed' },
+  { value: 'item_not_as_described', labelKey: 'order.disputeReasonNotAsDescribed' },
+  { value: 'damaged', labelKey: 'order.disputeReasonDamaged' },
+  { value: 'other', labelKey: 'order.disputeReasonOther' },
+];
 
 const OrderDetails: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
@@ -24,6 +40,10 @@ const OrderDetails: React.FC = () => {
   const { currentOrder, status, error } = useAppSelector((state) => state.orders);
   const currentUser = useAppSelector((state) => state.auth.user);
   const [confirmLoading, setConfirmLoading] = useState(false);
+  const [disputeDialogOpen, setDisputeDialogOpen] = useState(false);
+  const [disputeReason, setDisputeReason] = useState('');
+  const [disputeDescription, setDisputeDescription] = useState('');
+  const [disputeSubmitting, setDisputeSubmitting] = useState(false);
 
   useEffect(() => {
     if (orderId) {
@@ -45,6 +65,41 @@ const OrderDetails: React.FC = () => {
       setConfirmLoading(false);
     }
   };
+
+  const handleOpenDisputeClick = () => setDisputeDialogOpen(true);
+  const handleDisputeDialogClose = () => {
+    setDisputeDialogOpen(false);
+    setDisputeReason('');
+    setDisputeDescription('');
+  };
+  const handleDisputeSubmit = async () => {
+    if (!orderId || !disputeReason.trim()) return;
+    setDisputeSubmitting(true);
+    try {
+      await dispatch(
+        createDispute({
+          orderId,
+          reason: disputeReason,
+          description: disputeDescription.trim() || undefined,
+        })
+      ).unwrap();
+      handleDisputeDialogClose();
+    } catch {
+      // error in slice
+    } finally {
+      setDisputeSubmitting(false);
+    }
+  };
+
+  const canOpenDispute =
+    isBuyer &&
+    currentOrder &&
+    (currentOrder.status === 'shipped' || currentOrder.status === 'completed') &&
+    !currentOrder.hasOpenDispute;
+  const showConfirmButton =
+    isBuyer &&
+    currentOrder?.status === 'shipped' &&
+    !currentOrder.hasOpenDispute;
 
   const renderStatusLabel = () => {
     if (!currentOrder) return null;
@@ -172,7 +227,12 @@ const OrderDetails: React.FC = () => {
                 </Typography>
               </Box>
             )}
-            {isBuyer && currentOrder.status === 'shipped' && (
+            {currentOrder.hasOpenDispute && (
+              <Alert severity="info" sx={{ mt: 2 }}>
+                {t('order.disputeOpen', 'You have an open dispute for this order. Our team will review it.')}
+              </Alert>
+            )}
+            {showConfirmButton && (
               <Box sx={{ mt: 3 }}>
                 <Button
                   variant="contained"
@@ -187,6 +247,13 @@ const OrderDetails: React.FC = () => {
                 </Button>
               </Box>
             )}
+            {canOpenDispute && (
+              <Box sx={{ mt: 2 }}>
+                <Button variant="outlined" color="secondary" onClick={handleOpenDisputeClick}>
+                  {t('order.openDispute', 'Open dispute')}
+                </Button>
+              </Box>
+            )}
             {isSeller && currentOrder.status === 'payment_secured' && (
               <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
                 {t('order.sellerAwaitingShipment', 'Please mark this order as shipped from your dashboard once you send the dress.')}
@@ -195,6 +262,50 @@ const OrderDetails: React.FC = () => {
           </Paper>
         </Grid>
       </Grid>
+
+      <Dialog open={disputeDialogOpen} onClose={handleDisputeDialogClose} maxWidth="sm" fullWidth>
+        <DialogTitle>{t('order.openDisputeTitle', 'Open dispute')}</DialogTitle>
+        <DialogContent>
+          <FormControl fullWidth sx={{ mt: 1, mb: 2 }}>
+            <InputLabel>{t('order.disputeReason', 'Reason')}</InputLabel>
+            <Select
+              value={disputeReason}
+              label={t('order.disputeReason', 'Reason')}
+              onChange={(e) => setDisputeReason(e.target.value)}
+              required
+            >
+              {DISPUTE_REASONS.map((r) => (
+                <MenuItem key={r.value} value={r.value}>
+                  {t(r.labelKey, r.value)}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <TextField
+            fullWidth
+            multiline
+            rows={3}
+            label={t('order.disputeDescription', 'Details (optional)')}
+            value={disputeDescription}
+            onChange={(e) => setDisputeDescription(e.target.value)}
+            placeholder={t('order.disputeDescriptionPlaceholder', 'Describe what went wrong...')}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDisputeDialogClose}>{t('common.cancel', 'Cancel')}</Button>
+          <Button
+            variant="contained"
+            onClick={handleDisputeSubmit}
+            disabled={disputeSubmitting || !disputeReason.trim()}
+          >
+            {disputeSubmitting ? (
+              <CircularProgress size={20} color="inherit" />
+            ) : (
+              t('order.submitDispute', 'Submit dispute')
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </PageContainer>
   );
 };

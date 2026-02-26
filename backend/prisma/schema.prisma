@@ -36,6 +36,8 @@ model User {
 
   paymentsAsBuyer Payment[] @relation("paymentsAsBuyer")
 
+  disputesAsBuyer Dispute[] @relation("UserDisputesAsBuyer")
+
   ordersAsBuyer  Order[] @relation("UserOrdersAsBuyer")
   ordersAsSeller Order[] @relation("UserOrdersAsSeller")
 
@@ -187,5 +189,28 @@ model Order {
   buyer   User    @relation("UserOrdersAsBuyer", fields: [buyer_id], references: [id], onDelete: Cascade)
   seller  User    @relation("UserOrdersAsSeller", fields: [seller_id], references: [id], onDelete: Cascade)
 
+  disputes Dispute[]
+
   @@map("orders")
+}
+
+model Dispute {
+  id       String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  order_id String @db.Uuid
+  buyer_id String @db.Uuid
+
+  status      String  @db.VarChar(50)
+  reason      String  @db.VarChar(255)
+  description String? @db.Text
+
+  type             String? @db.VarChar(50)
+  resolution_notes String? @db.Text
+
+  created_at DateTime @default(now())
+  resolved_at DateTime?
+
+  order Order @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  buyer User  @relation("UserDisputesAsBuyer", fields: [buyer_id], references: [id], onDelete: Cascade)
+
+  @@map("disputes")
 }

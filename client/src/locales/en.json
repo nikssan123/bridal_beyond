@@ -150,7 +150,10 @@
     "paymentAuthorized": "Payment authorized. Funds will be captured when the seller confirms delivery.",
     "share": "Share listing",
     "shareLinkCopied": "Link copied to clipboard",
-    "shareSuccess": "Link shared"
+    "shareSuccess": "Link shared",
+    "imagesAtLeastTwo": "Please upload at least two photos.",
+    "imagesInvalidType": "File must be an image (JPEG, PNG or WebP).",
+    "imagesTooLarge": "File is too large. Maximum size is 10MB."
   },
   "notFound": {
     "title": "Oops! Page not found",
@@ -179,6 +182,12 @@
     "avatarUrlPlaceholder": "Or paste an image link (https://...)",
     "fileMustBeImage": "File must be an image (JPEG, PNG or WebP).",
     "fileTooLarge": "File is too large. Maximum size is 2MB.",
-    "connectStripe": "Connect Stripe"
+    "connectStripe": "Connect Stripe",
+    "paymentConnected": "Payment method connected",
+    "editPaymentInfo": "Edit payment info",
+    "payoutsActive": "Payouts active",
+    "payoutsNotSetup": "Payouts not set up",
+    "payoutsDescriptionSetup": "To receive payouts for your sold dresses, connect your Stripe account. We will redirect you to Stripe for a quick, secure setup.",
+    "payoutsDescriptionActive": "Your payouts are active via Stripe. You can update your bank details on Stripe at any time."
   }
 }
