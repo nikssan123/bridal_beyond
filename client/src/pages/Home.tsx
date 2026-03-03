@@ -110,7 +110,7 @@ const Home: React.FC = () => {
       </Box>
 
       {/* Categories */}
-      <Container maxWidth="lg" sx={{ py: { xs: 6, md: 8 } }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 5, md: 8 } }}>
         <SectionHeader title={t('home.categories')} subtitle={t('home.categoriesSubtitle')} align="center" />
         <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, flexWrap: 'wrap' }}>
           {[
@@ -133,7 +133,7 @@ const Home: React.FC = () => {
       </Container>
 
       {/* Featured */}
-      <Box sx={{ bgcolor: 'background.paper', py: { xs: 6, md: 8 } }}>
+      <Box sx={{ bgcolor: 'background.paper', py: { xs: 5, md: 8 } }}>
         <Container maxWidth="lg">
           <SectionHeader title={t('home.featured')} subtitle={t('home.featuredSubtitle')} />
           {status === 'loading' && listings.length === 0 ? (

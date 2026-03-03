@@ -3,15 +3,12 @@
  */
 
 import { io, Socket } from 'socket.io-client';
+import { API_ORIGIN } from './apiBase';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
-
-// When VITE_API_URL is absolute (e.g. http://localhost:4000/api), derive the WS origin from it.
-// When it's relative (e.g. /api behind nginx), use the current page origin so sockets hit the same host.
-const WS_URL =
-  API_BASE.startsWith('http')
-    ? API_BASE.replace(/\/api\/?$/, '')
-    : (typeof window !== 'undefined' ? window.location.origin : '');
+// Always point websockets at the same origin as the API.
+// - Dev: http://localhost:4000
+// - Prod: current page origin or absolute API origin (e.g. https://lovereworn.com)
+const WS_URL = API_ORIGIN;
 
 let socket: Socket | null = null;
 

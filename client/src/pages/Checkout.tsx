@@ -17,6 +17,7 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { fetchListingById } from '@/features/listings/listingsSlice';
 import { createOrder } from '@/features/orders/ordersSlice';
 import { getAvatarUrl } from '@/lib/avatarUrl';
+import { getStripeErrorKey } from '@/lib/stripeErrors';
 import { useTranslation } from 'react-i18next';
 
 const cardElementOptions = {
@@ -87,19 +88,26 @@ const Checkout: React.FC = () => {
 
       const { orderId, clientSecret } = orderResult;
 
-      const { error: confirmError } = await stripe.confirmCardPayment(clientSecret, {
-        payment_method: { card },
-      });
+      const { error: confirmError } = await stripe.confirmCardPayment(
+        clientSecret,
+        {
+          payment_method: { card },
+        }
+      );
 
       if (confirmError) {
-        setError(confirmError.message ?? 'Payment failed');
+        const code = (confirmError as any).code as string | undefined;
+        const key = getStripeErrorKey(code);
+        setError(t(`stripeErrors.${key}`));
         setSubmitting(false);
         return;
       }
 
       navigate(`/orders/${orderId}`);
     } catch (err: any) {
-      setError(err as string);
+      const message =
+        typeof err === 'string' ? err : t('checkout.genericError', 'Something went wrong. Please try again.');
+      setError(message);
       setSubmitting(false);
     }
   };

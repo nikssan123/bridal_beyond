@@ -14,6 +14,8 @@ import {
   ListItemText,
   Container,
   Divider,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
@@ -34,6 +36,8 @@ const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { isAuthenticated } = useAppSelector((state) => state.auth);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const navLinks = [{ label: t('nav.listings'), path: '/listings', icon: <ViewListIcon /> }];
 
@@ -41,9 +45,16 @@ const Navbar: React.FC = () => {
     <>
       <AppBar position="sticky" elevation={0}>
         <Container maxWidth="lg">
-          <Toolbar sx={{ justifyContent: 'space-between', px: 0 }}>
+          <Toolbar
+            sx={{
+              justifyContent: 'space-between',
+              px: 0,
+              minHeight: { xs: 56, sm: 64 },
+              gap: { xs: 1, sm: 2 },
+            }}
+          >
             <Typography
-              variant="h5"
+              variant={isMobile ? 'h6' : 'h5'}
               component={Link}
               to="/"
               sx={{
@@ -53,43 +64,83 @@ const Navbar: React.FC = () => {
                 fontWeight: 600,
                 fontStyle: 'italic',
                 letterSpacing: 1,
+                maxWidth: { xs: 140, sm: 'none' },
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
               }}
             >
               {t('brand')}
             </Typography>
 
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main' }}>
-              <Button
-                variant="outlined"
-                startIcon={<AddIcon />}
-                onClick={() => navigate('/create')}
-                sx={{
-                  borderColor: 'primary.main',
-                  color: 'primary.main',
-                  '&:hover': { borderColor: 'primary.dark', backgroundColor: 'primary.light', color: 'primary.dark' },
-                }}
-              >
-                {t('nav.addListing')}
-              </Button>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: { xs: 0.5, sm: 1 },
+                color: 'primary.main',
+              }}
+            >
+              {isMobile ? (
+                <IconButton
+                  onClick={() => navigate('/create')}
+                  sx={{ color: 'primary.main' }}
+                  aria-label={t('nav.addListing')}
+                >
+                  <AddIcon />
+                </IconButton>
+              ) : (
+                <Button
+                  variant="outlined"
+                  startIcon={<AddIcon />}
+                  onClick={() => navigate('/create')}
+                  sx={{
+                    borderColor: 'primary.main',
+                    color: 'primary.main',
+                    whiteSpace: 'nowrap',
+                    '&:hover': {
+                      borderColor: 'primary.dark',
+                      backgroundColor: 'primary.light',
+                      color: 'primary.dark',
+                    },
+                  }}
+                >
+                  {t('nav.addListing')}
+                </Button>
+              )}
               {isAuthenticated && (
-                <IconButton component={Link} to="/favorites" sx={{ color: 'inherit' }}>
+                <IconButton
+                  component={Link}
+                  to="/favorites"
+                  sx={{ color: 'inherit' }}
+                  aria-label={t('nav.favorites')}
+                >
                   <FavoriteBorderIcon />
                 </IconButton>
               )}
               <Box component="span" sx={{ color: 'common.black' }}>
                 <LanguageSwitcher />
               </Box>
-              {!isAuthenticated && (
-                <Button
-                  variant="contained"
-                  color="primary"
-                  startIcon={<LoginIcon />}
-                  onClick={() => navigate('/login')}
-                  sx={{ ml: 1 }}
-                >
-                  {t('nav.login')}
-                </Button>
-              )}
+              {!isAuthenticated &&
+                (isMobile ? (
+                  <IconButton
+                    onClick={() => navigate('/login')}
+                    sx={{ color: 'primary.main' }}
+                    aria-label={t('nav.login')}
+                  >
+                    <LoginIcon />
+                  </IconButton>
+                ) : (
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    startIcon={<LoginIcon />}
+                    onClick={() => navigate('/login')}
+                    sx={{ ml: 1, whiteSpace: 'nowrap' }}
+                  >
+                    {t('nav.login')}
+                  </Button>
+                ))}
               <IconButton
                 onClick={() => setDrawerOpen(true)}
                 sx={{ color: 'secondary.main' }}

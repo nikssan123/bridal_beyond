@@ -243,6 +243,10 @@ const authSlice = createSlice({
           action.error.message ||
           'Invalid or expired reset link';
       })
+      .addCase(fetchMe.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
       .addCase(fetchMe.fulfilled, (state, action) => {
         state.user = action.payload;
         state.isAuthenticated = true;

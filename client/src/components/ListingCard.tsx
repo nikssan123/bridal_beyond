@@ -54,8 +54,8 @@ const ListingCard: React.FC<Props> = ({ listing, isFavorite: isFavoriteProp, onR
         cursor: 'pointer',
         transition: 'all 0.3s ease',
         '&:hover': {
-          transform: 'translateY(-4px)',
-          boxShadow: '0 8px 30px rgba(0,0,0,0.08)',
+          transform: { xs: 'none', sm: 'translateY(-4px)' },
+          boxShadow: { xs: '0 4px 16px rgba(0,0,0,0.06)', sm: '0 8px 30px rgba(0,0,0,0.08)' },
         },
         overflow: 'hidden',
         height: '100%',
@@ -66,11 +66,12 @@ const ListingCard: React.FC<Props> = ({ listing, isFavorite: isFavoriteProp, onR
       <Box sx={{ position: 'relative' }}>
         <CardMedia
           component="img"
-          height={320}
           image={getAvatarUrl(displayImage) || displayImage}
           alt={listing.title}
           sx={{
+            height: { xs: 260, sm: 300, md: 320 },
             objectFit: 'cover',
+            width: '100%',
             transition: 'opacity 0.3s ease',
           }}
         />
@@ -140,11 +141,34 @@ const ListingCard: React.FC<Props> = ({ listing, isFavorite: isFavoriteProp, onR
           />
         </Box>
       </Box>
-      <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 2.5 }}>
-        <Typography variant="subtitle1" sx={{ fontFamily: "'Playfair Display', serif", fontWeight: 500, mb: 0.5, lineHeight: 1.3 }}>
+      <CardContent
+        sx={{
+          flexGrow: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          p: { xs: 2, md: 2.5 },
+        }}
+      >
+        <Typography
+          variant="subtitle1"
+          sx={{
+            fontFamily: "'Playfair Display', serif",
+            fontWeight: 500,
+            mb: 0.5,
+            lineHeight: 1.3,
+            fontSize: { xs: '0.95rem', md: '1.05rem' },
+          }}
+        >
           {listing.title}
         </Typography>
-        <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: 'text.secondary',
+            mb: 1.5,
+            fontSize: { xs: '0.8rem', md: '0.875rem' },
+          }}
+        >
           Размер: {listing.size} · {listing.seller.location}
         </Typography>
         <Box sx={{ mt: 'auto', display: 'flex', alignItems: 'baseline', gap: 1 }}>

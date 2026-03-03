@@ -7,8 +7,19 @@ interface Props {
 }
 
 const PageContainer: React.FC<Props> = ({ children, maxWidth = 'lg' }) => (
-  <Container maxWidth={maxWidth}>
-    <Box sx={{ py: { xs: 3, md: 5 } }}>{children}</Box>
+  <Container
+    maxWidth={maxWidth}
+    sx={{
+      px: { xs: 2, sm: 3, md: 4 },
+    }}
+  >
+    <Box
+      sx={{
+        py: { xs: 3, md: 5 },
+      }}
+    >
+      {children}
+    </Box>
   </Container>
 );
 

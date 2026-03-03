@@ -8,12 +8,32 @@ interface Props {
 }
 
 const SectionHeader: React.FC<Props> = ({ title, subtitle, align = 'left' }) => (
-  <Box sx={{ mb: 4, textAlign: align }}>
-    <Typography variant="h4" sx={{ fontWeight: 600, mb: subtitle ? 1 : 0 }}>
+  <Box
+    sx={{
+      mb: { xs: 3, md: 4 },
+      textAlign: align,
+    }}
+  >
+    <Typography
+      variant="h5"
+      sx={{
+        fontWeight: 600,
+        mb: subtitle ? 1 : 0,
+        fontSize: { xs: '1.4rem', md: '1.8rem' },
+      }}
+    >
       {title}
     </Typography>
     {subtitle && (
-      <Typography variant="body1" sx={{ color: 'text.secondary', maxWidth: 600, mx: align === 'center' ? 'auto' : 0 }}>
+      <Typography
+        variant="body1"
+        sx={{
+          color: 'text.secondary',
+          maxWidth: 600,
+          mx: align === 'center' ? 'auto' : 0,
+          fontSize: { xs: '0.9rem', md: '1rem' },
+        }}
+      >
         {subtitle}
       </Typography>
     )}

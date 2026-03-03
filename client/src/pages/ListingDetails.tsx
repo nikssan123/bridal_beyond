@@ -247,7 +247,14 @@ const ListingDetails: React.FC = () => {
 
         {/* Info */}
         <Grid item xs={12} md={5}>
-          <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 1,
+              mb: 2,
+              flexWrap: 'wrap',
+            }}
+          >
             <Chip label={conditionLabels[listing.condition]} sx={{ bgcolor: 'primary.light' }} />
             <Chip label={`Размер ${listing.size}`} variant="outlined" />
           </Box>

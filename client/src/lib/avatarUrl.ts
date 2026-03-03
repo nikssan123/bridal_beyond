@@ -1,5 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
-const API_ORIGIN = API_BASE.replace(/\/api\/?$/, '') || 'http://localhost:4000';
+import { API_ORIGIN } from './apiBase';
 
 /**
  * Resolves avatar URL for display. If avatarUrl is a path (starts with /),

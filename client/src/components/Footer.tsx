@@ -6,9 +6,17 @@ import { useTranslation } from 'react-i18next';
 const Footer: React.FC = () => {
   const { t } = useTranslation();
   return (
-  <Box sx={{ bgcolor: 'secondary.main', color: 'secondary.contrastText', mt: 8, pt: 6, pb: 4 }}>
+  <Box
+    sx={{
+      bgcolor: 'secondary.main',
+      color: 'secondary.contrastText',
+      mt: { xs: 6, md: 8 },
+      pt: { xs: 4, md: 6 },
+      pb: { xs: 3, md: 4 },
+    }}
+  >
     <Container maxWidth="lg">
-      <Grid container spacing={4}>
+      <Grid container spacing={4} alignItems="flex-start">
         <Grid item xs={12} md={4}>
           <Typography variant="h5" sx={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic', mb: 2 }}>
             {t('brand')}
@@ -17,7 +25,7 @@ const Footer: React.FC = () => {
             {t('footer.tagline')}
           </Typography>
         </Grid>
-        <Grid item xs={6} md={2}>
+        <Grid item xs={6} sm={4} md={2}>
           <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', fontSize: '0.75rem' }}>
             {t('footer.navigation')}
           </Typography>
@@ -36,7 +44,7 @@ const Footer: React.FC = () => {
             </MuiLink>
           ))}
         </Grid>
-        <Grid item xs={6} md={2}>
+        <Grid item xs={6} sm={4} md={2}>
           <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', fontSize: '0.75rem' }}>
             {t('footer.categories')}
           </Typography>
@@ -55,7 +63,7 @@ const Footer: React.FC = () => {
             </MuiLink>
           ))}
         </Grid>
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} sm={4} md={4}>
           <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', fontSize: '0.75rem' }}>
             {t('footer.contacts')}
           </Typography>
