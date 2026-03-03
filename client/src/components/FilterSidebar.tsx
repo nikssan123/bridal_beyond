@@ -15,6 +15,13 @@ interface Props {
 const FilterContent: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
   const dispatch = useAppDispatch();
   const filters = useAppSelector((state) => state.filters);
+  const maxPrice = useAppSelector((state) => state.listings.maxPrice || 100000);
+
+  const sliderMax = maxPrice > 0 ? maxPrice : 100000;
+  const sliderValue: [number, number] = [
+    Math.max(0, Math.min(filters.priceRange[0], sliderMax)),
+    Math.max(0, Math.min(filters.priceRange[1], sliderMax)),
+  ];
 
   return (
     <Box sx={{ p: 3, width: { xs: 300, md: 'auto' } }}>
@@ -58,10 +65,10 @@ const FilterContent: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
 
       <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>Цена (лв.)</Typography>
       <Slider
-        value={filters.priceRange}
+        value={sliderValue}
         onChange={(_, val) => dispatch(setPriceRange(val as [number, number]))}
         min={0}
-        max={100000}
+        max={sliderMax}
         step={50}
         valueLabelDisplay="auto"
         sx={{ color: 'primary.dark', mb: 1 }}

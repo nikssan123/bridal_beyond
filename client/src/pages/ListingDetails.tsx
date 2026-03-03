@@ -270,62 +270,103 @@ const ListingDetails: React.FC = () => {
             </Typography>
           </Box>
 
-          <Box sx={{ display: 'flex', gap: 1.5, mb: 3 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 3 }}>
             {!isOwnListing && (
-              <Button
-                variant="contained"
-                fullWidth
-                size="large"
-                onClick={async () => {
-                  if (!isAuthenticated) {
-                    navigate(`/login?redirect=/listings/${id}`);
-                    return;
-                  }
-                  const result = await dispatch(
-                    createOrGetConversation({
-                      otherUserId: listing.seller.id,
-                      listingId: listing.id,
-                    })
-                  );
-                  if (createOrGetConversation.fulfilled.match(result)) {
-                    navigate(`/messages/${result.payload.id}`);
-                  }
-                }}
-              >
-                {t('listing.contactSeller')}
-              </Button>
+              <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+                <Button
+                  variant="contained"
+                  fullWidth
+                  size="large"
+                  onClick={async () => {
+                    if (!isAuthenticated) {
+                      navigate(`/login?redirect=/listings/${id}`);
+                      return;
+                    }
+                    const result = await dispatch(
+                      createOrGetConversation({
+                        otherUserId: listing.seller.id,
+                        listingId: listing.id,
+                      })
+                    );
+                    if (createOrGetConversation.fulfilled.match(result)) {
+                      navigate(`/messages/${result.payload.id}`);
+                    }
+                  }}
+                >
+                  {t('listing.contactSeller')}
+                </Button>
+                {isAuthenticated && listingActive && (
+                  <Button
+                    variant="contained"
+                    color="secondary"
+                    size="large"
+                    fullWidth
+                    onClick={() => {
+                      if (!listing?.id) return;
+                      navigate(`/checkout/${listing.id}`);
+                    }}
+                  >
+                    {t('listing.buyWithProtection', 'Buy with Protection')}
+                  </Button>
+                )}
+              </Box>
             )}
-            {isAuthenticated && !isOwnListing && listingActive && (
-              <Button
-                variant="contained"
-                color="secondary"
-                size="large"
-                onClick={() => {
-                  if (!listing?.id) return;
-                  navigate(`/checkout/${listing.id}`);
-                }}
-              >
-                {t('listing.buyWithProtection', 'Buy with Protection')}
-              </Button>
+            {isOwnListing && (
+              <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+                <Button
+                  variant="outlined"
+                  fullWidth
+                  size="large"
+                  onClick={() => navigate(`/listings/${listing.id}/edit`)}
+                >
+                  {t('listing.editListing', 'Edit listing')}
+                </Button>
+                <Button
+                  variant="text"
+                  color="error"
+                  fullWidth
+                  size="large"
+                  onClick={async () => {
+                    const confirmed = window.confirm(
+                      t(
+                        'listing.deleteConfirm',
+                        'Are you sure you want to delete this listing? This action cannot be undone.'
+                      )
+                    );
+                    if (!confirmed) return;
+                    try {
+                      const { deleteListing } = await import('@/features/listings/listingsSlice');
+                      await dispatch(deleteListing(listing.id)).unwrap();
+                      navigate('/listings');
+                    } catch (err) {
+                      console.error(err);
+                    }
+                  }}
+                >
+                  {t('listing.deleteListing', 'Delete listing')}
+                </Button>
+              </Box>
             )}
-            {isAuthenticated && (
+            <Box sx={{ display: 'flex', gap: 1.5 }}>
+              {isAuthenticated && (
+                <Button
+                  variant="outlined"
+                  sx={{ minWidth: 50 }}
+                  onClick={() => dispatch(toggleFavorite(listing.id))}
+                  aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                >
+                  {isFavorite ? <FavoriteIcon color="primary" /> : <FavoriteBorderIcon />}
+                </Button>
+              )}
               <Button
                 variant="outlined"
                 sx={{ minWidth: 50 }}
-                onClick={() => dispatch(toggleFavorite(listing.id))}
-                aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                onClick={handleShare}
+                aria-label={t('listing.share')}
               >
-                {isFavorite ? <FavoriteIcon color="primary" /> : <FavoriteBorderIcon />}
+                <ShareIcon />
               </Button>
-            )}
-            <Button
-              variant="outlined"
-              sx={{ minWidth: 50 }}
-              onClick={handleShare}
-              aria-label={t('listing.share')}
-            >
-              <ShareIcon />
-            </Button>
+            </Box>
           </Box>
 
           <Divider sx={{ my: 3 }} />

@@ -8,6 +8,7 @@ const PAGE_SIZE = 12;
 interface ListResponse {
   listings: Listing[];
   total: number;
+  maxPrice: number;
 }
 
 interface ListingsState {
@@ -20,6 +21,7 @@ interface ListingsState {
   profileListingsStatus: 'idle' | 'loading' | 'succeeded' | 'failed';
   status: 'idle' | 'loading' | 'succeeded' | 'failed';
   error: string | null;
+  maxPrice: number;
 }
 
 const initialState: ListingsState = {
@@ -32,6 +34,8 @@ const initialState: ListingsState = {
   profileListingsStatus: 'idle',
   status: 'idle',
   error: null,
+  // default max price (BGN) used before backend value arrives
+  maxPrice: 100000,
 };
 
 export const fetchListings = createAsyncThunk(
@@ -90,6 +94,35 @@ export const createListing = createAsyncThunk(
   }
 );
 
+export const updateListing = createAsyncThunk(
+  'listings/updateListing',
+  async (payload: { id: string; data: CreateListingPayload }) => {
+    const { id, data: body } = payload;
+    const { data } = await api.put<Listing>(`/listings/${id}`, {
+      title: body.title,
+      description: body.description,
+      price: body.price,
+      originalPrice: body.originalPrice,
+      category: body.category,
+      size: body.size,
+      condition: body.condition,
+      color: body.color,
+      brand: body.brand,
+      measurements: body.measurements,
+      images: body.images?.length ? body.images : ['/placeholder.svg'],
+    });
+    return data;
+  }
+);
+
+export const deleteListing = createAsyncThunk(
+  'listings/deleteListing',
+  async (id: string) => {
+    await api.delete(`/listings/${id}`);
+    return id;
+  }
+);
+
 export const uploadListingImage = createAsyncThunk(
   'listings/uploadListingImage',
   async (file: File, { rejectWithValue }) => {
@@ -131,7 +164,7 @@ const listingsSlice = createSlice({
         }
       })
       .addCase(fetchListings.fulfilled, (state, action) => {
-        const { listings, total, append } = action.payload;
+        const { listings, total, maxPrice, append } = action.payload;
         if (append) {
           state.listings.push(...listings);
           state.loadingMore = false;
@@ -141,6 +174,7 @@ const listingsSlice = createSlice({
         }
         state.total = total;
         state.hasMore = state.listings.length < total;
+         state.maxPrice = maxPrice ?? state.maxPrice;
         state.error = null;
       })
       .addCase(fetchListings.rejected, (state, action) => {
@@ -158,6 +192,21 @@ const listingsSlice = createSlice({
       .addCase(createListing.fulfilled, (state, action) => {
         state.listings.unshift(action.payload);
         state.total += 1;
+      })
+      .addCase(updateListing.fulfilled, (state, action) => {
+        const updated = action.payload;
+        state.selectedListing = updated;
+        state.listings = state.listings.map((l) => (l.id === updated.id ? updated : l));
+        state.profileListings = state.profileListings.map((l) => (l.id === updated.id ? updated : l));
+      })
+      .addCase(deleteListing.fulfilled, (state, action) => {
+        const id = action.payload;
+        state.listings = state.listings.filter((l) => l.id !== id);
+        state.profileListings = state.profileListings.filter((l) => l.id !== id);
+        if (state.selectedListing?.id === id) {
+          state.selectedListing = null;
+        }
+        state.total = Math.max(0, state.total - 1);
       })
       .addCase(fetchListingsBySeller.pending, (state) => { state.profileListingsStatus = 'loading'; })
       .addCase(fetchListingsBySeller.fulfilled, (state, action) => {

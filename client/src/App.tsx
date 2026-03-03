@@ -12,6 +12,7 @@ import Home from './pages/Home';
 import BrowseListings from './pages/BrowseListings';
 import ListingDetails from './pages/ListingDetails';
 import CreateListing from './pages/CreateListing';
+import EditListing from './pages/EditListing';
 import Checkout from './pages/Checkout';
 import OrderDetails from './pages/OrderDetails';
 import Login from './pages/Login';
@@ -50,6 +51,14 @@ const App = () => {
             <Route path="/" element={<Home />} />
             <Route path="/listings" element={<BrowseListings />} />
             <Route path="/listings/:id" element={<ListingDetails />} />
+            <Route
+              path="/listings/:id/edit"
+              element={
+                <ProtectedRoute>
+                  <EditListing />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/checkout/:listingId" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
             <Route path="/orders/:orderId" element={<ProtectedRoute><OrderDetails /></ProtectedRoute>} />
             <Route path="/admin" element={<AdminPortal />} />

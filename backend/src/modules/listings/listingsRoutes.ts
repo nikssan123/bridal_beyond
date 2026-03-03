@@ -5,25 +5,27 @@ import { authMiddleware } from '../../middleware/authMiddleware';
 import { uploadListingImage } from '../../middleware/uploadListingImage';
 import * as listingsController from './listingsController';
 
-const createListingSchema = {
-  body: z.object({
-    title: z.string().min(1).max(500),
-    description: z.string().min(1),
-    price: z.number().positive(),
-    originalPrice: z.number().positive().optional(),
-    category: z.enum(['wedding', 'graduation', 'evening']),
-    size: z.string().min(1).max(20),
-    condition: z.enum(['new', 'like-new', 'good', 'fair']),
-    color: z.string().min(1).max(100),
-    brand: z.string().min(1).max(255),
-    measurements: z.object({
-      bust: z.string(),
-      waist: z.string(),
-      hips: z.string(),
-      length: z.string(),
-    }),
-    images: z.array(z.string()).min(2, 'At least 2 images are required'),
+const listingBodySchema = z.object({
+  title: z.string().min(1).max(500),
+  description: z.string().min(1),
+  price: z.number().positive(),
+  originalPrice: z.number().positive().optional(),
+  category: z.enum(['wedding', 'graduation', 'evening']),
+  size: z.string().min(1).max(20),
+  condition: z.enum(['new', 'like-new', 'good', 'fair']),
+  color: z.string().min(1).max(100),
+  brand: z.string().min(1).max(255),
+  measurements: z.object({
+    bust: z.string(),
+    waist: z.string(),
+    hips: z.string(),
+    length: z.string(),
   }),
+  images: z.array(z.string()).min(2, 'At least 2 images are required'),
+});
+
+const createListingSchema = {
+  body: listingBodySchema,
 };
 
 const listQuerySchema = {
@@ -52,5 +54,7 @@ router.get('/', validateRequest(listQuerySchema), listingsController.list);
 router.post('/upload-image', authMiddleware, uploadListingImage, listingsController.uploadImage);
 router.get('/:id', validateRequest(idParamSchema), listingsController.getById);
 router.post('/', authMiddleware, validateRequest(createListingSchema), listingsController.create);
+router.put('/:id', authMiddleware, validateRequest({ ...idParamSchema, body: listingBodySchema }), listingsController.update);
+router.delete('/:id', authMiddleware, validateRequest(idParamSchema), listingsController.remove);
 
 export default router;

@@ -71,16 +71,53 @@ export interface ListFilters {
   offset?: number;
 }
 
+async function getOrInitListingStats() {
+  let stats = await prisma.listingStats.findUnique({ where: { id: 1 } });
+  if (!stats) {
+    stats = await prisma.listingStats.create({
+      data: { id: 1, max_active_price: 0 },
+    });
+  }
+  return stats;
+}
+
+async function updateMaxPriceIfNeeded(newPrice: number) {
+  const stats = await getOrInitListingStats();
+  if (newPrice > Number(stats.max_active_price)) {
+    await prisma.listingStats.update({
+      where: { id: 1 },
+      data: { max_active_price: newPrice },
+    });
+  }
+}
+
+// Optional: full recompute helper, can be wired to an admin task or cron if needed.
+export async function recomputeMaxPriceFromListings(): Promise<number> {
+  const agg = await prisma.listing.aggregate({
+    where: { status: 'active' },
+    _max: { price: true },
+  });
+  const max = agg._max.price != null ? Number(agg._max.price) : 0;
+  await prisma.listingStats.upsert({
+    where: { id: 1 },
+    update: { max_active_price: max },
+    create: { id: 1, max_active_price: max },
+  });
+  return max;
+}
+
 export interface ListResult {
   listings: ListingDTO[];
   total: number;
+  maxPrice: number;
 }
 
 export async function list(filters: ListFilters): Promise<ListResult> {
-  const where: any = {};
-  if (filters.category) where.category = filters.category;
-  if (filters.size) where.size = filters.size;
-  if (filters.condition) where.condition = filters.condition;
+  const whereBase: any = {};
+  if (filters.category) whereBase.category = filters.category;
+  if (filters.size) whereBase.size = filters.size;
+  if (filters.condition) whereBase.condition = filters.condition;
+  const where: any = { ...whereBase };
   if (filters.search && filters.search.trim()) {
     const q = filters.search.trim();
     where.OR = [
@@ -93,13 +130,19 @@ export async function list(filters: ListFilters): Promise<ListResult> {
     if (filters.minPrice != null) where.price.gte = filters.minPrice;
     if (filters.maxPrice != null) where.price.lte = filters.maxPrice;
   }
-  if (filters.sellerId) where.seller_id = filters.sellerId;
-  if (filters.status) where.status = filters.status;
+  if (filters.sellerId) {
+    whereBase.seller_id = filters.sellerId;
+    where.seller_id = filters.sellerId;
+  }
+  if (filters.status) {
+    whereBase.status = filters.status;
+    where.status = filters.status;
+  }
 
   const limit = filters.limit ?? 24;
   const offset = filters.offset ?? 0;
 
-  const [total, rows] = await Promise.all([
+  const [total, rows, stats] = await Promise.all([
     prisma.listing.count({ where }),
     prisma.listing.findMany({
       where,
@@ -123,6 +166,7 @@ export async function list(filters: ListFilters): Promise<ListResult> {
         return orderBy;
       })(),
     }),
+    getOrInitListingStats(),
   ]);
 
   const listings = rows.map((l: any) => {
@@ -163,7 +207,9 @@ export async function list(filters: ListFilters): Promise<ListResult> {
     );
   });
 
-  return { listings, total };
+  const maxPrice = Number(stats.max_active_price ?? 0);
+
+  return { listings, total, maxPrice };
 }
 
 export async function findById(id: string): Promise<ListingDTO | null> {
@@ -260,7 +306,58 @@ export async function create(
       },
     },
   });
+  await updateMaxPriceIfNeeded(Number(listing.price));
   const full = await findById(listing.id);
   if (!full) throw new Error('Failed to load created listing');
   return full;
+}
+
+export async function update(
+  id: string,
+  data: {
+    title: string;
+    description: string;
+    price: number;
+    originalPrice?: number;
+    category: string;
+    size: string;
+    condition: string;
+    color: string;
+    brand: string;
+    bust: string;
+    waist: string;
+    hips: string;
+    length: string;
+    images: string[];
+  }
+): Promise<ListingDTO> {
+  await prisma.listing.update({
+    where: { id },
+    data: {
+      title: data.title,
+      description: data.description,
+      price: data.price,
+      original_price: data.originalPrice ?? null,
+      category: data.category,
+      size: data.size,
+      condition: data.condition,
+      color: data.color,
+      brand: data.brand,
+      bust: data.bust,
+      waist: data.waist,
+      hips: data.hips,
+      length: data.length,
+      images: {
+        deleteMany: {},
+        create: data.images.map((url, index) => ({ url, position: index })),
+      },
+    },
+  });
+  const full = await findById(id);
+  if (!full) throw new Error('Failed to load updated listing');
+  return full;
+}
+
+export async function remove(id: string): Promise<void> {
+  await prisma.listing.delete({ where: { id } });
 }

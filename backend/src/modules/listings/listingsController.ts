@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import * as listingsRepo from './listingsRepository';
 import * as authRepository from '../auth/authRepository';
-import { notFound, unauthorized, badRequest } from '../../middleware/errorHandler';
+import { notFound, unauthorized, badRequest, forbidden } from '../../middleware/errorHandler';
 import { ListingCreateInput } from './listingsTypes';
 
 export async function list(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -84,6 +84,68 @@ export async function create(req: Request, res: Response, next: NextFunction): P
       images: Array.isArray(body.images) ? body.images : [],
     });
     res.status(201).json(listing);
+  } catch (e) {
+    next(e);
+  }
+}
+
+export async function update(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    if (!req.user) {
+      next(unauthorized());
+      return;
+    }
+    const { id } = req.params;
+    const existing = await listingsRepo.findById(id);
+    if (!existing) {
+      next(notFound('Listing not found'));
+      return;
+    }
+    if (existing.seller.id !== req.user.id) {
+      next(forbidden('You can only edit your own listings.'));
+      return;
+    }
+    const body = req.body as ListingCreateInput;
+    const updated = await listingsRepo.update(id, {
+      title: body.title,
+      description: body.description,
+      price: body.price,
+      originalPrice: body.originalPrice,
+      category: body.category,
+      size: body.size,
+      condition: body.condition,
+      color: body.color,
+      brand: body.brand,
+      bust: body.measurements.bust,
+      waist: body.measurements.waist,
+      hips: body.measurements.hips,
+      length: body.measurements.length,
+      images: Array.isArray(body.images) ? body.images : [],
+    });
+    res.json(updated);
+  } catch (e) {
+    next(e);
+  }
+}
+
+export async function remove(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    if (!req.user) {
+      next(unauthorized());
+      return;
+    }
+    const { id } = req.params;
+    const existing = await listingsRepo.findById(id);
+    if (!existing) {
+      next(notFound('Listing not found'));
+      return;
+    }
+    if (existing.seller.id !== req.user.id) {
+      next(forbidden('You can only delete your own listings.'));
+      return;
+    }
+    await listingsRepo.remove(id);
+    res.status(204).send();
   } catch (e) {
     next(e);
   }

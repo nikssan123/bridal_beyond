@@ -73,7 +73,7 @@ const BrowseListings: React.FC = () => {
           gap: { xs: 2, md: 0 },
         }}
       >
-        {!isMobile && <FilterSidebar open={filterOpen} onClose={() => setFilterOpen(false)} />}
+        <FilterSidebar open={filterOpen} onClose={() => setFilterOpen(false)} />
         <Box sx={{ flexGrow: 1 }}>
           {status === 'loading' && listings.length === 0 ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>

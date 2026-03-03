@@ -214,3 +214,10 @@ model Dispute {
 
   @@map("disputes")
 }
+
+model ListingStats {
+  id               Int     @id @default(1)
+  max_active_price Decimal @db.Decimal(10, 2)
+
+  @@map("listing_stats")
+}
