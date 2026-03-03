@@ -61,11 +61,55 @@ export const createOrder = createAsyncThunk(
   }
 );
 
+function mapOrderListing(raw: any | null | undefined): Listing | undefined {
+  if (!raw) return undefined;
+  const images: string[] = Array.isArray(raw.images)
+    ? raw.images.map((img: any) => img.url as string)
+    : [];
+  const sellerRaw = raw.seller ?? {};
+  const memberSince =
+    sellerRaw.member_since != null
+      ? new Date(sellerRaw.member_since).getFullYear().toString()
+      : '';
+
+  return {
+    id: raw.id,
+    title: raw.title,
+    description: raw.description,
+    price: Number(raw.price),
+    originalPrice: raw.original_price != null ? Number(raw.original_price) : 0,
+    category: raw.category,
+    size: raw.size,
+    condition: raw.condition,
+    color: raw.color,
+    brand: raw.brand,
+    measurements: {
+      bust: raw.bust,
+      waist: raw.waist,
+      hips: raw.hips,
+      length: raw.length,
+    },
+    images,
+    seller: {
+      id: sellerRaw.id,
+      name: sellerRaw.name,
+      avatar: sellerRaw.avatar_url ?? '',
+      rating: 0,
+      listings: 0,
+      location: sellerRaw.location ?? '',
+      memberSince,
+      isVerified: !!sellerRaw.email_verified_at,
+    },
+    createdAt: raw.created_at,
+  };
+}
+
 export const fetchOrderById = createAsyncThunk(
   'orders/fetchOrderById',
   async (orderId: string, { rejectWithValue }) => {
     try {
       const { data } = await api.get<any>(`/orders/${orderId}`);
+      const listing = mapOrderListing(data.listing);
       const order: Order = {
         id: data.id,
         listingId: data.listing_id,
@@ -83,7 +127,7 @@ export const fetchOrderById = createAsyncThunk(
         trackingNumber: data.tracking_number,
         createdAt: data.created_at,
         updatedAt: data.updated_at,
-        listing: data.listing as Listing | undefined,
+        listing,
         hasOpenDispute: !!data.has_open_dispute,
       };
       return order;
@@ -117,7 +161,7 @@ export const fetchMySellerOrders = createAsyncThunk(
         trackingNumber: o.tracking_number,
         createdAt: o.created_at,
         updatedAt: o.updated_at,
-        listing: o.listing as Listing | undefined,
+        listing: mapOrderListing(o.listing),
         hasOpenDispute: !!o.has_open_dispute,
       }));
       return orders;
