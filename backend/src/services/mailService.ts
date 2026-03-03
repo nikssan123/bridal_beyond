@@ -10,6 +10,9 @@ import {
   getNewMessageSubject,
   getNewMessageHtml,
   getNewMessageText,
+  getOrderConfirmationSubject,
+  getOrderConfirmationHtml,
+  getOrderConfirmationText,
 } from '../emails/templates';
 
 let transport: nodemailer.Transporter | null = null;
@@ -62,6 +65,48 @@ export async function sendVerificationEmail(params: SendVerificationEmailParams)
   const subject = getVerificationSubject();
   const html = getVerificationHtml({ name: params.name, code: params.code });
   const text = getVerificationText({ name: params.name, code: params.code });
+  await t.sendMail({
+    from: mailConfig.smtpUser,
+    to: params.to,
+    subject,
+    text,
+    html,
+  });
+}
+
+export interface SendOrderConfirmationEmailParams {
+  to: string;
+  name: string;
+  orderUrl: string;
+  listingTitle: string;
+  totalPrice: string;
+}
+
+/**
+ * Sends an order confirmation email after a protected checkout is created.
+ * No-ops if SMTP is not configured.
+ */
+export async function sendOrderConfirmationEmail(
+  params: SendOrderConfirmationEmailParams
+): Promise<void> {
+  const t = getTransport();
+  if (!t) {
+    console.warn('[mail] SMTP not configured; skipping order confirmation email to', params.to);
+    return;
+  }
+  const subject = getOrderConfirmationSubject();
+  const html = getOrderConfirmationHtml({
+    name: params.name,
+    orderUrl: params.orderUrl,
+    listingTitle: params.listingTitle,
+    totalPrice: params.totalPrice,
+  });
+  const text = getOrderConfirmationText({
+    name: params.name,
+    orderUrl: params.orderUrl,
+    listingTitle: params.listingTitle,
+    totalPrice: params.totalPrice,
+  });
   await t.sendMail({
     from: mailConfig.smtpUser,
     to: params.to,

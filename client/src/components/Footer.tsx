@@ -33,6 +33,7 @@ const Footer: React.FC = () => {
             { label: t('nav.home'), to: '/' },
             { label: t('nav.listings'), to: '/listings' },
             { label: t('nav.addListing'), to: '/create' },
+            { label: t('footer.faq'), to: '/#faq' },
           ].map((link) => (
             <MuiLink
               key={link.to}

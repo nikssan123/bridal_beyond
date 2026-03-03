@@ -6,6 +6,7 @@ import * as stripeService from '../../services/stripe.service';
 import * as ordersRepository from './ordersRepository';
 import * as paymentsRepository from '../payments/paymentsRepository';
 import * as disputesRepository from '../disputes/disputesRepository';
+import { sendOrderConfirmationEmail } from '../../services/mailService';
 
 const createOrderBody = z.object({
   listingId: z.string().uuid(),
@@ -54,6 +55,12 @@ export async function createOrder(req: Request, res: Response): Promise<void> {
       return;
     }
 
+    const existingActiveOrder = await ordersRepository.findActiveByListingId(listingId);
+    if (existingActiveOrder) {
+      res.status(400).json({ message: 'An active order already exists for this listing' });
+      return;
+    }
+
     const amountCents = Math.round(Number(listing.price) * 100);
     const platformFeeCents = Math.round(
       amountCents * (env.stripePlatformFeePercent / 100)
@@ -90,6 +97,24 @@ export async function createOrder(req: Request, res: Response): Promise<void> {
       shippingCity: shippingAddress.city,
       shippingAddressLine: shippingAddress.addressLine,
     });
+
+    // Fire-and-forget order confirmation email to buyer (do not block response on failures)
+    try {
+      const buyer = await prisma.user.findUnique({ where: { id: userId } });
+      if (buyer) {
+        const orderUrl = `${env.clientUrl}/orders/${order.id}`;
+        const totalPrice = `${(amountCents / 100).toFixed(2)} лв.`;
+        await sendOrderConfirmationEmail({
+          to: buyer.email,
+          name: buyer.name,
+          orderUrl,
+          listingTitle: listing.title,
+          totalPrice,
+        });
+      }
+    } catch (mailErr) {
+      console.error('Order confirmation email error:', mailErr);
+    }
 
     res.status(201).json({
       orderId: order.id,
@@ -228,6 +253,27 @@ export async function listSellerOrders(req: Request, res: Response): Promise<voi
     res.json(withDisputeFlag);
   } catch (err) {
     console.error('List seller orders error:', err);
+    res.status(500).json({ message: 'Failed to load orders' });
+  }
+}
+
+export async function listBuyerOrders(req: Request, res: Response): Promise<void> {
+  try {
+    const userId = (req as any).user?.id as string | undefined;
+    if (!userId) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+    const orders = await ordersRepository.findByBuyerId(userId);
+    const orderIds = orders.map((o) => o.id);
+    const openDisputeOrderIds = await disputesRepository.findOrderIdsWithOpenDispute(orderIds);
+    const withDisputeFlag = orders.map((o) => ({
+      ...o,
+      has_open_dispute: openDisputeOrderIds.includes(o.id),
+    }));
+    res.json(withDisputeFlag);
+  } catch (err) {
+    console.error('List buyer orders error:', err);
     res.status(500).json({ message: 'Failed to load orders' });
   }
 }

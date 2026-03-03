@@ -8,6 +8,7 @@ const router = Router();
 router.use(authMiddleware);
 
 router.post('/', ordersController.createOrder);
+router.get('/buyer', ordersController.listBuyerOrders);
 router.get('/seller', ordersController.listSellerOrders);
 router.get('/:id', ordersController.getOrder);
 router.post('/:id/mark-shipped', ordersController.markShipped);

@@ -209,3 +209,108 @@ export function getNewMessageText(params: {
     messagesUrl,
   ].join('\n');
 }
+
+// --- Order confirmation (protected checkout) ---
+
+const ORDER_CONFIRMATION_SUBJECT = 'Успешна защитена поръчка в Грация';
+
+export function getOrderConfirmationSubject(): string {
+  return ORDER_CONFIRMATION_SUBJECT;
+}
+
+export function getOrderConfirmationHtml(params: {
+  name: string;
+  orderUrl: string;
+  listingTitle: string;
+  totalPrice: string;
+}): string {
+  const { name, orderUrl, listingTitle, totalPrice } = params;
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${ORDER_CONFIRMATION_SUBJECT}</title>
+</head>
+<body style="margin:0; padding:0; background-color:#FAF7F5; font-family:'Work Sans',sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#FAF7F5; padding:24px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" style="max-width:520px; border-radius:16px; border:1px solid #E8E0DC; background:#fff;">
+          <tr>
+            <td style="padding:32px 24px;">
+              <h1 style="margin:0 0 12px; font-family:'Playfair Display',serif; font-size:24px; font-weight:600; color:#D4A99A;">
+                Благодарим за вашата поръчка
+              </h1>
+              <p style="margin:0 0 16px; font-size:16px; line-height:1.5; color:#2D2D2D;">
+                Здравейте${name ? `, ${name}` : ''}! Вашата защитена покупка беше създадена успешно.
+              </p>
+              <div style="margin:20px 0; padding:14px 18px; border-radius:12px; background-color:#FAF7F5; border:1px solid #E8E0DC;">
+                <p style="margin:0 0 6px; font-size:15px; color:#6B6B6B;">Артикул</p>
+                <p style="margin:0 0 6px; font-size:16px; font-weight:600; color:#2D2D2D;">${listingTitle}</p>
+                <p style="margin:4px 0 0; font-size:16px; font-weight:600; color:#D4897E;">Обща сума: ${totalPrice}</p>
+              </div>
+              <p style="margin:0 0 16px; font-size:15px; line-height:1.6; color:#2D2D2D;">
+                Вашето плащане е <strong>задържано сигурно</strong> от Грация, докато не потвърдите, че сте получили роклята.
+              </p>
+              <p style="margin:0 0 10px; font-size:15px; line-height:1.6; color:#2D2D2D;">
+                Какво следва:
+              </p>
+              <ol style="margin:0 0 18px 20px; padding:0; font-size:15px; line-height:1.7; color:#2D2D2D;">
+                <li><strong>Потвърждение на плащането:</strong> Банката ви потвърждава плащането и средствата се задържат при нас.</li>
+                <li><strong>Продавачът изпраща роклята:</strong> Продавачът подготвя пратката и добавя данни за куриер и проследяване по поръчката.</li>
+                <li><strong>Вие получавате пратката:</strong> Пробвате роклята и се уверявате, че отговаря на описанието.</li>
+                <li><strong>Потвърждавате получаването:</strong> От страницата на поръчката натискате „Потвърди получаването“.</li>
+                <li><strong>Средствата се изплащат на продавача:</strong> След вашето потвърждение изплащаме сумата към продавача.</li>
+              </ol>
+              <p style="margin:0 0 18px; font-size:14px; line-height:1.6; color:#6B6B6B;">
+                Ако нещо не е наред с поръчката (забавяне, несъответствие, повреда), можете да отворите спор от същата страница преди да потвърдите получаването.
+              </p>
+              <p style="margin:22px 0 0; text-align:center;">
+                <a href="${orderUrl}" style="display:inline-block; padding:14px 28px; border-radius:12px; background:linear-gradient(135deg,#D4A99A 0%,#C4918A 100%); color:#2D2D2D; font-size:16px; font-weight:600; text-decoration:none;">
+                  Виж поръчката
+                </a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`.trim();
+}
+
+export function getOrderConfirmationText(params: {
+  name: string;
+  orderUrl: string;
+  listingTitle: string;
+  totalPrice: string;
+}): string {
+  const { name, orderUrl, listingTitle, totalPrice } = params;
+  return [
+    ORDER_CONFIRMATION_SUBJECT,
+    '',
+    name ? `Здравейте, ${name}!` : 'Здравейте!',
+    '',
+    'Вашата защитена покупка беше създадена успешно.',
+    '',
+    `Артикул: ${listingTitle}`,
+    `Обща сума: ${totalPrice}`,
+    '',
+    'Как протича процесът:',
+    '1. Потвърждение на плащането – средствата се задържат сигурно при нас.',
+    '2. Продавачът изпраща роклята и добавя данни за проследяване.',
+    '3. Вие получавате пратката и проверявате дали всичко е наред.',
+    '4. Потвърждавате получаването от страницата на поръчката.',
+    '5. След вашето потвърждение изплащаме сумата към продавача.',
+    '',
+    'Ако има проблем с поръчката, можете да отворите спор преди да потвърдите получаването.',
+    '',
+    'Вижте поръчката тук:',
+    orderUrl,
+  ].join('\n');
+}
+

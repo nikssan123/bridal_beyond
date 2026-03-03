@@ -82,12 +82,21 @@
     "trust2Title": "Quality dresses",
     "trust2Desc": "Only dresses in excellent condition from premium brands.",
     "trust3Title": "Easy communication",
-    "trust3Desc": "Direct contact between buyer and seller."
+    "trust3Desc": "Direct contact between buyer and seller.",
+    "faqTitle": "Frequently asked questions",
+    "faqSubtitle": "Answers to how protection, payouts, and disputes work.",
+    "faq_q1": "When does the seller receive the money?",
+    "faq_a1": "Your card is authorized at checkout, but the funds are held by Stripe. The seller only receives the payout after you confirm that you received the dress, or when our team resolves a dispute in the seller’s favour.",
+    "faq_q2": "What if the dress never arrives or is not as described?",
+    "faq_a2": "You can open a dispute from your order page. We review the case, may request evidence from both sides, and can refund you fully or partially, or release the funds to the seller.",
+    "faq_q3": "Do I need my own website to get paid as a seller?",
+    "faq_a3": "No. Sellers connect a Stripe Express account that uses their profile on Gracia as the business website. You don’t need your own domain or online store."
   },
   "footer": {
     "tagline": "The marketplace for pre-owned wedding and graduation dresses in Bulgaria. Elegance at an affordable price.",
     "navigation": "Navigation",
     "categories": "Categories",
+    "faq": "FAQ",
     "weddingDresses": "Wedding dresses",
     "graduationDresses": "Graduation",
     "eveningDresses": "Evening dresses",
@@ -196,7 +205,14 @@
     "payoutsActive": "Payouts active",
     "payoutsNotSetup": "Payouts not set up",
     "payoutsDescriptionSetup": "To receive payouts for your sold dresses, connect your Stripe account. We will redirect you to Stripe for a quick, secure setup.",
-    "payoutsDescriptionActive": "Your payouts are active via Stripe. You can update your bank details on Stripe at any time."
+    "payoutsDescriptionActive": "Your payouts are active via Stripe. You can update your bank details on Stripe at any time.",
+    "myPurchases": "My purchases",
+    "myPurchasesSubtitle": "Your active and past protected orders.",
+    "noPurchases": "You have no purchases yet.",
+    "mySales": "My sales",
+    "mySalesSubtitle": "Orders where you are the seller.",
+    "noSales": "You have no sales yet.",
+    "viewOrder": "View"
   },
   "checkout": {
     "title": "Protected checkout",

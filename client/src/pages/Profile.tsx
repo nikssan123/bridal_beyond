@@ -31,6 +31,7 @@ import { fetchMe, updateProfile, uploadAvatar } from '@/features/auth/authSlice'
 import { connectStripe, openStripeAccount } from '@/features/stripe/stripeSlice';
 import { fetchReviewsBySellerId } from '@/features/reviews/reviewsSlice';
 import { fetchListingsBySeller } from '@/features/listings/listingsSlice';
+import { fetchMyBuyerOrders, fetchMySellerOrders } from '@/features/orders/ordersSlice';
 import { getAvatarUrl } from '@/lib/avatarUrl';
 import { useTranslation } from 'react-i18next';
 
@@ -56,6 +57,9 @@ const Profile: React.FC = () => {
   const authError = useAppSelector((state) => state.auth.error);
   const stripeConnectStatus = useAppSelector((state) => state.stripe.connectStatus);
   const stripeConnectError = useAppSelector((state) => state.stripe.connectError);
+  const { buyerOrders, buyerOrdersStatus, myOrders, sellerOrdersStatus } = useAppSelector(
+    (state) => state.orders
+  );
 
   useEffect(() => {
     if (!user) {
@@ -67,6 +71,8 @@ const Profile: React.FC = () => {
     if (user) {
       dispatch(fetchReviewsBySellerId(user.id));
       dispatch(fetchListingsBySeller({ sellerId: user.id, status: tab === 'active' ? 'active' : 'sold' }));
+      dispatch(fetchMyBuyerOrders());
+      dispatch(fetchMySellerOrders());
     }
   }, [dispatch, user?.id, tab]);
 
@@ -276,6 +282,148 @@ const Profile: React.FC = () => {
             {profileListings.map((listing) => (
               <Grid item xs={12} sm={6} md={4} key={listing.id}>
                 <ListingCard listing={listing} />
+              </Grid>
+            ))}
+          </Grid>
+        )}
+      </Box>
+
+      {/* Seller orders – My sales */}
+      <Box sx={{ mt: 6 }}>
+        <SectionHeader
+          title={t('profile.mySales', 'My sales')}
+          subtitle={t('profile.mySalesSubtitle', 'Orders where you are the seller.')}
+        />
+        {sellerOrdersStatus === 'loading' ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+            <CircularProgress sx={{ color: 'primary.dark' }} />
+          </Box>
+        ) : myOrders.length === 0 ? (
+          <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+            {t('profile.noSales', 'You have no sales yet.')}
+          </Typography>
+        ) : (
+          <Grid container spacing={2}>
+            {myOrders.map((order) => (
+              <Grid item xs={12} md={6} key={order.id}>
+                <Box
+                  sx={{
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 3,
+                    p: 2,
+                    display: 'flex',
+                    gap: 2,
+                    alignItems: 'center',
+                  }}
+                >
+                  {order.listing && order.listing.images[0] && (
+                    <Avatar
+                      variant="rounded"
+                      src={getAvatarUrl(order.listing.images[0]) || undefined}
+                      sx={{ width: 72, height: 90, borderRadius: 2 }}
+                    />
+                  )}
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography
+                      variant="subtitle1"
+                      noWrap
+                      sx={{ fontWeight: 600, mb: 0.5 }}
+                    >
+                      {order.listing?.title}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {new Date(order.createdAt).toLocaleDateString()}
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{ mt: 0.5, fontWeight: 600, color: 'secondary.main' }}
+                    >
+                      {order.priceCents / 100} лв.
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                      {order.status}
+                    </Typography>
+                  </Box>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    href={`/orders/${order.id}`}
+                  >
+                    {t('profile.viewOrder', 'View')}
+                  </Button>
+                </Box>
+              </Grid>
+            ))}
+          </Grid>
+        )}
+      </Box>
+
+      {/* Buyer orders – My purchases */}
+      <Box sx={{ mt: 6 }}>
+        <SectionHeader
+          title={t('profile.myPurchases', 'My purchases')}
+          subtitle={t('profile.myPurchasesSubtitle', 'Your active and past protected orders.')}
+        />
+        {buyerOrdersStatus === 'loading' ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+            <CircularProgress sx={{ color: 'primary.dark' }} />
+          </Box>
+        ) : buyerOrders.length === 0 ? (
+          <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+            {t('profile.noPurchases', 'You have no purchases yet.')}
+          </Typography>
+        ) : (
+          <Grid container spacing={2}>
+            {buyerOrders.map((order) => (
+              <Grid item xs={12} md={6} key={order.id}>
+                <Box
+                  sx={{
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 3,
+                    p: 2,
+                    display: 'flex',
+                    gap: 2,
+                    alignItems: 'center',
+                  }}
+                >
+                  {order.listing && order.listing.images[0] && (
+                    <Avatar
+                      variant="rounded"
+                      src={getAvatarUrl(order.listing.images[0]) || undefined}
+                      sx={{ width: 72, height: 90, borderRadius: 2 }}
+                    />
+                  )}
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography
+                      variant="subtitle1"
+                      noWrap
+                      sx={{ fontWeight: 600, mb: 0.5 }}
+                    >
+                      {order.listing?.title}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {new Date(order.createdAt).toLocaleDateString()}
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{ mt: 0.5, fontWeight: 600, color: 'secondary.main' }}
+                    >
+                      {order.priceCents / 100} лв.
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                      {order.status}
+                    </Typography>
+                  </Box>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    href={`/orders/${order.id}`}
+                  >
+                    {t('profile.viewOrder', 'View')}
+                  </Button>
+                </Box>
               </Grid>
             ))}
           </Grid>

@@ -183,6 +183,47 @@ const Home: React.FC = () => {
           ))}
         </Grid>
       </Container>
+
+      {/* FAQ */}
+      <Box id="faq" sx={{ bgcolor: 'background.default', py: { xs: 5, md: 8 } }}>
+        <Container maxWidth="lg">
+          <SectionHeader
+            title={t('home.faqTitle')}
+            subtitle={t('home.faqSubtitle')}
+            align="center"
+          />
+          <Grid container spacing={3} sx={{ mt: 1 }}>
+            {[
+              { q: t('home.faq_q1'), a: t('home.faq_a1') },
+              { q: t('home.faq_q2'), a: t('home.faq_a2') },
+              { q: t('home.faq_q3'), a: t('home.faq_a3') },
+            ].map((item, idx) => (
+              <Grid item xs={12} md={4} key={idx}>
+                <Box
+                  sx={{
+                    p: 3,
+                    borderRadius: 3,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    height: '100%',
+                    bgcolor: 'background.paper',
+                  }}
+                >
+                  <Typography
+                    variant="subtitle1"
+                    sx={{ fontWeight: 600, mb: 1 }}
+                  >
+                    {item.q}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {item.a}
+                  </Typography>
+                </Box>
+              </Grid>
+            ))}
+          </Grid>
+        </Container>
+      </Box>
     </>
   );
 };

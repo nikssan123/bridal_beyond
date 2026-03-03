@@ -173,6 +173,40 @@ export const fetchMySellerOrders = createAsyncThunk(
   }
 );
 
+export const fetchMyBuyerOrders = createAsyncThunk(
+  'orders/fetchMyBuyerOrders',
+  async (_, { rejectWithValue }) => {
+    try {
+      const { data } = await api.get<any[]>('/orders/buyer');
+      const orders: Order[] = data.map((o) => ({
+        id: o.id,
+        listingId: o.listing_id,
+        buyerId: o.buyer_id,
+        sellerId: o.seller_id,
+        priceCents: o.price_cents,
+        platformFeeCents: o.platform_fee_cents,
+        paymentIntentId: o.payment_intent_id,
+        status: o.status,
+        shippingFullName: o.shipping_full_name,
+        shippingPhone: o.shipping_phone,
+        shippingCity: o.shipping_city,
+        shippingAddressLine: o.shipping_address_line,
+        courier: o.courier,
+        trackingNumber: o.tracking_number,
+        createdAt: o.created_at,
+        updatedAt: o.updated_at,
+        listing: mapOrderListing(o.listing),
+        hasOpenDispute: !!o.has_open_dispute,
+      }));
+      return orders;
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message || err?.message || 'Failed to load buyer orders';
+      return rejectWithValue(message);
+    }
+  }
+);
+
 export const markAsShipped = createAsyncThunk(
   'orders/markAsShipped',
   async (
@@ -229,17 +263,21 @@ export const createDispute = createAsyncThunk(
 
 interface OrdersState {
   currentOrder: Order | null;
-  myOrders: Order[];
+  myOrders: Order[]; // seller orders
+  buyerOrders: Order[];
   status: 'idle' | 'loading' | 'succeeded' | 'failed';
   sellerOrdersStatus: 'idle' | 'loading' | 'succeeded' | 'failed';
+  buyerOrdersStatus: 'idle' | 'loading' | 'succeeded' | 'failed';
   error: string | null;
 }
 
 const initialState: OrdersState = {
   currentOrder: null,
   myOrders: [],
+  buyerOrders: [],
   status: 'idle',
   sellerOrdersStatus: 'idle',
+  buyerOrdersStatus: 'idle',
   error: null,
 };
 
@@ -287,6 +325,17 @@ const ordersSlice = createSlice({
       .addCase(fetchMySellerOrders.rejected, (state, action) => {
         state.sellerOrdersStatus = 'failed';
         state.error = (action.payload as string) || 'Failed to load seller orders';
+      })
+      .addCase(fetchMyBuyerOrders.pending, (state) => {
+        state.buyerOrdersStatus = 'loading';
+      })
+      .addCase(fetchMyBuyerOrders.fulfilled, (state, action: PayloadAction<Order[]>) => {
+        state.buyerOrdersStatus = 'succeeded';
+        state.buyerOrders = action.payload;
+      })
+      .addCase(fetchMyBuyerOrders.rejected, (state, action) => {
+        state.buyerOrdersStatus = 'failed';
+        state.error = (action.payload as string) || 'Failed to load buyer orders';
       })
       .addCase(markAsShipped.fulfilled, (state, action) => {
         const updatedRaw = action.payload;

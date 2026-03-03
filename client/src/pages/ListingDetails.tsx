@@ -2,8 +2,19 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  Box, Grid, Typography, Chip, CircularProgress, Divider, Button, IconButton,
+  Box,
+  Grid,
+  Typography,
+  Chip,
+  CircularProgress,
+  Divider,
+  Button,
+  IconButton,
   Snackbar,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import FavoriteIcon from '@mui/icons-material/Favorite';
@@ -18,7 +29,7 @@ import RatingDisplay from '@/components/RatingDisplay';
 import SectionHeader from '@/components/SectionHeader';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { getAvatarUrl } from '@/lib/avatarUrl';
-import { fetchListingById } from '@/features/listings/listingsSlice';
+import { fetchListingById, deleteListing } from '@/features/listings/listingsSlice';
 import { fetchReviewsBySellerId } from '@/features/reviews/reviewsSlice';
 import { toggleFavorite, fetchFavorites } from '@/features/favorites/favoritesSlice';
 import { createOrGetConversation } from '@/features/conversations/conversationsSlice';
@@ -50,6 +61,8 @@ const ListingDetails: React.FC = () => {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -326,22 +339,7 @@ const ListingDetails: React.FC = () => {
                   color="error"
                   fullWidth
                   size="large"
-                  onClick={async () => {
-                    const confirmed = window.confirm(
-                      t(
-                        'listing.deleteConfirm',
-                        'Are you sure you want to delete this listing? This action cannot be undone.'
-                      )
-                    );
-                    if (!confirmed) return;
-                    try {
-                      const { deleteListing } = await import('@/features/listings/listingsSlice');
-                      await dispatch(deleteListing(listing.id)).unwrap();
-                      navigate('/listings');
-                    } catch (err) {
-                      console.error(err);
-                    }
-                  }}
+                  onClick={() => setDeleteDialogOpen(true)}
                 >
                   {t('listing.deleteListing', 'Delete listing')}
                 </Button>
@@ -422,6 +420,53 @@ const ListingDetails: React.FC = () => {
         message={snackbarMessage}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       />
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => (deleteLoading ? undefined : setDeleteDialogOpen(false))}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>{t('listing.deleteListing', 'Delete listing')}</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mt: 1 }}>
+            {t(
+              'listing.deleteConfirm',
+              'Are you sure you want to delete this listing? This action cannot be undone.'
+            )}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setDeleteDialogOpen(false)}
+            disabled={deleteLoading}
+          >
+            {t('common.cancel', 'Cancel')}
+          </Button>
+          <Button
+            color="error"
+            variant="contained"
+            disabled={deleteLoading}
+            onClick={async () => {
+              if (!listing) return;
+              setDeleteLoading(true);
+              try {
+                await dispatch(deleteListing(listing.id)).unwrap();
+                setDeleteDialogOpen(false);
+                navigate('/listings');
+              } catch (err) {
+                console.error(err);
+                setDeleteLoading(false);
+              }
+            }}
+          >
+            {deleteLoading ? (
+              <CircularProgress size={18} color="inherit" />
+            ) : (
+              t('listing.deleteListing', 'Delete listing')
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
       {currentPayment?.clientSecret && (
         <PaymentDialog
           open={paymentDialogOpen}

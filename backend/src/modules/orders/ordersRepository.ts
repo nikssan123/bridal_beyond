@@ -68,9 +68,33 @@ export async function findBySellerId(sellerId: string) {
   });
 }
 
+export async function findByBuyerId(buyerId: string) {
+  return prisma.order.findMany({
+    where: { buyer_id: buyerId },
+    orderBy: { created_at: 'desc' },
+    include: {
+      listing: {
+        include: {
+          images: { orderBy: { position: 'asc' } },
+          seller: true,
+        },
+      },
+    },
+  });
+}
+
 export async function findByPaymentIntentId(paymentIntentId: string) {
   return prisma.order.findUnique({
     where: { payment_intent_id: paymentIntentId },
+  });
+}
+
+export async function findActiveByListingId(listingId: string) {
+  return prisma.order.findFirst({
+    where: {
+      listing_id: listingId,
+      status: { in: ['payment_pending', 'payment_secured', 'shipped'] },
+    },
   });
 }
 
