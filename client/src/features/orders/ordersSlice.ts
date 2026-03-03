@@ -54,8 +54,19 @@ export const createOrder = createAsyncThunk(
       const { data } = await api.post<CreateOrderResponse>('/orders', payload);
       return data;
     } catch (err: any) {
-      const message =
-        err?.response?.data?.message || err?.message || 'Failed to create order';
+      const res = err?.response?.data;
+      let message =
+        res?.message || err?.message || 'Failed to create order';
+      if (message === 'Invalid body' && res?.errors?.fieldErrors) {
+        const fe = res.errors.fieldErrors;
+        const addr = fe.shippingAddress;
+        const first =
+          fe.listingId?.[0] ??
+          (addr && typeof addr === 'object' && !Array.isArray(addr)
+            ? (addr.fullName ?? addr.phone ?? addr.city ?? addr.addressLine)?.[0]
+            : Array.isArray(addr) ? addr[0] : null);
+        if (first) message = first;
+      }
       return rejectWithValue(message);
     }
   }
@@ -220,8 +231,13 @@ export const markAsShipped = createAsyncThunk(
       });
       return data;
     } catch (err: any) {
-      const message =
-        err?.response?.data?.message || err?.message || 'Failed to mark as shipped';
+      const res = err?.response?.data;
+      let message = res?.message || err?.message || 'Failed to mark as shipped';
+      if (message === 'Invalid body' && res?.errors?.fieldErrors) {
+        const fe = res.errors.fieldErrors;
+        const first = (fe.courier ?? fe.trackingNumber ?? [])[0];
+        if (first) message = first;
+      }
       return rejectWithValue(message);
     }
   }

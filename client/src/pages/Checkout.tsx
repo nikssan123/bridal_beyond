@@ -70,6 +70,21 @@ const Checkout: React.FC = () => {
     const card = elements.getElement(CardElement);
     if (!card) return;
 
+    const trimmed = {
+      fullName: shipping.fullName.trim(),
+      phone: shipping.phone.trim(),
+      city: shipping.city.trim(),
+      addressLine: shipping.addressLine.trim(),
+    };
+    if (!trimmed.fullName || !trimmed.phone || !trimmed.city || !trimmed.addressLine) {
+      setError(t('checkout.shippingRequired', 'Please fill in all shipping fields.'));
+      return;
+    }
+    if (trimmed.phone.length < 3) {
+      setError(t('checkout.phoneTooShort', 'Phone number must be at least 3 characters.'));
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
 
@@ -77,12 +92,7 @@ const Checkout: React.FC = () => {
       const orderResult = await dispatch(
         createOrder({
           listingId,
-          shippingAddress: {
-            fullName: shipping.fullName,
-            phone: shipping.phone,
-            city: shipping.city,
-            addressLine: shipping.addressLine,
-          },
+          shippingAddress: trimmed,
         })
       ).unwrap();
 
@@ -106,7 +116,9 @@ const Checkout: React.FC = () => {
       navigate(`/orders/${orderId}`);
     } catch (err: any) {
       const message =
-        typeof err === 'string' ? err : t('checkout.genericError', 'Something went wrong. Please try again.');
+        typeof err === 'string'
+          ? err
+          : err?.response?.data?.message ?? err?.message ?? t('checkout.genericError', 'Something went wrong. Please try again.');
       setError(message);
       setSubmitting(false);
     }

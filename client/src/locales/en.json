@@ -90,18 +90,29 @@
     "faq_q2": "What if the dress never arrives or is not as described?",
     "faq_a2": "You can open a dispute from your order page. We review the case, may request evidence from both sides, and can refund you fully or partially, or release the funds to the seller.",
     "faq_q3": "Do I need my own website to get paid as a seller?",
-    "faq_a3": "No. Sellers connect a Stripe Express account that uses their profile on Gracia as the business website. You don’t need your own domain or online store."
+    "faq_a3": "No. Sellers connect a Stripe Express account that uses their profile on Gracia as the business website. You don’t need your own domain or online store.",
+    "faq_q4": "Is there a fee for buyer protection?",
+    "faq_a4": "Gracia earns a small platform fee that is included in the protected checkout. You always see the full amount before you pay. This fee helps us cover payment processing, dispute resolution, and support.",
+    "faq_q5": "Who can sell on Gracia?",
+    "faq_a5": "Any individual in Bulgaria with a valid ID, bank account and Stripe-supported card can sell dresses on Gracia, as long as the items are genuine, in good condition and accurately described.",
+    "faq_q6": "How do shipping and delivery work?",
+    "faq_a6": "The seller is responsible for shipping the dress. After you buy with protection, the seller chooses a courier, ships the parcel and adds the tracking number to your order so you can follow the delivery.",
+    "faq_q7": "Can I edit or delete a listing after publishing?",
+    "faq_a7": "Yes. As long as there is no active protected order on the listing, you can edit the details or delete it from your profile. If an order is in progress, you first need to resolve or complete that order."
   },
   "footer": {
     "tagline": "The marketplace for pre-owned wedding and graduation dresses in Bulgaria. Elegance at an affordable price.",
     "navigation": "Navigation",
     "categories": "Categories",
+    "legal": "Legal",
     "faq": "FAQ",
     "weddingDresses": "Wedding dresses",
     "graduationDresses": "Graduation",
     "eveningDresses": "Evening dresses",
     "contacts": "Contacts",
     "location": "Sofia, Bulgaria",
+    "terms": "Terms of service",
+    "privacy": "Privacy policy",
     "copyright": "© 2025 Gracia. All rights reserved."
   },
   "listings": {
@@ -227,7 +238,9 @@
     "address": "Address line",
     "payment": "Payment",
     "payAndProtect": "Pay with protection",
-    "genericError": "Something went wrong while processing your payment. Please try again or use a different card."
+    "genericError": "Something went wrong while processing your payment. Please try again or use a different card.",
+    "shippingRequired": "Please fill in all shipping fields.",
+    "phoneTooShort": "Phone number must be at least 3 characters."
   },
   "order": {
     "title": "Order details",
@@ -266,5 +279,50 @@
     "authentication_required": "Your bank requires additional authentication. Please try again or use a different card.",
     "processing_error": "There was an error processing your payment. Please try again.",
     "generic": "Payment failed. Please check your card details or try a different card."
+  },
+  "legal": {
+    "termsTitle": "Terms of service",
+    "termsSubtitle": "Please read these terms carefully before using Gracia.",
+    "privacyTitle": "Privacy policy",
+    "privacySubtitle": "How we collect, use, and protect your personal data.",
+    "effectiveDate": "Effective date: 1 March 2026",
+    "languageNotice": "These documents are provided in English. In case of translation differences, the English version prevails.",
+    "noLegalAdvice": "This information is for general informational purposes only and does not constitute legal advice. For a production deployment, please have a lawyer review and adapt these terms to your specific situation.",
+    "terms": {
+      "useOfServiceTitle": "Use of the platform",
+      "useOfServiceText1": "Gracia is a marketplace that connects buyers and sellers of pre-owned dresses. We do not own or manufacture the items listed by users. By using the platform, you agree to provide accurate information, to respect other users, and to comply with applicable laws.",
+      "useOfServiceText2": "You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account. We may suspend or terminate accounts that abuse the platform, commit fraud, or violate these terms.",
+      "accountsPaymentsTitle": "Accounts, payments and fees",
+      "accountsPaymentsText1": "Payments on Gracia are processed via Stripe. When you buy a dress, your payment is authorized and held securely until the order is completed or resolved under our dispute process. Sellers must connect a Stripe account to receive payouts.",
+      "accountsPaymentsText2": "We may charge service fees to buyers and/or sellers. Any applicable fees will be displayed during checkout or listing creation. Stripe may also charge its own fees, which are governed by your agreement with Stripe.",
+      "listingsTransactionsTitle": "Listings and transactions between users",
+      "listingsTransactionsText1": "Sellers are responsible for ensuring that their listings are accurate, lawful, and not misleading. This includes correct descriptions, pricing, photos, and shipment details. Buyers are responsible for reviewing the listing carefully before purchasing.",
+      "listingsTransactionsText2": "Any contract of sale is formed directly between the buyer and the seller. We provide payment protection and dispute tools, but we are not a party to the contract between users.",
+      "disputesTitle": "Disputes and buyer protection",
+      "disputesText1": "If there is an issue with an order (for example delayed delivery or item not as described), buyers can open a dispute from the order page. Our team may request additional information from both buyer and seller before making a decision.",
+      "disputesText2": "Depending on the outcome, we may release funds to the seller, issue a full or partial refund to the buyer, or take other actions consistent with our dispute policy and Stripe’s rules.",
+      "liabilityTitle": "Limitation of liability",
+      "liabilityText1": "To the maximum extent permitted by law, Gracia, its owners, and its team are not liable for indirect, incidental, or consequential damages arising out of or in connection with your use of the platform, including lost profits or lost data.",
+      "liabilityText2": "Our total liability for any claims relating to the service will not exceed the greater of (a) the amounts paid to us by you in the 6 months preceding the claim, or (b) 50 EUR.",
+      "terminationTitle": "Changes and termination",
+      "terminationText1": "We may update these terms from time to time, for example to reflect changes in the law or our services. If we make material changes, we will notify you by email or via the platform. If you do not agree to the updated terms, you must stop using the service."
+    },
+    "privacy": {
+      "dataWeCollectTitle": "Information we collect",
+      "dataWeCollectText1": "We collect information that you provide directly, such as your name, email address, profile details, listings, messages, shipping information, and dispute submissions. We also collect technical data such as IP address, device information, and usage logs.",
+      "dataWeCollectText2": "For sellers who connect Stripe, certain payout and compliance information is handled directly by Stripe. We do not store full payment card numbers or bank account details on our servers.",
+      "howWeUseDataTitle": "How we use your information",
+      "howWeUseDataText1": "We use your data to operate and improve the marketplace, including creating and managing accounts, processing orders and payments, facilitating messaging between users, preventing fraud, and providing customer support.",
+      "howWeUseDataText2": "We may also use aggregated and anonymized data for analytics, product development, and to understand how the platform is used. We do not sell your personal data to third parties.",
+      "paymentsStripeTitle": "Payments and Stripe",
+      "paymentsStripeText1": "Payments on Gracia are processed by Stripe. When you enter payment information, it is sent directly to Stripe and handled in accordance with Stripe’s own privacy policy and terms.",
+      "paymentsStripeText2": "We may receive limited information from Stripe about your payment method (for example the last 4 digits of a card, brand, and expiry month/year) in order to identify transactions, handle disputes, and comply with legal obligations.",
+      "dataRetentionTitle": "Data retention",
+      "dataRetentionText1": "We retain your information for as long as necessary to provide the service, comply with legal and tax obligations, resolve disputes, and enforce our agreements. When data is no longer needed, we will delete it or anonymize it.",
+      "rightsTitle": "Your rights",
+      "rightsText1": "Depending on your location, you may have rights to access, correct, or delete your personal data, to object to or restrict certain processing, or to request data portability. You can exercise many of these rights via your account settings, or by contacting us using the details below."
+    },
+    "contactTitle": "Contact",
+    "contactText": "If you have questions about these Terms of service or our Privacy policy, you can contact us at info@gracia.bg."
   }
 }

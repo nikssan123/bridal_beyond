@@ -11,8 +11,7 @@ const createReviewSchema = {
   params: z.object({ sellerId: z.string().min(1) }),
   body: z.object({
     rating: z.number().int().min(1).max(5),
-    comment: z.string().min(1),
-    userName: z.string().min(1).optional(),
+    comment: z.string().max(1000).optional(), // allow empty / missing comment
   }),
 };
 

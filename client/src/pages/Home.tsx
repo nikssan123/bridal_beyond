@@ -1,7 +1,19 @@
 import React, { useEffect } from 'react';
-import { Box, Typography, Button, Container, Grid, Chip, CircularProgress } from '@mui/material';
+import {
+  Box,
+  Typography,
+  Button,
+  Container,
+  Grid,
+  Chip,
+  CircularProgress,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+} from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import heroImg from '@/assets/hero-wedding.jpg';
 import ListingCard from '@/components/ListingCard';
 import SectionHeader from '@/components/SectionHeader';
@@ -192,36 +204,49 @@ const Home: React.FC = () => {
             subtitle={t('home.faqSubtitle')}
             align="center"
           />
-          <Grid container spacing={3} sx={{ mt: 1 }}>
+          <Box sx={{ maxWidth: 800, mx: 'auto', mt: 2 }}>
             {[
               { q: t('home.faq_q1'), a: t('home.faq_a1') },
               { q: t('home.faq_q2'), a: t('home.faq_a2') },
               { q: t('home.faq_q3'), a: t('home.faq_a3') },
+              { q: t('home.faq_q4'), a: t('home.faq_a4') },
+              { q: t('home.faq_q5'), a: t('home.faq_a5') },
+              { q: t('home.faq_q6'), a: t('home.faq_a6') },
+              { q: t('home.faq_q7'), a: t('home.faq_a7') },
             ].map((item, idx) => (
-              <Grid item xs={12} md={4} key={idx}>
-                <Box
+              <Accordion
+                key={item.q}
+                defaultExpanded={idx === 0}
+                sx={{
+                  mb: 1.5,
+                  borderRadius: 2,
+                  '&::before': { display: 'none' },
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  boxShadow: 'none',
+                  overflow: 'hidden',
+                }}
+              >
+                <AccordionSummary
+                  expandIcon={<ExpandMoreIcon />}
                   sx={{
-                    p: 3,
-                    borderRadius: 3,
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    height: '100%',
-                    bgcolor: 'background.paper',
+                    px: 2.5,
+                    py: 1.5,
+                    '& .MuiAccordionSummary-content': { margin: 0 },
                   }}
                 >
-                  <Typography
-                    variant="subtitle1"
-                    sx={{ fontWeight: 600, mb: 1 }}
-                  >
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                     {item.q}
                   </Typography>
+                </AccordionSummary>
+                <AccordionDetails sx={{ px: 2.5, pt: 0, pb: 2 }}>
                   <Typography variant="body2" color="text.secondary">
                     {item.a}
                   </Typography>
-                </Box>
-              </Grid>
+                </AccordionDetails>
+              </Accordion>
             ))}
-          </Grid>
+          </Box>
         </Container>
       </Box>
     </>

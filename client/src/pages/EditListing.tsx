@@ -206,8 +206,20 @@ const EditListing: React.FC = () => {
               }
               const url = await dispatch(uploadListingImage(file)).unwrap();
               return url;
-            } catch (err) {
-              const msg = (err as Error)?.message || 'Upload failed';
+            } catch (err: any) {
+              const status = err?.response?.status;
+              let msg: string;
+              if (status === 413) {
+                msg = t(
+                  'listing.imagesTooLarge',
+                  'File is too large. Maximum size is 10MB.'
+                );
+              } else {
+                msg =
+                  err?.response?.data?.message ||
+                  (err as Error)?.message ||
+                  t('listing.imageUploadFailed', 'Image upload failed. Please try again.');
+              }
               setImageError(msg);
               throw err;
             }

@@ -64,6 +64,40 @@ const Footer: React.FC = () => {
             </MuiLink>
           ))}
         </Grid>
+        <Grid item xs={6} sm={4} md={2}>
+          <Typography
+            variant="subtitle2"
+            sx={{
+              mb: 2,
+              fontWeight: 600,
+              letterSpacing: 1,
+              textTransform: 'uppercase',
+              fontSize: '0.75rem',
+            }}
+          >
+            {t('footer.legal')}
+          </Typography>
+          {[
+            { label: t('footer.terms'), to: '/terms' },
+            { label: t('footer.privacy'), to: '/privacy' },
+          ].map((link) => (
+            <MuiLink
+              key={link.to}
+              component={Link}
+              to={link.to}
+              sx={{
+                display: 'block',
+                color: 'rgba(255,255,255,0.6)',
+                mb: 1,
+                textDecoration: 'none',
+                fontSize: '0.9rem',
+                '&:hover': { color: 'primary.main' },
+              }}
+            >
+              {link.label}
+            </MuiLink>
+          ))}
+        </Grid>
         <Grid item xs={12} sm={4} md={4}>
           <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', fontSize: '0.75rem' }}>
             {t('footer.contacts')}

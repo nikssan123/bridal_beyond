@@ -34,6 +34,27 @@ export async function handleStripeWebhook(req: Request, res: Response): Promise<
     return;
   }
   switch (event.type) {
+    case 'payment_intent.amount_capturable_updated': {
+      // Manual capture: customer authorized payment; PI is now requires_capture. Mark order as payment_secured.
+      const pi = event.data.object as Stripe.PaymentIntent;
+      if (pi.status === 'requires_capture' && pi.amount_capturable && pi.amount_capturable > 0) {
+        await paymentsRepository.updateStatus(pi.id, 'requires_capture');
+        try {
+          const order = await prisma.order.findUnique({
+            where: { payment_intent_id: pi.id },
+          });
+          if (order && order.status === 'payment_pending') {
+            await prisma.order.update({
+              where: { id: order.id },
+              data: { status: 'payment_secured' },
+            });
+          }
+        } catch (e) {
+          console.error('Failed to update order from webhook (amount_capturable_updated):', e);
+        }
+      }
+      break;
+    }
     case 'payment_intent.succeeded': {
       const pi = event.data.object as Stripe.PaymentIntent;
       await paymentsRepository.updateStatus(pi.id, 'succeeded');

@@ -13,8 +13,8 @@ const listingBodySchema = z.object({
   category: z.enum(['wedding', 'graduation', 'evening']),
   size: z.string().min(1).max(20),
   condition: z.enum(['new', 'like-new', 'good', 'fair']),
-  color: z.string().min(1).max(100),
-  brand: z.string().min(1).max(255),
+  color: z.string().max(100).optional().default(''),
+  brand: z.string().max(255).optional().default(''),
   measurements: z.object({
     bust: z.string(),
     waist: z.string(),

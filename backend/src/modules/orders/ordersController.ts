@@ -9,20 +9,36 @@ import * as disputesRepository from '../disputes/disputesRepository';
 import { sendOrderConfirmationEmail } from '../../services/mailService';
 
 const createOrderBody = z.object({
-  listingId: z.string().uuid(),
+  listingId: z.string().uuid('Invalid listing'),
   shippingAddress: z.object({
-    fullName: z.string().min(1),
-    phone: z.string().min(3),
-    city: z.string().min(1),
-    addressLine: z.string().min(1),
+    fullName: z.string().trim().min(1, 'Full name is required'),
+    phone: z.string().trim().min(3, 'Phone must be at least 3 characters'),
+    city: z.string().trim().min(1, 'City is required'),
+    addressLine: z.string().trim().min(1, 'Address is required'),
   }),
 });
+
+function formatZodMessage(flatten: { formErrors?: string[]; fieldErrors?: Record<string, unknown> }): string {
+  const parts: string[] = [];
+  if (flatten.formErrors?.length) parts.push(flatten.formErrors.join('. '));
+  const field = flatten.fieldErrors ?? {};
+  if (Array.isArray(field.listingId) && field.listingId[0]) parts.push(String(field.listingId[0]));
+  const addr = field.shippingAddress;
+  if (Array.isArray(addr) && addr[0]) parts.push(String(addr[0]));
+  else if (addr && typeof addr === 'object' && !Array.isArray(addr)) {
+    const a = addr as Record<string, string[] | undefined>;
+    const first = (a.fullName ?? a.phone ?? a.city ?? a.addressLine)?.[0];
+    if (first) parts.push(first);
+  }
+  return parts.length ? parts.join('. ') : 'Please check your input and try again.';
+}
 
 export async function createOrder(req: Request, res: Response): Promise<void> {
   try {
     const parsed = createOrderBody.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ message: 'Invalid body', errors: parsed.error.flatten() });
+      const friendlyMessage = formatZodMessage(parsed.error.flatten());
+      res.status(400).json({ message: friendlyMessage, code: 'VALIDATION_ERROR', errors: parsed.error.flatten() });
       return;
     }
     const { listingId, shippingAddress } = parsed.data;
@@ -148,8 +164,8 @@ export async function getOrder(req: Request, res: Response): Promise<void> {
 }
 
 const markShippedBody = z.object({
-  courier: z.string().min(1),
-  trackingNumber: z.string().min(1),
+  courier: z.string().trim().min(1, 'Courier name is required'),
+  trackingNumber: z.string().trim().min(1, 'Tracking number is required'),
 });
 
 export async function markShipped(req: Request, res: Response): Promise<void> {
@@ -162,7 +178,10 @@ export async function markShipped(req: Request, res: Response): Promise<void> {
     }
     const parsed = markShippedBody.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ message: 'Invalid body', errors: parsed.error.flatten() });
+      const flat = parsed.error.flatten();
+      const first = (flat.fieldErrors?.courier ?? flat.fieldErrors?.trackingNumber ?? [])[0];
+      const message = typeof first === 'string' ? first : 'Courier and tracking number are required';
+      res.status(400).json({ message, code: 'VALIDATION_ERROR', errors: flat });
       return;
     }
     const order = await prisma.order.findUnique({ where: { id: orderId } });

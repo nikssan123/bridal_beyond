@@ -20,7 +20,7 @@ const ReviewList: React.FC<Props> = ({ reviews }) => {
       {reviews.map((review, idx) => (
         <Box key={review.id}>
           <Box sx={{ py: 2.5 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: review.comment ? 1 : 0 }}>
               <Avatar sx={{ width: 36, height: 36, bgcolor: 'primary.light', color: 'primary.contrastText', fontSize: '0.85rem' }}>
                 {review.userName.charAt(0)}
               </Avatar>
@@ -30,9 +30,11 @@ const ReviewList: React.FC<Props> = ({ reviews }) => {
               </Box>
               <Rating value={review.rating} readOnly size="small" sx={{ ml: 'auto' }} />
             </Box>
-            <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.6, pl: 6.5 }}>
-              {review.comment}
-            </Typography>
+            {review.comment && (
+              <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.6, pl: 6.5 }}>
+                {review.comment}
+              </Typography>
+            )}
           </Box>
           {idx < reviews.length - 1 && <Divider />}
         </Box>

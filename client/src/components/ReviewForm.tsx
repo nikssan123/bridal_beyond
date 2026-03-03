@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Box, TextField, Button, Rating, Typography } from '@mui/material';
-import { useAppDispatch } from '@/app/hooks';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { addReview } from '@/features/reviews/reviewsSlice';
 
 interface Props {
@@ -9,30 +9,28 @@ interface Props {
 
 const ReviewForm: React.FC<Props> = ({ sellerId }) => {
   const dispatch = useAppDispatch();
+  const user = useAppSelector((state) => state.auth.user);
   const [rating, setRating] = useState<number | null>(0);
   const [comment, setComment] = useState('');
-  const [userName, setUserName] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!rating || !comment.trim() || !userName.trim()) return;
-    dispatch(addReview({ sellerId, userName: userName.trim(), rating, comment: comment.trim() }));
+    if (!rating) return;
+    dispatch(addReview({ sellerId, rating, comment: comment.trim() || undefined }));
     setRating(0);
     setComment('');
-    setUserName('');
   };
 
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
-      <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600 }}>Напишете отзив</Typography>
-      <TextField
-        fullWidth
-        size="small"
-        label="Вашето име"
-        value={userName}
-        onChange={(e) => setUserName(e.target.value)}
-        sx={{ mb: 2 }}
-      />
+      <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600 }}>
+        Напишете отзив
+      </Typography>
+      {user && (
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+          Ще публикуваме отзива като <strong>{user.name}</strong>.
+        </Typography>
+      )}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
         <Typography variant="body2">Оценка:</Typography>
         <Rating value={rating} onChange={(_, v) => setRating(v)} />
@@ -47,7 +45,7 @@ const ReviewForm: React.FC<Props> = ({ sellerId }) => {
         onChange={(e) => setComment(e.target.value)}
         sx={{ mb: 2 }}
       />
-      <Button type="submit" variant="contained" disabled={!rating || !comment.trim() || !userName.trim()}>
+      <Button type="submit" variant="contained" disabled={!rating}>
         Изпрати отзив
       </Button>
     </Box>

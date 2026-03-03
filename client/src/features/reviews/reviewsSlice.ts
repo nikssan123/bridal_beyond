@@ -24,11 +24,10 @@ export const fetchReviewsBySellerId = createAsyncThunk(
 
 export const addReview = createAsyncThunk(
   'reviews/addReview',
-  async (payload: { sellerId: string; userName: string; rating: number; comment: string }) => {
+  async (payload: { sellerId: string; rating: number; comment?: string }) => {
     const { data } = await api.post<Review>(`/sellers/${payload.sellerId}/reviews`, {
       rating: payload.rating,
-      comment: payload.comment,
-      userName: payload.userName,
+      comment: payload.comment ?? '',
     });
     return data;
   }

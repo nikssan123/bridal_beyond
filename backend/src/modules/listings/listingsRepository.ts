@@ -359,5 +359,7 @@ export async function update(
 }
 
 export async function remove(id: string): Promise<void> {
+  // First remove related images to avoid foreign key constraint errors
+  await prisma.listingImage.deleteMany({ where: { listing_id: id } });
   await prisma.listing.delete({ where: { id } });
 }

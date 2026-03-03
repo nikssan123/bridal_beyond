@@ -29,6 +29,8 @@ import Favorites from './pages/Favorites';
 import Messages from './pages/Messages';
 import AdminDisputes from './pages/AdminDisputes';
 import AdminDisputeDetails from './pages/AdminDisputeDetails';
+import Terms from './pages/Terms';
+import Privacy from './pages/Privacy';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ?? '');
 
@@ -74,6 +76,8 @@ const App = () => {
             <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/privacy" element={<Privacy />} />
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>

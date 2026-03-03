@@ -13,6 +13,7 @@ export interface AuthUser {
   id: string;
   email: string;
   role?: string;
+  name?: string;
 }
 
 declare global {
@@ -36,7 +37,7 @@ export function authMiddleware(
   const token = authHeader.slice(7);
   try {
     const payload = jwt.verify(token, env.jwtSecret) as JwtPayload;
-    _req.user = { id: payload.sub, email: payload.email, role: payload.role };
+    _req.user = { id: payload.sub, email: payload.email, role: payload.role, name: (payload as any).name };
     next();
   } catch {
     next(unauthorized('Invalid or expired token'));
