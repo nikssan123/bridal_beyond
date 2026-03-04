@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { validateRequest } from '../../middleware/validateRequest';
 import { authMiddleware } from '../../middleware/authMiddleware';
@@ -50,8 +50,14 @@ const idParamSchema = {
 
 const router = Router();
 
+// Allow up to 3 minutes for large image uploads (20MB) to avoid timeout
+const uploadTimeout = (_req: Request, _res: Response, next: NextFunction) => {
+  _req.setTimeout(180000);
+  next();
+};
+
 router.get('/', validateRequest(listQuerySchema), listingsController.list);
-router.post('/upload-image', authMiddleware, uploadListingImage, listingsController.uploadImage);
+router.post('/upload-image', authMiddleware, uploadTimeout, uploadListingImage, listingsController.uploadImage);
 router.get('/:id', validateRequest(idParamSchema), listingsController.getById);
 router.post('/', authMiddleware, validateRequest(createListingSchema), listingsController.create);
 router.put('/:id', authMiddleware, validateRequest({ ...idParamSchema, body: listingBodySchema }), listingsController.update);

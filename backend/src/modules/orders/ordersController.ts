@@ -71,6 +71,15 @@ export async function createOrder(req: Request, res: Response): Promise<void> {
       return;
     }
 
+    const connectAccount = await stripeService.getConnectAccount(seller.stripe_account_id);
+    if (!connectAccount) {
+      res.status(400).json({
+        message:
+          "The seller's payment account is not set up for payments. Please ask them to reconnect Stripe in their profile, then try again.",
+      });
+      return;
+    }
+
     const existingActiveOrder = await ordersRepository.findActiveByListingId(listingId);
     if (existingActiveOrder) {
       res.status(400).json({ message: 'An active order already exists for this listing' });
@@ -126,8 +135,20 @@ export async function createOrder(req: Request, res: Response): Promise<void> {
       buyerFeeCents,
       buyerFeePercent: env.stripeBuyerFeePercent,
     });
-  } catch (err) {
+  } catch (err: any) {
     console.error('Create order error:', err);
+    const code = err?.code ?? err?.raw?.code;
+    const param = err?.param ?? err?.raw?.param;
+    if (
+      (err?.type === 'StripeInvalidRequestError' || code === 'resource_missing') &&
+      (param === 'transfer_data[destination]' || err?.message?.includes('No such destination'))
+    ) {
+      res.status(400).json({
+        message:
+          'The seller\'s payment account is not set up for payments. Please ask them to reconnect Stripe in their profile, then try again.',
+      });
+      return;
+    }
     res.status(500).json({ message: 'Failed to create order' });
   }
 }

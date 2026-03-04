@@ -158,6 +158,23 @@ export const deleteAccount = createAsyncThunk(
   }
 );
 
+export const loginWithGoogle = createAsyncThunk(
+  'auth/loginWithGoogle',
+  async (credential: string, { rejectWithValue }) => {
+    try {
+      const { data } = await api.post<{ user: User; token: string }>('/auth/google', { credential });
+      localStorage.setItem('token', data.token);
+      return data.user;
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message ||
+        (err as Error)?.message ||
+        'Google sign-in failed';
+      return rejectWithValue(message);
+    }
+  }
+);
+
 const authSlice = createSlice({
   name: 'auth',
   initialState,
@@ -295,6 +312,20 @@ const authSlice = createSlice({
       .addCase(deleteAccount.rejected, (state, action) => {
         state.status = 'failed';
         state.error = (action.payload as string) || action.error.message || 'Delete failed';
+      })
+      .addCase(loginWithGoogle.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(loginWithGoogle.fulfilled, (state, action) => {
+        state.user = action.payload;
+        state.isAuthenticated = true;
+        state.status = 'succeeded';
+        state.error = null;
+      })
+      .addCase(loginWithGoogle.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = (action.payload as string) || action.error.message || 'Google sign-in failed';
       });
   },
 });

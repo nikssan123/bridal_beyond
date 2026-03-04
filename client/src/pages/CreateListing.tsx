@@ -19,12 +19,16 @@ import { createListing, uploadListingImage } from '@/features/listings/listingsS
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
+const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB per image
+const MAX_TOTAL_SIZE = 40 * 1024 * 1024; // 40MB total for all listing images
+
 const CreateListing: React.FC = () => {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const user = useAppSelector((state) => state.auth.user);
   const [images, setImages] = useState<string[]>([]);
+  const [uploadedSizes, setUploadedSizes] = useState<Record<string, number>>({});
   const [submitted, setSubmitted] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -154,10 +158,19 @@ const CreateListing: React.FC = () => {
         <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, fontFamily: "'Playfair Display', serif" }}>{t('listing.photos')}</Typography>
         <ImageUploader
           images={images}
-          onChange={(urls) => { setImages(urls); setImageError(null); }}
+          onChange={(urls) => {
+            setImages(urls);
+            setImageError(null);
+            setUploadedSizes((prev) => {
+              const next: Record<string, number> = {};
+              urls.forEach((u) => {
+                if (prev[u] !== undefined) next[u] = prev[u];
+              });
+              return next;
+            });
+          }}
           onUpload={async (file) => {
             try {
-              const maxSize = 10 * 1024 * 1024;
               const allowed = ['image/jpeg', 'image/png', 'image/webp'];
               if (!allowed.includes(file.type)) {
                 const msg = t(
@@ -167,15 +180,25 @@ const CreateListing: React.FC = () => {
                 setImageError(msg);
                 throw new Error(msg);
               }
-              if (file.size > maxSize) {
+              if (file.size > MAX_FILE_SIZE) {
                 const msg = t(
                   'listing.imagesTooLarge',
-                  'File is too large. Maximum size is 10MB.'
+                  'File is too large. Maximum size is 20MB per image.'
+                );
+                setImageError(msg);
+                throw new Error(msg);
+              }
+              const currentTotal = images.reduce((s, u) => s + (uploadedSizes[u] ?? 0), 0);
+              if (currentTotal + file.size > MAX_TOTAL_SIZE) {
+                const msg = t(
+                  'listing.imagesTotalTooLarge',
+                  'Total images size would exceed 40MB. Remove some or use smaller files.'
                 );
                 setImageError(msg);
                 throw new Error(msg);
               }
               const url = await dispatch(uploadListingImage(file)).unwrap();
+              setUploadedSizes((prev) => ({ ...prev, [url]: file.size }));
               return url;
             } catch (err: any) {
               const status = err?.response?.status;
@@ -183,7 +206,12 @@ const CreateListing: React.FC = () => {
               if (status === 413) {
                 msg = t(
                   'listing.imagesTooLarge',
-                  'File is too large. Maximum size is 10MB.'
+                  'File is too large. Maximum size is 20MB per image.'
+                );
+              } else if (err?.code === 'ECONNABORTED' || err?.message?.toLowerCase().includes('timeout')) {
+                msg = t(
+                  'listing.imageUploadTimeout',
+                  'Upload took too long. Try a smaller image or better connection.'
                 );
               } else {
                 msg =

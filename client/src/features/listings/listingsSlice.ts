@@ -128,7 +128,9 @@ export const uploadListingImage = createAsyncThunk(
   async (file: File, { rejectWithValue }) => {
     const formData = new FormData();
     formData.append('image', file);
-    const { data } = await api.post<{ url: string }>('/listings/upload-image', formData);
+    const { data } = await api.post<{ url: string }>('/listings/upload-image', formData, {
+      timeout: 120000,
+    });
     return data.url;
   }
 );

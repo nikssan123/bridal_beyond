@@ -15,6 +15,12 @@ export async function findById(id: string): Promise<UserRow | null> {
   });
 }
 
+export async function findByGoogleId(googleId: string): Promise<UserRow | null> {
+  return prisma.user.findUnique({
+    where: { google_id: googleId },
+  });
+}
+
 export async function create(data: {
   name: string;
   email: string;
@@ -33,6 +39,33 @@ export async function create(data: {
       email_verified_at: null,
       email_verification_code: data.emailVerificationCode ?? null,
       email_verification_expires_at: data.emailVerificationExpiresAt ?? null,
+    },
+  });
+}
+
+export async function setGoogleId(userId: string, googleId: string): Promise<UserRow> {
+  return prisma.user.update({
+    where: { id: userId },
+    data: { google_id: googleId, updated_at: new Date() },
+  });
+}
+
+export async function createFromGoogle(data: {
+  email: string;
+  googleId: string;
+  name: string;
+  avatarUrl?: string | null;
+}): Promise<UserRow> {
+  return prisma.user.create({
+    data: {
+      name: data.name.trim(),
+      email: data.email.toLowerCase().trim(),
+      google_id: data.googleId,
+      avatar_url: data.avatarUrl ?? null,
+      password_hash: null,
+      role: 'user',
+      member_since: new Date(),
+      email_verified_at: new Date(),
     },
   });
 }
@@ -115,7 +148,7 @@ export async function anonymizeUser(userId: string): Promise<UserRow> {
     data: {
       name: 'Deleted user',
       email: `deleted+${userId}@example.com`,
-      password_hash: '',
+      password_hash: null,
       avatar_url: null,
       location: null,
       stripe_account_id: null,

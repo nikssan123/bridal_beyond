@@ -35,6 +35,12 @@ import { fetchMyBuyerOrders, fetchMySellerOrders } from '@/features/orders/order
 import { getAvatarUrl } from '@/lib/avatarUrl';
 import { useTranslation } from 'react-i18next';
 
+/** Avatar URL is internal if it is a path like /uploads/avatars/... (uploaded via app). */
+function isInternalAvatarUrl(url: string | undefined | null): boolean {
+  if (!url) return false;
+  return url.startsWith('/');
+}
+
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_AVATAR_SIZE = 2 * 1024 * 1024; // 2MB
 
@@ -82,7 +88,7 @@ const Profile: React.FC = () => {
     if (user && editOpen) {
       setEditName(user.name);
       setEditLocation(user.location ?? '');
-      setEditAvatarUrl(user.avatarUrl ?? '');
+      setEditAvatarUrl(isInternalAvatarUrl(user.avatarUrl) ? '' : (user.avatarUrl ?? ''));
       setUploadError(null);
     }
   }, [user, editOpen]);
@@ -109,7 +115,7 @@ const Profile: React.FC = () => {
       updateProfile({
         name: editName || undefined,
         location: editLocation || null,
-        avatarUrl: editAvatarUrl || null,
+        avatarUrl: isInternalAvatarUrl(user.avatarUrl) ? user.avatarUrl : (editAvatarUrl || null),
       })
     ).then(() => {
       setEditOpen(false);
@@ -514,13 +520,15 @@ const Profile: React.FC = () => {
             onChange={(e) => setEditLocation(e.target.value)}
             sx={{ mb: 2 }}
           />
-          <TextField
-            fullWidth
-            label={t('profile.avatarUrl')}
-            value={editAvatarUrl}
-            onChange={(e) => setEditAvatarUrl(e.target.value)}
-            placeholder={t('profile.avatarUrlPlaceholder')}
-          />
+          {!isInternalAvatarUrl(user.avatarUrl) && (
+            <TextField
+              fullWidth
+              label={t('profile.avatarUrl')}
+              value={editAvatarUrl}
+              onChange={(e) => setEditAvatarUrl(e.target.value)}
+              placeholder={t('profile.avatarUrlPlaceholder')}
+            />
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setEditOpen(false)}>{t('profile.cancel')}</Button>

@@ -163,7 +163,7 @@ export async function uploadImage(req: Request, res: Response, next: NextFunctio
       return;
     }
     if (!req.file) {
-      next(badRequest('No file uploaded or invalid file type. Use JPEG, PNG or WebP (max 10MB).'));
+      next(badRequest('No file uploaded or invalid file type. Use JPEG, PNG or WebP (max 20MB).'));
       return;
     }
     const url = `/uploads/listings/${req.file.filename}`;

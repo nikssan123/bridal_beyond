@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import * as authRepo from './authRepository';
+import * as authService from './authService';
 import { signToken } from './jwt';
 import { badRequest, unauthorized } from '../../middleware/errorHandler';
 import { sendVerificationEmail, sendPasswordResetEmail } from '../../services/mailService';
@@ -60,6 +61,10 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
       next(unauthorized('Invalid email or password'));
       return;
     }
+    if (!user.password_hash) {
+      next(unauthorized('Invalid email or password'));
+      return;
+    }
     const ok = await bcrypt.compare(password, user.password_hash);
     if (!ok) {
       next(unauthorized('Invalid email or password'));
@@ -67,15 +72,59 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
     }
     const token = signToken({ sub: user.id, email: user.email, role: user.role });
     res.json({
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        isVerified: !!user.email_verified_at,
-        hasStripeAccount: !!user.stripe_account_id,
-      },
+      user: toAuthResponse(user),
       token,
     });
+  } catch (e) {
+    next(e);
+  }
+}
+
+export async function google(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const credential = req.body.credential as string;
+    let payload: authService.GoogleTokenPayload;
+    try {
+      payload = await authService.verifyGoogleIdToken(credential);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Invalid token';
+      if (message.includes('Missing email')) {
+        next(badRequest('Google account email not available'));
+        return;
+      }
+      next(unauthorized('Invalid or expired Google token'));
+      return;
+    }
+
+    let user = await authRepo.findByGoogleId(payload.sub);
+    if (user) {
+      const token = signToken({ sub: user.id, email: user.email, role: user.role });
+      res.json({ user: toAuthResponse(user), token });
+      return;
+    }
+
+    user = await authRepo.findByEmail(payload.email);
+    if (user) {
+      if (user.google_id == null) {
+        await authRepo.setGoogleId(user.id, payload.sub);
+        const updated = await authRepo.findById(user.id);
+        user = updated ?? user;
+        const token = signToken({ sub: user.id, email: user.email, role: user.role });
+        res.json({ user: toAuthResponse(user), token });
+        return;
+      }
+      next(badRequest('This email is already linked to another Google account'));
+      return;
+    }
+
+    const newUser = await authRepo.createFromGoogle({
+      email: payload.email,
+      googleId: payload.sub,
+      name: payload.name,
+      avatarUrl: payload.picture ?? null,
+    });
+    const token = signToken({ sub: newUser.id, email: newUser.email, role: newUser.role });
+    res.status(201).json({ user: toAuthResponse(newUser), token });
   } catch (e) {
     next(e);
   }
@@ -108,6 +157,22 @@ export async function me(req: Request, res: Response, next: NextFunction): Promi
   } catch (e) {
     next(e);
   }
+}
+
+function toAuthResponse(user: {
+  id: string;
+  name: string;
+  email: string;
+  email_verified_at: Date | null;
+  stripe_account_id: string | null;
+}) {
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    isVerified: !!user.email_verified_at,
+    hasStripeAccount: !!user.stripe_account_id,
+  };
 }
 
 function toMeResponse(user: {

@@ -11,7 +11,7 @@ model User {
   id                            String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   name                          String    @db.VarChar(255)
   email                         String    @unique @db.VarChar(255)
-  password_hash                 String    @db.VarChar(255)
+  password_hash                 String?   @db.VarChar(255)
   role                          String    @default("user") @db.VarChar(50)
   avatar_url                    String?   @db.Text
   location                      String?   @db.VarChar(255)
@@ -25,6 +25,7 @@ model User {
   reset_password_expires_at     DateTime?
 
   stripe_account_id String? @db.VarChar(255)
+  google_id         String? @unique @db.VarChar(255)
 
   listings        Listing[]  @relation("UserListings")
   reviewsAuthored Review[]   @relation("UserReviewsAuthored")

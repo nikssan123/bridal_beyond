@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { Box, TextField, Button, Typography, Link as MuiLink, Divider, Alert } from '@mui/material';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { GoogleLogin } from '@react-oauth/google';
 import PageContainer from '@/components/PageContainer';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { loginUser, clearAuthError } from '@/features/auth/authSlice';
+import { loginUser, loginWithGoogle, clearAuthError } from '@/features/auth/authSlice';
 import { useTranslation } from 'react-i18next';
 import { getAuthErrorKey } from '@/lib/authErrors';
+
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
 
 const Login: React.FC = () => {
   const { t } = useTranslation();
@@ -24,9 +27,9 @@ const Login: React.FC = () => {
 
   React.useEffect(() => {
     if (isAuthenticated) {
-      navigate('/', { replace: true });
+      navigate(redirectTo || '/profile', { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, redirectTo]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,6 +37,14 @@ const Login: React.FC = () => {
       .then((result) => {
         if (loginUser.fulfilled.match(result)) navigate(redirectTo || '/profile');
       });
+  };
+
+  const handleGoogleSuccess = (credentialResponse: { credential?: string }) => {
+    const credential = credentialResponse.credential;
+    if (!credential) return;
+    dispatch(loginWithGoogle(credential)).then((result) => {
+      if (loginWithGoogle.fulfilled.match(result)) navigate(redirectTo || '/profile', { replace: true });
+    });
   };
 
   return (
@@ -65,6 +76,14 @@ const Login: React.FC = () => {
             {t('auth.signIn')}
           </Button>
           <Divider sx={{ my: 2 }}><Typography variant="caption" color="text.secondary">{t('auth.or')}</Typography></Divider>
+          {googleClientId && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => dispatch(clearAuthError())}
+              />
+            </Box>
+          )}
           <Typography variant="body2" sx={{ textAlign: 'center', mt: 2 }}>
             {t('auth.noAccount')}{' '}
             <MuiLink component={Link} to="/register" sx={{ color: 'primary.dark', fontWeight: 500 }}>

@@ -3,6 +3,15 @@ import { env } from '../config/env';
 
 const stripe = new Stripe(env.stripeSecretKey);
 
+/** Returns the Connect account if it exists in the current Stripe mode (live/test), else null. */
+export async function getConnectAccount(accountId: string): Promise<Stripe.Account | null> {
+  try {
+    return await stripe.accounts.retrieve(accountId);
+  } catch {
+    return null;
+  }
+}
+
 export async function createExpressAccount(
   userEmail: string,
   businessProfileUrl: string

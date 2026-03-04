@@ -40,6 +40,12 @@ const resetPasswordSchema = {
   }),
 };
 
+const googleSchema = {
+  body: z.object({
+    credential: z.string().min(1, 'Google credential is required'),
+  }),
+};
+
 const updateProfileSchema = {
   body: z.object({
     name: z.string().min(1).max(255).optional(),
@@ -57,6 +63,7 @@ router.post('/login', validateRequest(loginSchema), authController.login);
 router.post('/verify-email', validateRequest(verifyEmailSchema), authController.verifyEmail);
 router.post('/forgot-password', validateRequest(forgotPasswordSchema), authController.forgotPassword);
 router.post('/reset-password', validateRequest(resetPasswordSchema), authController.resetPassword);
+router.post('/google', validateRequest(googleSchema), authController.google);
 router.get('/me', authMiddleware, authController.me);
 router.patch('/profile', authMiddleware, validateRequest(updateProfileSchema), authController.updateProfile);
 router.post('/profile/avatar', authMiddleware, uploadAvatarMiddleware, authController.uploadAvatar);

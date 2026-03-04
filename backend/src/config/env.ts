@@ -25,4 +25,5 @@ export const env = {
   stripeCurrency: (getEnv('STRIPE_CURRENCY', 'eur') || 'eur').toLowerCase(),
   adminUsername: getEnv('ADMIN_USERNAME', 'admin'),
   adminPassword: getEnv('ADMIN_PASSWORD', 'change-me'),
+  googleClientId: getEnv('GOOGLE_CLIENT_ID'),
 };
