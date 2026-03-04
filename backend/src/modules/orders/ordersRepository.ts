@@ -55,7 +55,7 @@ export async function findByIdForUser(orderId: string, userId: string) {
 
 export async function findBySellerId(sellerId: string) {
   return prisma.order.findMany({
-    where: { seller_id: sellerId },
+    where: { seller_id: sellerId, status: { not: 'cancelled' } },
     orderBy: { created_at: 'desc' },
     include: {
       listing: {
@@ -70,7 +70,7 @@ export async function findBySellerId(sellerId: string) {
 
 export async function findByBuyerId(buyerId: string) {
   return prisma.order.findMany({
-    where: { buyer_id: buyerId },
+    where: { buyer_id: buyerId, status: { not: 'cancelled' } },
     orderBy: { created_at: 'desc' },
     include: {
       listing: {

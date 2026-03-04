@@ -197,7 +197,7 @@ const AdminDisputeDetails: React.FC = () => {
                   <TextField
                     size="small"
                     type="number"
-                    label="Partial refund amount (BGN)"
+                    label="Partial refund amount (EUR)"
                     value={partialAmount}
                     onChange={(e) => setPartialAmount(e.target.value)}
                     placeholder="e.g. 50"

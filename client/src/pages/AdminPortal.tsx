@@ -533,7 +533,7 @@ const AdminPortal: React.FC = () => {
                               <strong>Status:</strong> {order.status}
                             </Typography>
                             <Typography variant="body2">
-                              <strong>Amount:</strong> {(order.price_cents / 100).toFixed(2)} BGN
+                              <strong>Amount:</strong> {(order.price_cents / 100).toFixed(2)} EUR
                             </Typography>
                             <Typography variant="body2">
                               <strong>Buyer:</strong> {order.buyer?.name} ({order.buyer?.email})
@@ -588,7 +588,7 @@ const AdminPortal: React.FC = () => {
                               <TextField
                                 size="small"
                                 type="number"
-                                label="Partial refund (BGN)"
+                                label="Partial refund (EUR)"
                                 value={partialAmount}
                                 onChange={(e) => setPartialAmount(e.target.value)}
                                 placeholder="e.g. 50"

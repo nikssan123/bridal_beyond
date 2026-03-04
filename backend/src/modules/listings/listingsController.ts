@@ -14,7 +14,12 @@ export async function list(req: Request, res: Response, next: NextFunction): Pro
     const search = (req.query.search as string) || undefined;
     const sortBy = (req.query.sortBy as 'newest' | 'price-asc' | 'price-desc') || 'newest';
     const sellerId = (req.query.sellerId as string) || undefined;
-    const status = (req.query.status as string) || undefined;
+    let status = (req.query.status as string) || undefined;
+    // By default, hide non-active (e.g. sold) listings from public browse endpoints.
+    // Seller profile views explicitly pass a status filter and are not affected.
+    if (!status && !sellerId) {
+      status = 'active';
+    }
     const limit = Math.min(Math.max(1, Number(req.query.limit) || 24), 50);
     const offset = Math.max(0, Number(req.query.offset) || 0);
     const result = await listingsRepo.list({

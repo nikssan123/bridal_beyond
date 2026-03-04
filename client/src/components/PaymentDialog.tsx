@@ -21,7 +21,7 @@ interface PaymentDialogProps {
   onSuccess?: () => void;
 }
 
-const cardElementOptions = {
+const cardElementOptions = { hidePostalCode: true,
   style: {
     base: {
       fontSize: '16px',

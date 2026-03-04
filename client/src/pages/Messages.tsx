@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -14,6 +14,7 @@ import {
   useMediaQuery,
 } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
+import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import PageContainer from '@/components/PageContainer';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
@@ -41,11 +42,13 @@ const Messages: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const { list, current, status, fetchOneStatus } = useAppSelector((state) => state.conversations);
-  const token = useAppSelector((state) => state.auth.token) || localStorage.getItem('token');
-  const currentUserId = useAppSelector((state) => state.auth.user?.id);
+  const { user: currentUser } = useAppSelector((state) => state.auth);
+  const authToken = localStorage.getItem('token');
+  const currentUserId = currentUser?.id;
 
   const [inputValue, setInputValue] = useState('');
   const [sending, setSending] = useState(false);
+  const [showListOnMobile, setShowListOnMobile] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -59,10 +62,10 @@ const Messages: React.FC = () => {
   }, [dispatch, conversationId]);
 
   useEffect(() => {
-    if (!token) return;
-    connect(token);
+    if (!authToken) return;
+    connect(authToken);
     return () => disconnect();
-  }, [token]);
+  }, [authToken]);
 
   useEffect(() => {
     const unsub = onNewMessage((payload) => {
@@ -84,10 +87,21 @@ const Messages: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [current?.messages]);
 
+  useEffect(() => {
+    // On mobile: default to list when there is no active conversation
+    if (!isMobile) {
+      setShowListOnMobile(false);
+      return;
+    }
+    if (!conversationId) {
+      setShowListOnMobile(true);
+    }
+  }, [isMobile, conversationId]);
+
   const handleSelectConversation = (id: string) => {
     navigate(`/messages/${id}`);
     if (isMobile) {
-      // Could add a "back to list" state for mobile
+      setShowListOnMobile(false);
     }
   };
 
@@ -107,6 +121,35 @@ const Messages: React.FC = () => {
 
   const otherParticipant = current?.participants.find((p) => p.id !== currentUserId);
 
+  const isSellerView = useMemo(() => {
+    if (current?.isListingSeller != null) return current.isListingSeller;
+    if (!currentUser) return false;
+    if (currentUser.role && currentUser.role.toLowerCase() === 'seller') return true;
+    return false;
+  }, [current, currentUser]);
+
+  const messageSuggestions = useMemo(() => {
+    const buyerSuggestions = [
+      current?.listingTitle
+        ? `Hi, is "${current.listingTitle}" still available?`
+        : 'Hi, is this item still available?',
+      'Can you share a few more photos or details?',
+      'Is the price negotiable at all?',
+      'What are the pickup or delivery options?',
+    ];
+
+    const sellerSuggestions = [
+      current?.listingTitle
+        ? `Hi! Thanks for your interest in "${current.listingTitle}".`
+        : 'Hi! Thanks for your interest in my listing.',
+      'Yes, it’s available. When would you like to try it on?',
+      'If you confirm soon, I can offer a small discount.',
+      'Where are you based so I can suggest the best courier?',
+    ];
+
+    return (isSellerView ? sellerSuggestions : buyerSuggestions).slice(0, 4);
+  }, [current, isSellerView]);
+
   if (status === 'loading' && list.length === 0) {
     return (
       <PageContainer>
@@ -119,7 +162,15 @@ const Messages: React.FC = () => {
 
   return (
     <PageContainer>
-      <Typography variant="h4" sx={{ fontWeight: 600, mb: 2, fontFamily: "'Playfair Display', serif" }}>
+      <Typography
+        variant="h4"
+        sx={{
+          fontWeight: 600,
+          mb: 2,
+          fontFamily: "'Playfair Display', serif",
+          letterSpacing: 0.2,
+        }}
+      >
         {t('messages.title')}
       </Typography>
 
@@ -127,13 +178,12 @@ const Messages: React.FC = () => {
         sx={{
           display: 'flex',
           flexDirection: isMobile ? 'column' : 'row',
-          height: isMobile ? 'auto' : 'calc(100vh - 220px)',
-          minHeight: 400,
-          border: '1px solid',
-          borderColor: 'divider',
+          height: isMobile ? 'calc(100vh - 150px)' : 'calc(100vh - 210px)',
+          minHeight: 360,
           borderRadius: 3,
           overflow: 'hidden',
           bgcolor: 'background.paper',
+          boxShadow: theme.shadows[3],
         }}
       >
         <Box
@@ -144,8 +194,31 @@ const Messages: React.FC = () => {
             borderBottom: isMobile ? '1px solid' : 'none',
             borderColor: 'divider',
             flexShrink: 0,
+            bgcolor: 'background.default',
+            display: 'flex',
+            flexDirection: 'column',
+            ...(isMobile && !showListOnMobile
+              ? { display: 'none' }
+              : {}),
           }}
         >
+          {isMobile && (
+            <Box
+              sx={{
+                px: 2,
+                py: 1.25,
+                borderBottom: '1px solid',
+                borderColor: 'divider',
+              }}
+            >
+              <Typography variant="subtitle1" fontWeight={600}>
+                {t('messages.title')}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {t('messages.selectConversation')}
+              </Typography>
+            </Box>
+          )}
           {list.length === 0 ? (
             <Box
               sx={{
@@ -162,25 +235,53 @@ const Messages: React.FC = () => {
               </Typography>
             </Box>
           ) : (
-            <List disablePadding>
+            <List
+              disablePadding
+              sx={{
+                overflowY: 'auto',
+                flex: 1,
+              }}
+            >
               {list.map((conv) => {
                 const other = conv.participants.find((p) => p.id !== currentUserId);
                 const isSelected = conv.id === conversationId;
+                const lastMessagePreview =
+                  conv.listingTitle
+                    ? `${conv.listingTitle}${
+                        conv.lastMessage
+                          ? ' · ' +
+                            conv.lastMessage.body.slice(0, 40) +
+                            (conv.lastMessage.body.length > 40 ? '…' : '')
+                          : ''
+                      }`
+                    : (conv.lastMessage?.body?.slice(0, 60) || '') +
+                      (conv.lastMessage && conv.lastMessage.body.length > 60 ? '…' : '');
+
                 return (
                   <ListItemButton
                     key={conv.id}
                     selected={isSelected}
                     onClick={() => handleSelectConversation(conv.id)}
-                    sx={{ py: 1.5 }}
+                    sx={{
+                      py: 1.5,
+                      px: 2,
+                      alignItems: 'flex-start',
+                      '&.Mui-selected': {
+                        bgcolor:
+                          theme.palette.mode === 'light'
+                            ? 'rgba(233, 222, 255, 0.8)'
+                            : 'rgba(88, 28, 135, 0.35)',
+                      },
+                    }}
                   >
                     <ListItemText
                       primary={other?.name || t('messages.unknown')}
-                      secondary={
-                        conv.listingTitle
-                          ? `${conv.listingTitle}${conv.lastMessage ? ' · ' + conv.lastMessage.body.slice(0, 30) + (conv.lastMessage.body.length > 30 ? '…' : '') : ''}`
-                          : conv.lastMessage?.body?.slice(0, 50) + (conv.lastMessage && conv.lastMessage.body.length > 50 ? '…' : '') || ''
-                      }
+                      secondary={lastMessagePreview}
                       primaryTypographyProps={{ fontWeight: isSelected ? 600 : 500 }}
+                      secondaryTypographyProps={{
+                        variant: 'body2',
+                        color: 'text.secondary',
+                      }}
                     />
                   </ListItemButton>
                 );
@@ -189,7 +290,19 @@ const Messages: React.FC = () => {
           )}
         </Box>
 
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        <Box
+          sx={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            minWidth: 0,
+            position: 'relative',
+            bgcolor: 'background.paper',
+            ...(isMobile && showListOnMobile
+              ? { display: 'none' }
+              : {}),
+          }}
+        >
           {!conversationId ? (
             <Box
               sx={{
@@ -212,31 +325,60 @@ const Messages: React.FC = () => {
             <>
               <Box
                 sx={{
-                  py: 1.5,
+                  py: 1.25,
                   px: 2,
                   borderBottom: '1px solid',
                   borderColor: 'divider',
                   bgcolor: 'background.default',
                 }}
               >
-                <Typography variant="subtitle1" fontWeight={600}>
-                  {otherParticipant?.name || t('messages.unknown')}
-                  {current.listingTitle && (
-                    <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 1 }}>
-                      · {current.listingTitle}
-                    </Typography>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'flex-start',
+                    alignItems: 'center',
+                    gap: 1.5,
+                  }}
+                >
+                  {isMobile && (
+                    <Button
+                      onClick={() => {
+                        setShowListOnMobile(true);
+                        navigate('/messages');
+                      }}
+                      startIcon={<ArrowBackIosNewIcon fontSize="small" />}
+                      sx={{
+                        mr: 0.5,
+                        minWidth: 0,
+                        px: 0.5,
+                        textTransform: 'none',
+                        fontSize: 13,
+                      }}
+                    >
+                      {t('messages.title')}
+                    </Button>
                   )}
-                </Typography>
+                  <Box>
+                    <Typography variant="subtitle1" fontWeight={600}>
+                      {otherParticipant?.name || t('messages.unknown')}
+                    </Typography>
+                    {current.listingTitle && (
+                      <Typography variant="body2" color="text.secondary">
+                        {current.listingTitle}
+                      </Typography>
+                    )}
+                  </Box>
+                </Box>
               </Box>
 
               <Box
                 sx={{
                   flex: 1,
                   overflow: 'auto',
-                  p: 2,
+                  p: { xs: 1.5, sm: 2 },
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 1,
+                  gap: 1.25,
                 }}
               >
                 {current.messages.map((msg: MessageDTO) => (
@@ -245,13 +387,22 @@ const Messages: React.FC = () => {
                     elevation={0}
                     sx={{
                       alignSelf: msg.senderId === currentUserId ? 'flex-end' : 'flex-start',
-                      maxWidth: '80%',
-                      px: 2,
-                      py: 1.25,
-                      bgcolor: msg.senderId === currentUserId ? 'primary.light' : 'background.default',
-                      border: '1px solid',
-                      borderColor: msg.senderId === currentUserId ? 'primary.main' : 'divider',
-                      borderRadius: 2,
+                      maxWidth: '78%',
+                      px: 1.75,
+                      py: 1.1,
+                      bgcolor:
+                        msg.senderId === currentUserId
+                          ? theme.palette.mode === 'light'
+                            ? theme.palette.primary.main
+                            : theme.palette.primary.dark
+                          : theme.palette.mode === 'light'
+                          ? theme.palette.grey[100]
+                          : 'rgba(31, 41, 55, 0.95)',
+                      borderRadius: 3,
+                      borderTopRightRadius: msg.senderId === currentUserId ? 4 : 3,
+                      borderTopLeftRadius: msg.senderId === currentUserId ? 3 : 4,
+                      color: msg.senderId === currentUserId ? 'common.white' : 'text.primary',
+                      boxShadow: theme.shadows[1],
                     }}
                   >
                     <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
@@ -265,38 +416,69 @@ const Messages: React.FC = () => {
                 <div ref={messagesEndRef} />
               </Box>
 
-              <Box
-                sx={{
-                  p: 2,
-                  borderTop: '1px solid',
-                  borderColor: 'divider',
-                  display: 'flex',
-                  gap: 1,
-                }}
-              >
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder={t('messages.typeMessage')}
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSend();
-                    }
-                  }}
-                  disabled={sending}
-                />
-                <Button
-                  variant="contained"
-                  onClick={handleSend}
-                  disabled={!inputValue.trim() || sending}
-                  sx={{ minWidth: 48 }}
-                  aria-label={t('messages.send')}
-                >
-                  <SendIcon />
-                </Button>
+              <Box sx={{ p: 1.5, borderTop: '1px solid', borderColor: 'divider' }}>
+                {messageSuggestions.length > 0 && (
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      gap: 1,
+                      mb: 1,
+                      overflowX: 'auto',
+                      WebkitOverflowScrolling: 'touch',
+                      px: 0.5,
+                      '&::-webkit-scrollbar': { display: 'none' },
+                    }}
+                  >
+                    {messageSuggestions.map((suggestion) => (
+                      <Button
+                        key={suggestion}
+                        variant="outlined"
+                        size="small"
+                        onClick={() => setInputValue(suggestion)}
+                        sx={{
+                          borderRadius: 999,
+                          textTransform: 'none',
+                          whiteSpace: 'nowrap',
+                          px: 1.5,
+                          py: 0.5,
+                          fontSize: 12,
+                          flexShrink: 0,
+                        }}
+                      >
+                        {suggestion}
+                      </Button>
+                    ))}
+                  </Box>
+                )}
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    placeholder={t('messages.typeMessage')}
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSend();
+                      }
+                    }}
+                    disabled={sending}
+                  />
+                  <Button
+                    variant="contained"
+                    onClick={handleSend}
+                    disabled={!inputValue.trim() || sending}
+                    sx={{
+                      minWidth: isMobile ? 44 : 56,
+                      borderRadius: 999,
+                      boxShadow: theme.shadows[2],
+                    }}
+                    aria-label={t('messages.send')}
+                  >
+                    <SendIcon />
+                  </Button>
+                </Box>
               </Box>
             </>
           ) : (

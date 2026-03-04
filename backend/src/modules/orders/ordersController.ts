@@ -118,43 +118,6 @@ export async function createOrder(req: Request, res: Response): Promise<void> {
       shippingAddressLine: shippingAddress.addressLine,
     });
 
-    // Fire-and-forget order confirmation email to buyer (do not block response on failures)
-    try {
-      const buyer = await prisma.user.findUnique({ where: { id: userId } });
-      if (buyer) {
-        const orderUrl = `${env.clientUrl}/orders/${order.id}`;
-        const totalPrice = `${(amountCents / 100).toFixed(2)} лв.`;
-        await sendOrderConfirmationEmail({
-          to: buyer.email,
-          name: buyer.name,
-          orderUrl,
-          listingTitle: listing.title,
-          totalPrice,
-        });
-      }
-    } catch (mailErr) {
-      console.error('Order confirmation email error:', mailErr);
-    }
-
-    // Fire-and-forget new order notification email to seller
-    try {
-      const seller = await prisma.user.findUnique({ where: { id: listing.seller_id } });
-      if (seller) {
-        const orderUrl = `${env.clientUrl}/orders/${order.id}`;
-        const totalPrice = `${(amountCents / 100).toFixed(2)} лв.`;
-        await sendSellerNewOrderEmail({
-          to: seller.email,
-          sellerName: seller.name,
-          orderUrl,
-          listingTitle: listing.title,
-          totalPrice,
-          buyerName: (await prisma.user.findUnique({ where: { id: userId } }))?.name ?? null,
-        });
-      }
-    } catch (mailErr) {
-      console.error('Seller new order email error:', mailErr);
-    }
-
     res.status(201).json({
       orderId: order.id,
       clientSecret: client_secret,

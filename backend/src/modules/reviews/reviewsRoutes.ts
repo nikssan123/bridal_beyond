@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { validateRequest } from '../../middleware/validateRequest';
+import { authMiddleware } from '../../middleware/authMiddleware';
 import * as reviewsController from './reviewsController';
 
 const sellerIdParam = {
@@ -18,4 +19,9 @@ const createReviewSchema = {
 const router = Router();
 
 router.get('/:sellerId/reviews', validateRequest(sellerIdParam), reviewsController.listBySeller);
-router.post('/:sellerId/reviews', validateRequest(createReviewSchema), reviewsController.create);
+router.post(
+  '/:sellerId/reviews',
+  authMiddleware,
+  validateRequest(createReviewSchema),
+  reviewsController.create
+);

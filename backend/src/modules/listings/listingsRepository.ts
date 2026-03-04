@@ -139,6 +139,18 @@ export async function list(filters: ListFilters): Promise<ListResult> {
     where.status = filters.status;
   }
 
+  // For public browsing (no specific seller filter), hide listings that have an active order
+  // so that items in an ongoing purchase flow are not visible to other buyers.
+  if (!filters.sellerId) {
+    where.orders = {
+      none: {
+        status: {
+          in: ['payment_pending', 'payment_secured', 'shipped'],
+        },
+      },
+    };
+  }
+
   const limit = filters.limit ?? 24;
   const offset = filters.offset ?? 0;
 

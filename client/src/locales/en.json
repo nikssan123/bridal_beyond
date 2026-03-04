@@ -150,8 +150,8 @@
     "photos": "Photos",
     "titleLabel": "Title",
     "description": "Description",
-    "price": "Price (BGN)",
-    "originalPrice": "Original price (BGN)",
+    "price": "Price (EUR)",
+    "originalPrice": "Original price (EUR)",
     "category": "Category",
     "size": "Size",
     "condition": "Condition",
@@ -285,7 +285,51 @@
     "disputeReasonDelayed": "Delivery is delayed",
     "disputeReasonNotAsDescribed": "Item not as described",
     "disputeReasonDamaged": "Item arrived damaged",
-    "disputeReasonOther": "Other"
+    "disputeReasonOther": "Other",
+    "stepSummary": "Step {{current}} of {{total}}",
+    "stepDesc": {
+      "payment": "We are confirming the buyer’s card payment for this order.",
+      "secured": "The payment is secured in escrow. The seller should now ship the dress.",
+      "shipped": "The dress is in transit. The buyer will confirm delivery once it arrives.",
+      "completed": "The buyer confirmed delivery and the payout has been released."
+    },
+    "explain": {
+      "paymentPending": {
+        "current": "We are confirming your payment for this order.",
+        "next": {
+          "seller": "Once the payment is secured, you will be able to ship the dress.",
+          "buyer": "Once the payment is secured, the seller will ship the dress to you."
+        }
+      },
+      "paymentSecured": {
+        "current": {
+          "seller": "The payment is secured. It is now your turn to ship the dress.",
+          "buyer": "Your payment is secured. The seller is preparing to ship your dress."
+        },
+        "next": {
+          "seller": "Next, add the courier and tracking number so the buyer can follow the delivery.",
+          "buyer": "Next, you will receive a tracking number and the dress will be on its way."
+        }
+      },
+      "shipped": {
+        "current": {
+          "seller": "You marked this order as shipped. The buyer can now track the parcel.",
+          "buyer": "The dress has been shipped and is on its way to you."
+        },
+        "next": {
+          "seller": "Once the buyer confirms delivery (or the protection period ends), you will receive the payout.",
+          "buyer": "Next, confirm that you received the dress to release the payout to the seller."
+        }
+      },
+      "completed": {
+        "current": "This order is completed and the payout has been released.",
+        "next": "There are no further steps for this order."
+      },
+      "cancelled": {
+        "current": "This order was cancelled or the payment failed.",
+        "next": "You can start a new order by going back to the listing."
+      }
+    }
   },
   "stripeErrors": {
     "card_declined": "Your card was declined. Try a different card or contact your bank.",

@@ -3,6 +3,7 @@ import Stripe from 'stripe';
 import { env } from '../../config/env';
 import { prisma } from '../../prisma';
 import * as paymentsRepository from '../payments/paymentsRepository';
+import { sendOrderConfirmationEmail, sendSellerNewOrderEmail } from '../../services/mailService';
 
 const stripe = new Stripe(env.stripeSecretKey);
 
@@ -42,12 +43,43 @@ export async function handleStripeWebhook(req: Request, res: Response): Promise<
         try {
           const order = await prisma.order.findUnique({
             where: { payment_intent_id: pi.id },
+            include: { listing: true, buyer: true, seller: true },
           });
           if (order && order.status === 'payment_pending') {
-            await prisma.order.update({
+            const updated = await prisma.order.update({
               where: { id: order.id },
               data: { status: 'payment_secured' },
             });
+
+            if (order.buyer && order.seller && order.listing) {
+              const orderUrl = `${env.clientUrl}/orders/${order.id}`;
+              const totalPrice = `${(Number(order.price_cents) / 100).toFixed(2)} лв.`;
+
+              // Fire-and-forget buyer email
+              sendOrderConfirmationEmail({
+                to: order.buyer.email,
+                name: order.buyer.name,
+                orderUrl,
+                listingTitle: order.listing.title,
+                totalPrice,
+              }).catch((err) =>
+                console.error('Order confirmation email error (webhook):', err)
+              );
+
+              // Fire-and-forget seller email
+              sendSellerNewOrderEmail({
+                to: order.seller.email,
+                sellerName: order.seller.name,
+                orderUrl,
+                listingTitle: order.listing.title,
+                totalPrice,
+                buyerName: order.buyer.name,
+              }).catch((err) =>
+                console.error('Seller new order email error (webhook):', err)
+              );
+            }
+
+            console.log('Order marked payment_secured from webhook:', updated.id);
           }
         } catch (e) {
           console.error('Failed to update order from webhook (amount_capturable_updated):', e);

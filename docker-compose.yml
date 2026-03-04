@@ -29,6 +29,9 @@ services:
       PORT: 6001
     depends_on:
       - postgres
+    volumes:
+      # Persist uploaded images (avatars, listing photos) on the host
+      - ./uploads:/app/uploads
 
   frontend:
     build:

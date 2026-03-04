@@ -16,6 +16,7 @@ export interface ConversationDTO {
   id: string;
   listingId: string | null;
   listingTitle: string | null;
+  isListingSeller?: boolean;
   participants: ParticipantSummary[];
   lastMessage: MessageDTO | null;
   updatedAt: string;

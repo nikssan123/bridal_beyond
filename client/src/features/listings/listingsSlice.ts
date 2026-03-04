@@ -34,7 +34,7 @@ const initialState: ListingsState = {
   profileListingsStatus: 'idle',
   status: 'idle',
   error: null,
-  // default max price (BGN) used before backend value arrives
+  // default max price (EUR) used before backend value arrives
   maxPrice: 100000,
 };
 

@@ -23,6 +23,7 @@ import {
   StepContent,
   Divider,
 } from '@mui/material';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import RadioButtonUncheckedRoundedIcon from '@mui/icons-material/RadioButtonUncheckedRounded';
 import PageContainer from '@/components/PageContainer';
@@ -165,6 +166,127 @@ const OrderDetails: React.FC = () => {
     }
   };
 
+  const renderStepExplanation = () => {
+    if (!currentOrder) return null;
+    const currentIndex = getActiveStep(currentOrder.status);
+    const totalSteps = ORDER_STEPS.length;
+
+    let currentMessage = '';
+    let nextMessage = '';
+
+    switch (currentOrder.status) {
+      case 'payment_pending':
+        currentMessage = t(
+          'order.explain.paymentPending.current',
+          'We are confirming your payment for this order.'
+        );
+        nextMessage = isSeller
+          ? t(
+              'order.explain.paymentPending.next.seller',
+              'Once the payment is secured, you will be able to ship the dress.'
+            )
+          : t(
+              'order.explain.paymentPending.next.buyer',
+              'Once the payment is secured, the seller will ship the dress to you.'
+            );
+        break;
+      case 'payment_secured':
+        currentMessage = isSeller
+          ? t(
+              'order.explain.paymentSecured.current.seller',
+              'The payment is secured. It is now your turn to ship the dress.'
+            )
+          : t(
+              'order.explain.paymentSecured.current.buyer',
+              'Your payment is secured. The seller is preparing to ship your dress.'
+            );
+        nextMessage = isSeller
+          ? t(
+              'order.explain.paymentSecured.next.seller',
+              'Next, add the courier and tracking number so the buyer can follow the delivery.'
+            )
+          : t(
+              'order.explain.paymentSecured.next.buyer',
+              'Next, you will receive a tracking number and the dress will be on its way.'
+            );
+        break;
+      case 'shipped':
+        currentMessage = isSeller
+          ? t(
+              'order.explain.shipped.current.seller',
+              'You marked this order as shipped. The buyer can now track the parcel.'
+            )
+          : t(
+              'order.explain.shipped.current.buyer',
+              'The dress has been shipped and is on its way to you.'
+            );
+        nextMessage = isSeller
+          ? t(
+              'order.explain.shipped.next.seller',
+              'Once the buyer confirms delivery (or the protection period ends), you will receive the payout.'
+            )
+          : t(
+              'order.explain.shipped.next.buyer',
+              'Next, confirm that you received the dress to release the payout to the seller.'
+            );
+        break;
+      case 'completed':
+        currentMessage = t(
+          'order.explain.completed.current',
+          'This order is completed and the payout has been released.'
+        );
+        nextMessage = t(
+          'order.explain.completed.next',
+          'There are no further steps for this order.'
+        );
+        break;
+      case 'cancelled':
+        currentMessage = t(
+          'order.explain.cancelled.current',
+          'This order was cancelled or the payment failed.'
+        );
+        nextMessage = t(
+          'order.explain.cancelled.next',
+          'You can start a new order by going back to the listing.'
+        );
+        break;
+      default:
+        return null;
+    }
+
+    return (
+      <Box
+        sx={{
+          mb: 2.5,
+          p: 2,
+          borderRadius: 2,
+          bgcolor: 'background.default',
+          border: '1px solid',
+          borderColor: 'divider',
+          display: 'flex',
+          gap: 1.5,
+          alignItems: 'flex-start',
+        }}
+      >
+        <InfoOutlinedIcon sx={{ color: 'primary.main', mt: 0.4 }} />
+        <Box>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+            {t('order.stepSummary', 'Step {{current}} of {{total}}', {
+              current: currentIndex + 1,
+              total: totalSteps,
+            })}
+          </Typography>
+          <Typography variant="body2" color="text.primary">
+            {currentMessage}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            {nextMessage}
+          </Typography>
+        </Box>
+      </Box>
+    );
+  };
+
   if (!orderId || status === 'loading' || !currentOrder) {
     return (
       <PageContainer>
@@ -211,6 +333,7 @@ const OrderDetails: React.FC = () => {
             bgcolor: 'background.paper',
           }}
         >
+          {renderStepExplanation()}
           <Stepper activeStep={activeStep} orientation="vertical">
             {ORDER_STEPS.map((stepStatus, index) => {
               const stepCompleted = index < activeStep || (currentOrder.status === 'completed' && index === ORDER_STEPS.length - 1);
@@ -236,10 +359,26 @@ const OrderDetails: React.FC = () => {
                 </StepLabel>
                 <StepContent>
                   <Typography variant="body2" color="text.secondary">
-                    {index === 0 && t('order.paymentPending', 'Awaiting payment confirmation')}
-                    {index === 1 && t('order.paymentSecured', 'Payment secured – seller will ship your dress')}
-                    {index === 2 && t('order.shipped', 'Shipped – awaiting your confirmation')}
-                    {index === 3 && t('order.completed', 'Completed')}
+                    {index === 0 &&
+                      t(
+                        'order.stepDesc.payment',
+                        'We are confirming the buyer’s card payment for this order.'
+                      )}
+                    {index === 1 &&
+                      t(
+                        'order.stepDesc.secured',
+                        'The payment is secured in escrow. The seller should now ship the dress.'
+                      )}
+                    {index === 2 &&
+                      t(
+                        'order.stepDesc.shipped',
+                        'The dress is in transit. The buyer will confirm delivery once it arrives.'
+                      )}
+                    {index === 3 &&
+                      t(
+                        'order.stepDesc.completed',
+                        'The buyer confirmed delivery and the payout has been released.'
+                      )}
                   </Typography>
                 </StepContent>
               </Step>

@@ -23,7 +23,7 @@ import { getAvatarUrl } from '@/lib/avatarUrl';
 import { getStripeErrorKey } from '@/lib/stripeErrors';
 import { useTranslation } from 'react-i18next';
 
-const cardElementOptions = {
+const cardElementOptions = { hidePostalCode: true,
   style: {
     base: {
       fontSize: '16px',
