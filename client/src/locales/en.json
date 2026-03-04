@@ -223,7 +223,11 @@
     "mySales": "My sales",
     "mySalesSubtitle": "Orders where you are the seller.",
     "noSales": "You have no sales yet.",
-    "viewOrder": "View"
+    "viewOrder": "View",
+    "deleteAccount": "Delete account",
+    "deleteAccountTitle": "Delete account",
+    "deleteAccountWarning": "This action will permanently remove your access to this account. Your past orders and messages may be kept in anonymized form for security and legal reasons.",
+    "deleteAccountConfirm": "Delete account"
   },
   "checkout": {
     "title": "Protected checkout",

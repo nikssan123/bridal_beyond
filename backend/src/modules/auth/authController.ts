@@ -252,3 +252,16 @@ export async function resetPassword(req: Request, res: Response, next: NextFunct
     next(e);
   }
 }
+
+export async function deleteAccount(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    if (!req.user) {
+      next(unauthorized());
+      return;
+    }
+    await authRepo.anonymizeUser(req.user.id);
+    res.status(204).send();
+  } catch (e) {
+    next(e);
+  }
+}

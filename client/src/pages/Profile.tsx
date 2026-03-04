@@ -27,7 +27,7 @@ import ReviewList from '@/components/ReviewList';
 import ListingCard from '@/components/ListingCard';
 import RatingDisplay from '@/components/RatingDisplay';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { fetchMe, updateProfile, uploadAvatar } from '@/features/auth/authSlice';
+import { fetchMe, updateProfile, uploadAvatar, deleteAccount, logout } from '@/features/auth/authSlice';
 import { connectStripe, openStripeAccount } from '@/features/stripe/stripeSlice';
 import { fetchReviewsBySellerId } from '@/features/reviews/reviewsSlice';
 import { fetchListingsBySeller } from '@/features/listings/listingsSlice';
@@ -52,6 +52,8 @@ const Profile: React.FC = () => {
   const [editLocation, setEditLocation] = useState('');
   const [editAvatarUrl, setEditAvatarUrl] = useState('');
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const authStatus = useAppSelector((state) => state.auth.status);
   const authError = useAppSelector((state) => state.auth.error);
@@ -113,6 +115,16 @@ const Profile: React.FC = () => {
       setEditOpen(false);
       dispatch(fetchMe());
     });
+  };
+
+  const handleConfirmDelete = async () => {
+    setDeleteLoading(true);
+    const result = await dispatch(deleteAccount());
+    setDeleteLoading(false);
+    if (deleteAccount.fulfilled.match(result)) {
+      dispatch(logout());
+      window.location.href = '/';
+    }
   };
 
   if (!user) {
@@ -188,14 +200,24 @@ const Profile: React.FC = () => {
               />
             </Box>
           </Box>
-          <Button
-            variant="outlined"
-            startIcon={<EditIcon />}
-            onClick={() => setEditOpen(true)}
-            sx={{ borderColor: 'primary.main', color: 'primary.dark' }}
-          >
-            {t('profile.editProfile')}
-          </Button>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <Button
+              variant="outlined"
+              startIcon={<EditIcon />}
+              onClick={() => setEditOpen(true)}
+              sx={{ borderColor: 'primary.main', color: 'primary.dark' }}
+            >
+              {t('profile.editProfile')}
+            </Button>
+            <Button
+              variant="text"
+              color="error"
+              onClick={() => setDeleteDialogOpen(true)}
+              sx={{ justifyContent: 'flex-start', p: 0, minWidth: 0 }}
+            >
+              {t('profile.deleteAccount', 'Delete account')}
+            </Button>
+          </Box>
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1, minWidth: 0 }}>
             <Button
               variant="outlined"
@@ -504,6 +526,32 @@ const Profile: React.FC = () => {
           <Button onClick={() => setEditOpen(false)}>{t('profile.cancel')}</Button>
           <Button variant="contained" onClick={handleSaveProfile}>
             {t('profile.save')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete account dialog */}
+      <Dialog open={deleteDialogOpen} onClose={() => (deleteLoading ? null : setDeleteDialogOpen(false))} maxWidth="xs" fullWidth>
+        <DialogTitle>{t('profile.deleteAccountTitle', 'Delete account')}</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mt: 1 }}>
+            {t(
+              'profile.deleteAccountWarning',
+              'This action will permanently remove your access to this account. Your past orders and messages may be kept in anonymized form for security and legal reasons.'
+            )}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button disabled={deleteLoading} onClick={() => setDeleteDialogOpen(false)}>
+            {t('profile.cancel')}
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleConfirmDelete}
+            disabled={deleteLoading}
+          >
+            {deleteLoading ? <CircularProgress size={18} sx={{ color: 'common.white' }} /> : t('profile.deleteAccountConfirm', 'Delete account')}
           </Button>
         </DialogActions>
       </Dialog>

@@ -142,6 +142,22 @@ export const resetPassword = createAsyncThunk(
   }
 );
 
+export const deleteAccount = createAsyncThunk(
+  'auth/deleteAccount',
+  async (_, { rejectWithValue }) => {
+    try {
+      await api.delete('/auth/me');
+      localStorage.removeItem('token');
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message ||
+        (err as Error)?.message ||
+        'Delete failed';
+      return rejectWithValue(message);
+    }
+  }
+);
+
 const authSlice = createSlice({
   name: 'auth',
   initialState,
@@ -265,6 +281,20 @@ const authSlice = createSlice({
       })
       .addCase(uploadAvatar.rejected, (state, action) => {
         state.error = (action.payload as string) || action.error.message || 'Upload failed';
+      })
+      .addCase(deleteAccount.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(deleteAccount.fulfilled, (state) => {
+        state.user = null;
+        state.isAuthenticated = false;
+        state.status = 'idle';
+        state.error = null;
+      })
+      .addCase(deleteAccount.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = (action.payload as string) || action.error.message || 'Delete failed';
       });
   },
 });

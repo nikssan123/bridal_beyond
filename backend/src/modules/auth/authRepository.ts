@@ -107,3 +107,25 @@ export async function setStripeAccountId(userId: string, stripeAccountId: string
   });
 }
 
+export async function anonymizeUser(userId: string): Promise<UserRow> {
+  const now = new Date();
+  // Keep the row for referential integrity but scrub personal data and credentials.
+  return prisma.user.update({
+    where: { id: userId },
+    data: {
+      name: 'Deleted user',
+      email: `deleted+${userId}@example.com`,
+      password_hash: '',
+      avatar_url: null,
+      location: null,
+      stripe_account_id: null,
+      email_verified_at: null,
+      email_verification_code: null,
+      email_verification_expires_at: null,
+      reset_password_token_hash: null,
+      reset_password_expires_at: null,
+      updated_at: now,
+    },
+  });
+}
+

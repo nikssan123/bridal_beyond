@@ -60,5 +60,6 @@ router.post('/reset-password', validateRequest(resetPasswordSchema), authControl
 router.get('/me', authMiddleware, authController.me);
 router.patch('/profile', authMiddleware, validateRequest(updateProfileSchema), authController.updateProfile);
 router.post('/profile/avatar', authMiddleware, uploadAvatarMiddleware, authController.uploadAvatar);
+router.delete('/me', authMiddleware, authController.deleteAccount);
 
 export default router;
