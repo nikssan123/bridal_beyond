@@ -34,6 +34,10 @@ export interface Order {
 interface CreateOrderResponse {
   orderId: string;
   clientSecret: string;
+  totalCents?: number;
+  subtotalCents?: number;
+  buyerFeeCents?: number;
+  buyerFeePercent?: number;
 }
 
 export const createOrder = createAsyncThunk(

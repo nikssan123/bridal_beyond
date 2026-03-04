@@ -1,10 +1,25 @@
 import React from 'react';
 import { Box, Container, Typography, Grid, Link as MuiLink, Divider } from '@mui/material';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useAppSelector } from '@/app/hooks';
 
 const Footer: React.FC = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+
+  const handleAddListingClick = () => {
+    if (!isAuthenticated || !user) {
+      navigate('/login');
+      return;
+    }
+    if (!user.hasStripeAccount) {
+      navigate('/profile');
+      return;
+    }
+    navigate('/create');
+  };
   return (
   <Box
     sx={{
@@ -34,16 +49,27 @@ const Footer: React.FC = () => {
             { label: t('nav.listings'), to: '/listings' },
             { label: t('nav.addListing'), to: '/create' },
             { label: t('footer.faq'), to: '/#faq' },
-          ].map((link) => (
-            <MuiLink
-              key={link.to}
-              component={Link}
-              to={link.to}
-              sx={{ display: 'block', color: 'rgba(255,255,255,0.6)', mb: 1, textDecoration: 'none', fontSize: '0.9rem', '&:hover': { color: 'primary.main' } }}
-            >
-              {link.label}
-            </MuiLink>
-          ))}
+          ].map((link) => {
+            const isAddListing = link.to === '/create';
+            return (
+              <MuiLink
+                key={link.to}
+                component={Link}
+                to={isAddListing ? '#' : link.to}
+                onClick={
+                  isAddListing
+                    ? (e) => {
+                        e.preventDefault();
+                        handleAddListingClick();
+                      }
+                    : undefined
+                }
+                sx={{ display: 'block', color: 'rgba(255,255,255,0.6)', mb: 1, textDecoration: 'none', fontSize: '0.9rem', '&:hover': { color: 'primary.main' } }}
+              >
+                {link.label}
+              </MuiLink>
+            );
+          })}
         </Grid>
         <Grid item xs={6} sm={4} md={2}>
           <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', fontSize: '0.75rem' }}>
@@ -103,7 +129,7 @@ const Footer: React.FC = () => {
             {t('footer.contacts')}
           </Typography>
           <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.6)', lineHeight: 1.8 }}>
-            info@gracia.bg<br />
+            fornaxelit@gmail.com<br />
             {t('footer.location')}
           </Typography>
         </Grid>

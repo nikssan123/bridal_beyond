@@ -7,7 +7,6 @@ import {
   Paper,
   Button,
   Grid,
-  Chip,
   Alert,
   Dialog,
   DialogTitle,
@@ -18,13 +17,21 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Stepper,
+  Step,
+  StepLabel,
+  StepContent,
+  Divider,
 } from '@mui/material';
+import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
+import RadioButtonUncheckedRoundedIcon from '@mui/icons-material/RadioButtonUncheckedRounded';
 import PageContainer from '@/components/PageContainer';
 import SectionHeader from '@/components/SectionHeader';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { fetchOrderById, confirmReceived, createDispute } from '@/features/orders/ordersSlice';
+import { fetchOrderById, confirmReceived, createDispute, markAsShipped } from '@/features/orders/ordersSlice';
 import { getAvatarUrl } from '@/lib/avatarUrl';
 import { useTranslation } from 'react-i18next';
+import type { OrderStatus } from '@/features/orders/ordersSlice';
 
 const DISPUTE_REASONS = [
   { value: 'delayed', labelKey: 'order.disputeReasonDelayed' },
@@ -32,6 +39,15 @@ const DISPUTE_REASONS = [
   { value: 'damaged', labelKey: 'order.disputeReasonDamaged' },
   { value: 'other', labelKey: 'order.disputeReasonOther' },
 ];
+
+const ORDER_STEPS: OrderStatus[] = ['payment_pending', 'payment_secured', 'shipped', 'completed'];
+
+const BUYER_FEE_PERCENT = 5;
+
+function getActiveStep(status: OrderStatus): number {
+  const idx = ORDER_STEPS.indexOf(status);
+  return idx >= 0 ? idx : 0;
+}
 
 const OrderDetails: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
@@ -44,6 +60,11 @@ const OrderDetails: React.FC = () => {
   const [disputeReason, setDisputeReason] = useState('');
   const [disputeDescription, setDisputeDescription] = useState('');
   const [disputeSubmitting, setDisputeSubmitting] = useState(false);
+  const [shipDialogOpen, setShipDialogOpen] = useState(false);
+  const [shipCourier, setShipCourier] = useState('');
+  const [shipTrackingNumber, setShipTrackingNumber] = useState('');
+  const [shipSubmitting, setShipSubmitting] = useState(false);
+  const [shipError, setShipError] = useState<string | null>(null);
 
   useEffect(() => {
     if (orderId) {
@@ -71,6 +92,31 @@ const OrderDetails: React.FC = () => {
     setDisputeDialogOpen(false);
     setDisputeReason('');
     setDisputeDescription('');
+  };
+  const handleShipDialogClose = () => {
+    setShipDialogOpen(false);
+    setShipCourier('');
+    setShipTrackingNumber('');
+    setShipError(null);
+  };
+  const handleMarkShippedSubmit = async () => {
+    if (!orderId || !shipCourier.trim() || !shipTrackingNumber.trim()) return;
+    setShipSubmitting(true);
+    setShipError(null);
+    try {
+      await dispatch(
+        markAsShipped({
+          orderId,
+          courier: shipCourier.trim(),
+          trackingNumber: shipTrackingNumber.trim(),
+        })
+      ).unwrap();
+      handleShipDialogClose();
+    } catch (e: any) {
+      setShipError(e?.message ?? t('order.markAsShippedError', 'Failed to mark as shipped'));
+    } finally {
+      setShipSubmitting(false);
+    }
   };
   const handleDisputeSubmit = async () => {
     if (!orderId || !disputeReason.trim()) return;
@@ -129,6 +175,15 @@ const OrderDetails: React.FC = () => {
     );
   }
 
+  const isCancelled = currentOrder.status === 'cancelled';
+  const activeStep = getActiveStep(currentOrder.status);
+  const stepLabels = [
+    t('order.stepPayment', 'Payment'),
+    t('order.stepSecured', 'Secured'),
+    t('order.stepShipped', 'Shipped'),
+    t('order.stepCompleted', 'Completed'),
+  ];
+
   return (
     <PageContainer maxWidth="md">
       <SectionHeader
@@ -136,25 +191,92 @@ const OrderDetails: React.FC = () => {
         subtitle={t('order.subtitle', 'Track the status of your protected purchase.')}
       />
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity="error" sx={{ mb: 3 }} onClose={() => {}}>
           {error}
         </Alert>
       )}
+
+      {isCancelled ? (
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          {t('order.cancelled', 'Payment failed or cancelled')}
+        </Alert>
+      ) : (
+        <Paper
+          variant="outlined"
+          sx={{
+            p: { xs: 2, sm: 3 },
+            mb: 3,
+            borderRadius: 3,
+            borderColor: 'divider',
+            bgcolor: 'background.paper',
+          }}
+        >
+          <Stepper activeStep={activeStep} orientation="vertical">
+            {ORDER_STEPS.map((stepStatus, index) => {
+              const stepCompleted = index < activeStep || (currentOrder.status === 'completed' && index === ORDER_STEPS.length - 1);
+              return (
+              <Step key={stepStatus} completed={stepCompleted}>
+                <StepLabel
+                  StepIconComponent={({ completed, active }) =>
+                    completed ? (
+                      <CheckCircleRoundedIcon sx={{ color: 'primary.main', fontSize: 28 }} />
+                    ) : (
+                      <RadioButtonUncheckedRoundedIcon
+                        sx={{
+                          color: active ? 'primary.main' : 'action.disabled',
+                          fontSize: 28,
+                        }}
+                      />
+                    )
+                  }
+                >
+                  <Typography variant="subtitle2" sx={{ fontWeight: index <= activeStep ? 600 : 400 }}>
+                    {stepLabels[index]}
+                  </Typography>
+                </StepLabel>
+                <StepContent>
+                  <Typography variant="body2" color="text.secondary">
+                    {index === 0 && t('order.paymentPending', 'Awaiting payment confirmation')}
+                    {index === 1 && t('order.paymentSecured', 'Payment secured – seller will ship your dress')}
+                    {index === 2 && t('order.shipped', 'Shipped – awaiting your confirmation')}
+                    {index === 3 && t('order.completed', 'Completed')}
+                  </Typography>
+                </StepContent>
+              </Step>
+            );})}
+          </Stepper>
+        </Paper>
+      )}
+
       <Grid container spacing={3}>
         <Grid item xs={12} md={5}>
-          <Paper sx={{ p: 2.5, borderRadius: 3 }}>
-            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+          <Paper
+            variant="outlined"
+            sx={{
+              p: 2.5,
+              borderRadius: 3,
+              borderColor: 'divider',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <Typography
+              variant="overline"
+              sx={{ fontSize: '0.7rem', letterSpacing: 1.2, color: 'text.secondary', mb: 1.5 }}
+            >
               {t('order.item', 'Item')}
             </Typography>
             {currentOrder.listing && (
-              <Box sx={{ display: 'flex', gap: 2 }}>
+              <Box sx={{ display: 'flex', gap: 2, flex: 1 }}>
                 <Box
                   sx={{
-                    width: 96,
-                    height: 120,
+                    width: 100,
+                    height: 132,
                     borderRadius: 2,
                     overflow: 'hidden',
                     flexShrink: 0,
+                    bgcolor: 'action.hover',
                   }}
                 >
                   <img
@@ -166,69 +288,113 @@ const OrderDetails: React.FC = () => {
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
                 </Box>
-                <Box sx={{ flex: 1 }}>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Typography
                     variant="subtitle1"
                     component={RouterLink}
                     to={`/listings/${currentOrder.listing.id}`}
-                    sx={{ fontWeight: 600, textDecoration: 'none', color: 'inherit' }}
+                    sx={{
+                      fontWeight: 600,
+                      textDecoration: 'none',
+                      color: 'inherit',
+                      display: 'block',
+                      '&:hover': { color: 'primary.main' },
+                    }}
                   >
                     {currentOrder.listing.title}
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                     {currentOrder.listing.brand} · {currentOrder.listing.size}
                   </Typography>
-                  <Typography
-                    variant="h5"
-                    sx={{ mt: 2, fontWeight: 700, color: 'secondary.main' }}
-                  >
-                    {currentOrder.priceCents / 100} лв.
-                  </Typography>
+                  <Box sx={{ mt: 2 }}>
+                    {(() => {
+                      const totalBgn = currentOrder.priceCents / 100;
+                      const subtotalBgn = totalBgn / (1 + BUYER_FEE_PERCENT / 100);
+                      const buyerFeeBgn = totalBgn - subtotalBgn;
+                      return (
+                        <>
+                          <Typography variant="body2" color="text.secondary">
+                            {t('order.subtotal', 'Subtotal')}: {subtotalBgn.toFixed(2)} лв.
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {t('order.buyerFee', 'Buyer fee (5%)')}: {buyerFeeBgn.toFixed(2)} лв.
+                          </Typography>
+                          <Typography
+                            variant="h6"
+                            sx={{ mt: 0.5, fontWeight: 700, color: 'secondary.main' }}
+                          >
+                            {t('order.total', 'Total')}: {totalBgn.toFixed(2)} лв.
+                          </Typography>
+                        </>
+                      );
+                    })()}
+                  </Box>
                 </Box>
               </Box>
             )}
-            <Box sx={{ mt: 3 }}>
-              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5 }}>
-                {t('order.status', 'Status')}
-              </Typography>
-              <Chip label={renderStatusLabel()} color="primary" />
-            </Box>
           </Paper>
         </Grid>
         <Grid item xs={12} md={7}>
-          <Paper sx={{ p: 3, borderRadius: 3, mb: 2 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+          <Paper
+            variant="outlined"
+            sx={{
+              p: { xs: 2, sm: 3 },
+              borderRadius: 3,
+              borderColor: 'divider',
+              mb: 2,
+            }}
+          >
+            <Typography
+              variant="overline"
+              sx={{ fontSize: '0.7rem', letterSpacing: 1.2, color: 'text.secondary' }}
+            >
               {t('order.shipping', 'Shipping details')}
             </Typography>
-            <Typography variant="body2">
-              <strong>{currentOrder.shippingFullName}</strong>
-            </Typography>
-            <Typography variant="body2">{currentOrder.shippingPhone}</Typography>
-            <Typography variant="body2">
-              {currentOrder.shippingCity}, {currentOrder.shippingAddressLine}
-            </Typography>
+            <Box sx={{ mt: 1.5 }}>
+              <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                {currentOrder.shippingFullName}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {currentOrder.shippingPhone}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {currentOrder.shippingCity}, {currentOrder.shippingAddressLine}
+              </Typography>
+            </Box>
+            {currentOrder.courier && currentOrder.trackingNumber && (
+              <>
+                <Divider sx={{ my: 2 }} />
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  {t('order.courier', 'Courier')}: {currentOrder.courier}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {t('order.trackingNumber', 'Tracking number')}: {currentOrder.trackingNumber}
+                </Typography>
+              </>
+            )}
           </Paper>
-          <Paper sx={{ p: 3, borderRadius: 3 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+
+          <Paper
+            variant="outlined"
+            sx={{
+              p: { xs: 2, sm: 3 },
+              borderRadius: 3,
+              borderColor: 'divider',
+            }}
+          >
+            <Typography
+              variant="overline"
+              sx={{ fontSize: '0.7rem', letterSpacing: 1.2, color: 'text.secondary' }}
+            >
               {t('order.timeline', 'Order timeline')}
             </Typography>
-            <Box sx={{ mb: 1.5 }}>
+            <Box sx={{ mt: 1.5 }}>
               <Typography variant="body2" color="text.secondary">
                 {renderStatusLabel()}
               </Typography>
             </Box>
-            {currentOrder.courier && currentOrder.trackingNumber && (
-              <Box sx={{ mt: 1 }}>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  {t('order.courier', 'Courier')}: {currentOrder.courier}
-                </Typography>
-                <Typography variant="body2">
-                  {t('order.trackingNumber', 'Tracking number')}: {currentOrder.trackingNumber}
-                </Typography>
-              </Box>
-            )}
             {currentOrder.hasOpenDispute && (
-              <Alert severity="info" sx={{ mt: 2 }}>
+              <Alert severity="info" sx={{ mt: 2 }} icon={false}>
                 {t('order.disputeOpen', 'You have an open dispute for this order. Our team will review it.')}
               </Alert>
             )}
@@ -236,11 +402,14 @@ const OrderDetails: React.FC = () => {
               <Box sx={{ mt: 3 }}>
                 <Button
                   variant="contained"
+                  size="large"
                   onClick={handleConfirmReceived}
                   disabled={confirmLoading}
+                  fullWidth
+                  sx={{ py: 1.25 }}
                 >
                   {confirmLoading ? (
-                    <CircularProgress size={20} color="inherit" />
+                    <CircularProgress size={22} color="inherit" />
                   ) : (
                     t('order.confirmReceived', 'Confirm item received')
                   )}
@@ -249,24 +418,53 @@ const OrderDetails: React.FC = () => {
             )}
             {canOpenDispute && (
               <Box sx={{ mt: 2 }}>
-                <Button variant="outlined" color="secondary" onClick={handleOpenDisputeClick}>
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  onClick={handleOpenDisputeClick}
+                  fullWidth
+                >
                   {t('order.openDispute', 'Open dispute')}
                 </Button>
               </Box>
             )}
             {isSeller && currentOrder.status === 'payment_secured' && (
+              <Box sx={{ mt: 2 }}>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={() => setShipDialogOpen(true)}
+                  fullWidth
+                  sx={{ py: 1.25 }}
+                >
+                  {t('order.markAsShippedButton', 'Mark as shipped')}
+                </Button>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
+                  {t('order.sellerAwaitingShipment', 'Please mark this order as shipped from your dashboard once you send the dress.')}
+                </Typography>
+              </Box>
+            )}
+            {isBuyer && currentOrder.status === 'payment_secured' && (
               <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                {t('order.sellerAwaitingShipment', 'Please mark this order as shipped from your dashboard once you send the dress.')}
+                {t('order.nextStepsBuyerSecured', 'Next: the seller will ship the dress. When it arrives, mark it as received to release payment.')}
               </Typography>
             )}
           </Paper>
         </Grid>
       </Grid>
 
-      <Dialog open={disputeDialogOpen} onClose={handleDisputeDialogClose} maxWidth="sm" fullWidth>
-        <DialogTitle>{t('order.openDisputeTitle', 'Open dispute')}</DialogTitle>
-        <DialogContent>
-          <FormControl fullWidth sx={{ mt: 1, mb: 2 }}>
+      <Dialog
+        open={disputeDialogOpen}
+        onClose={handleDisputeDialogClose}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}
+      >
+        <DialogTitle sx={{ pb: 2 }}>
+          {t('order.openDisputeTitle', 'Open dispute')}
+        </DialogTitle>
+        <DialogContent sx={{ pt: 0 }}>
+          <FormControl fullWidth sx={{ mb: 2 }}>
             <InputLabel>{t('order.disputeReason', 'Reason')}</InputLabel>
             <Select
               value={disputeReason}
@@ -291,7 +489,7 @@ const OrderDetails: React.FC = () => {
             placeholder={t('order.disputeDescriptionPlaceholder', 'Describe what went wrong...')}
           />
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ px: 3, pb: 2, pt: 0 }}>
           <Button onClick={handleDisputeDialogClose}>{t('common.cancel', 'Cancel')}</Button>
           <Button
             variant="contained"
@@ -306,9 +504,61 @@ const OrderDetails: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Dialog
+        open={shipDialogOpen}
+        onClose={handleShipDialogClose}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}
+      >
+        <DialogTitle sx={{ pb: 0 }}>
+          {t('order.markAsShippedTitle', 'Mark order as shipped')}
+        </DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            {t('order.markAsShippedHint', 'Enter the courier and tracking number so the buyer can follow the delivery.')}
+          </Typography>
+          <TextField
+            fullWidth
+            label={t('order.courier', 'Courier')}
+            value={shipCourier}
+            onChange={(e) => setShipCourier(e.target.value)}
+            placeholder="e.g. Econt, Speedy, DPD"
+            sx={{ mb: 2 }}
+            required
+          />
+          <TextField
+            fullWidth
+            label={t('order.trackingNumber', 'Tracking number')}
+            value={shipTrackingNumber}
+            onChange={(e) => setShipTrackingNumber(e.target.value)}
+            placeholder="e.g. 1234567890"
+            required
+          />
+          {shipError && (
+            <Alert severity="error" sx={{ mt: 2 }} onClose={() => setShipError(null)}>
+              {shipError}
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2, pt: 0 }}>
+          <Button onClick={handleShipDialogClose}>{t('common.cancel', 'Cancel')}</Button>
+          <Button
+            variant="contained"
+            onClick={handleMarkShippedSubmit}
+            disabled={shipSubmitting || !shipCourier.trim() || !shipTrackingNumber.trim()}
+          >
+            {shipSubmitting ? (
+              <CircularProgress size={20} color="inherit" />
+            ) : (
+              t('order.markAsShippedButton', 'Mark as shipped')
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </PageContainer>
   );
 };
 
 export default OrderDetails;
-

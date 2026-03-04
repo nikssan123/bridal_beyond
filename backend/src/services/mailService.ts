@@ -13,6 +13,9 @@ import {
   getOrderConfirmationSubject,
   getOrderConfirmationHtml,
   getOrderConfirmationText,
+  getSellerNewOrderSubject,
+  getSellerNewOrderHtml,
+  getSellerNewOrderText,
 } from '../emails/templates';
 
 let transport: nodemailer.Transporter | null = null;
@@ -106,6 +109,51 @@ export async function sendOrderConfirmationEmail(
     orderUrl: params.orderUrl,
     listingTitle: params.listingTitle,
     totalPrice: params.totalPrice,
+  });
+  await t.sendMail({
+    from: mailConfig.smtpUser,
+    to: params.to,
+    subject,
+    text,
+    html,
+  });
+}
+
+export interface SendSellerNewOrderEmailParams {
+  to: string;
+  sellerName: string;
+  orderUrl: string;
+  listingTitle: string;
+  totalPrice: string;
+  buyerName?: string | null;
+}
+
+/**
+ * Sends a notification email to the seller when a protected order is created.
+ * No-ops if SMTP is not configured.
+ */
+export async function sendSellerNewOrderEmail(
+  params: SendSellerNewOrderEmailParams
+): Promise<void> {
+  const t = getTransport();
+  if (!t) {
+    console.warn('[mail] SMTP not configured; skipping seller new order email to', params.to);
+    return;
+  }
+  const subject = getSellerNewOrderSubject();
+  const html = getSellerNewOrderHtml({
+    sellerName: params.sellerName,
+    orderUrl: params.orderUrl,
+    listingTitle: params.listingTitle,
+    totalPrice: params.totalPrice,
+    buyerName: params.buyerName,
+  });
+  const text = getSellerNewOrderText({
+    sellerName: params.sellerName,
+    orderUrl: params.orderUrl,
+    listingTitle: params.listingTitle,
+    totalPrice: params.totalPrice,
+    buyerName: params.buyerName,
   });
   await t.sendMail({
     from: mailConfig.smtpUser,

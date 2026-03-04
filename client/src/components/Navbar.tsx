@@ -35,11 +35,23 @@ const Navbar: React.FC = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { isAuthenticated } = useAppSelector((state) => state.auth);
+  const { isAuthenticated, user } = useAppSelector((state) => state.auth);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const navLinks = [{ label: t('nav.listings'), path: '/listings', icon: <ViewListIcon /> }];
+
+  const handleAddListingClick = () => {
+    if (!isAuthenticated || !user) {
+      navigate('/login');
+      return;
+    }
+    if (!user.hasStripeAccount) {
+      navigate('/profile');
+      return;
+    }
+    navigate('/create');
+  };
 
   return (
     <>
@@ -83,7 +95,7 @@ const Navbar: React.FC = () => {
             >
               {isMobile ? (
                 <IconButton
-                  onClick={() => navigate('/create')}
+                  onClick={handleAddListingClick}
                   sx={{ color: 'primary.main' }}
                   aria-label={t('nav.addListing')}
                 >
@@ -93,7 +105,7 @@ const Navbar: React.FC = () => {
                 <Button
                   variant="outlined"
                   startIcon={<AddIcon />}
-                  onClick={() => navigate('/create')}
+                  onClick={handleAddListingClick}
                   sx={{
                     borderColor: 'primary.main',
                     color: 'primary.main',

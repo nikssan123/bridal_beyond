@@ -9,7 +9,10 @@ import {
   Paper,
   CircularProgress,
   Alert,
+  Chip,
+  Divider,
 } from '@mui/material';
+import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined';
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import PageContainer from '@/components/PageContainer';
 import SectionHeader from '@/components/SectionHeader';
@@ -24,7 +27,8 @@ const cardElementOptions = {
   style: {
     base: {
       fontSize: '16px',
-      color: '#424770',
+      color: '#2D2D2D',
+      fontFamily: "'Work Sans', sans-serif",
       '::placeholder': { color: '#aab7c4' },
     },
     invalid: {
@@ -32,6 +36,8 @@ const cardElementOptions = {
     },
   },
 };
+
+const BUYER_FEE_PERCENT = 5;
 
 const Checkout: React.FC = () => {
   const { listingId } = useParams<{ listingId: string }>();
@@ -136,26 +142,52 @@ const Checkout: React.FC = () => {
 
   return (
     <PageContainer maxWidth="md">
-      <SectionHeader
-        title={t('checkout.title', 'Protected checkout')}
-        subtitle={t('checkout.subtitle', 'Your payment is securely held until you confirm delivery.')}
-      />
+      <Box sx={{ mb: 3 }}>
+        <Chip
+          label={t('checkout.stepLabel', 'Shipping & payment')}
+          size="small"
+          sx={{
+            mb: 2,
+            fontWeight: 600,
+            letterSpacing: 0.5,
+            bgcolor: 'primary.light',
+            color: 'primary.dark',
+          }}
+        />
+        <SectionHeader
+          title={t('checkout.title', 'Protected checkout')}
+          subtitle={t('checkout.subtitle', 'Your payment is securely held until you confirm delivery.')}
+        />
+      </Box>
+
       <Grid container spacing={3}>
         <Grid item xs={12} md={5}>
-          <Paper sx={{ p: 2.5, borderRadius: 3 }}>
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="subtitle2" color="text.secondary">
-                {t('checkout.item', 'Item')}
-              </Typography>
-            </Box>
+          <Paper
+            variant="outlined"
+            sx={{
+              p: 2.5,
+              borderRadius: 3,
+              borderColor: 'divider',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <Typography
+              variant="overline"
+              sx={{ fontSize: '0.7rem', letterSpacing: 1.2, color: 'text.secondary', mb: 1.5 }}
+            >
+              {t('checkout.item', 'Item')}
+            </Typography>
             <Box sx={{ display: 'flex', gap: 2 }}>
               <Box
                 sx={{
-                  width: 96,
-                  height: 120,
+                  width: 100,
+                  height: 132,
                   borderRadius: 2,
                   overflow: 'hidden',
                   flexShrink: 0,
+                  bgcolor: 'action.hover',
                 }}
               >
                 <img
@@ -164,16 +196,24 @@ const Checkout: React.FC = () => {
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
               </Box>
-              <Box sx={{ flex: 1 }}>
+              <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                   {listing.title}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                   {listing.brand} · {listing.size}
                 </Typography>
-                <Typography variant="h5" sx={{ mt: 2, fontWeight: 700, color: 'secondary.main' }}>
-                  {listing.price} лв.
-                </Typography>
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    {t('checkout.subtotal', 'Subtotal')}: {listing.price} лв.
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {t('checkout.buyerFee', 'Buyer fee (5%)')}: {(listing.price * (BUYER_FEE_PERCENT / 100)).toFixed(2)} лв.
+                  </Typography>
+                  <Typography variant="h6" sx={{ mt: 0.5, fontWeight: 700, color: 'secondary.main' }}>
+                    {t('checkout.total', 'Total')}: {(listing.price * (1 + BUYER_FEE_PERCENT / 100)).toFixed(2)} лв.
+                  </Typography>
+                </Box>
               </Box>
             </Box>
             <Box
@@ -181,30 +221,47 @@ const Checkout: React.FC = () => {
                 mt: 3,
                 p: 2,
                 borderRadius: 2,
-                bgcolor: 'background.default',
-                border: '1px dashed',
-                borderColor: 'primary.light',
+                bgcolor: 'primary.light',
+                border: '1px solid',
+                borderColor: 'primary.main',
+                display: 'flex',
+                gap: 1.5,
+                alignItems: 'flex-start',
               }}
             >
-              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                {t('checkout.protectionTitle', 'Buyer protection')}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                {t(
-                  'checkout.protectionText',
-                  'Your payment is held securely. The seller receives the money only after you confirm that you received the dress.'
-                )}
-              </Typography>
+              <ShieldOutlinedIcon sx={{ color: 'primary.dark', mt: 0.25, fontSize: 22 }} />
+              <Box>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                  {t('checkout.protectionTitle', 'Buyer protection')}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                  {t(
+                    'checkout.protectionText',
+                    'Your payment is held securely. The seller receives the money only after you confirm that you received the dress.'
+                  )}
+                </Typography>
+              </Box>
             </Box>
           </Paper>
         </Grid>
+
         <Grid item xs={12} md={7}>
           <Box component="form" onSubmit={handleSubmit}>
-            <Paper sx={{ p: 3, borderRadius: 3 }}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
+            <Paper
+              variant="outlined"
+              sx={{
+                p: { xs: 2, sm: 3 },
+                borderRadius: 3,
+                borderColor: 'divider',
+              }}
+            >
+              <Typography
+                variant="overline"
+                sx={{ fontSize: '0.7rem', letterSpacing: 1.2, color: 'text.secondary' }}
+              >
                 {t('checkout.shipping', 'Shipping details')}
               </Typography>
-              <Grid container spacing={2}>
+              <Grid container spacing={2} sx={{ mt: 0.5 }}>
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
@@ -243,25 +300,29 @@ const Checkout: React.FC = () => {
                 </Grid>
               </Grid>
 
-              <Box sx={{ mt: 4 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-                  {t('checkout.payment', 'Payment')}
-                </Typography>
-                <Box
-                  sx={{
-                    p: 2,
-                    borderRadius: 2,
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    bgcolor: 'background.default',
-                  }}
-                >
-                  <CardElement options={cardElementOptions} />
-                </Box>
+              <Divider sx={{ my: 3 }} />
+
+              <Typography
+                variant="overline"
+                sx={{ fontSize: '0.7rem', letterSpacing: 1.2, color: 'text.secondary' }}
+              >
+                {t('checkout.payment', 'Payment')}
+              </Typography>
+              <Box
+                sx={{
+                  mt: 1.5,
+                  p: 2,
+                  borderRadius: 2,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  bgcolor: 'background.default',
+                }}
+              >
+                <CardElement options={cardElementOptions} />
               </Box>
 
               {error && (
-                <Alert severity="error" sx={{ mt: 2 }}>
+                <Alert severity="error" sx={{ mt: 2 }} onClose={() => setError(null)}>
                   {error}
                 </Alert>
               )}
@@ -289,4 +350,3 @@ const Checkout: React.FC = () => {
 };
 
 export default Checkout;
-

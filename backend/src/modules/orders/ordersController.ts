@@ -6,7 +6,7 @@ import * as stripeService from '../../services/stripe.service';
 import * as ordersRepository from './ordersRepository';
 import * as paymentsRepository from '../payments/paymentsRepository';
 import * as disputesRepository from '../disputes/disputesRepository';
-import { sendOrderConfirmationEmail } from '../../services/mailService';
+import { sendOrderConfirmationEmail, sendSellerNewOrderEmail } from '../../services/mailService';
 
 const createOrderBody = z.object({
   listingId: z.string().uuid('Invalid listing'),
@@ -77,10 +77,14 @@ export async function createOrder(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    const amountCents = Math.round(Number(listing.price) * 100);
-    const platformFeeCents = Math.round(
-      amountCents * (env.stripePlatformFeePercent / 100)
+    const listingPriceCents = Math.round(Number(listing.price) * 100);
+    const buyerFeeCents = Math.round(
+      listingPriceCents * (env.stripeBuyerFeePercent / 100)
     );
+    const amountCents = listingPriceCents + buyerFeeCents;
+    const platformFeeCents =
+      Math.round(listingPriceCents * (env.stripePlatformFeePercent / 100)) +
+      buyerFeeCents;
 
     const { id: paymentIntentId, client_secret } = await stripeService.createPaymentIntent({
       amountCents,
@@ -132,9 +136,32 @@ export async function createOrder(req: Request, res: Response): Promise<void> {
       console.error('Order confirmation email error:', mailErr);
     }
 
+    // Fire-and-forget new order notification email to seller
+    try {
+      const seller = await prisma.user.findUnique({ where: { id: listing.seller_id } });
+      if (seller) {
+        const orderUrl = `${env.clientUrl}/orders/${order.id}`;
+        const totalPrice = `${(amountCents / 100).toFixed(2)} лв.`;
+        await sendSellerNewOrderEmail({
+          to: seller.email,
+          sellerName: seller.name,
+          orderUrl,
+          listingTitle: listing.title,
+          totalPrice,
+          buyerName: (await prisma.user.findUnique({ where: { id: userId } }))?.name ?? null,
+        });
+      }
+    } catch (mailErr) {
+      console.error('Seller new order email error:', mailErr);
+    }
+
     res.status(201).json({
       orderId: order.id,
       clientSecret: client_secret,
+      totalCents: amountCents,
+      subtotalCents: listingPriceCents,
+      buyerFeeCents,
+      buyerFeePercent: env.stripeBuyerFeePercent,
     });
   } catch (err) {
     console.error('Create order error:', err);

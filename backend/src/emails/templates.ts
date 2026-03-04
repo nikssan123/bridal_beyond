@@ -2,7 +2,7 @@
  * HTML and plain-text email templates matching MUI theme (Playfair Display, Work Sans, #D4A99A, #FAF7F5, #2D2D2D, #E8E0DC).
  */
 
-const VERIFICATION_SUBJECT = 'Потвърдете своя имейл за Грация';
+const VERIFICATION_SUBJECT = 'Потвърдете своя имейл за LoveReWorn';
 
 export function getVerificationSubject(): string {
   return VERIFICATION_SUBJECT;
@@ -32,7 +32,7 @@ export function getVerificationHtml(params: { name: string; code: string }): str
                 Здравейте${name ? `, ${name}` : ''}!
               </p>
               <p style="margin:0 0 20px; font-size:16px; line-height:1.5; color:#2D2D2D;">
-                Използвайте кода по-долу, за да потвърдите имейла си в Грация:
+                Използвайте кода по-долу, за да потвърдите имейла си в LoveReWorn:
               </p>
               <div style="margin:24px 0; padding:16px 24px; border-radius:12px; background:linear-gradient(135deg,#D4A99A 0%,#C4918A 100%); text-align:center;">
                 <span style="font-family:'Work Sans',sans-serif; font-size:28px; font-weight:600; letter-spacing:4px; color:#2D2D2D;">${code}</span>
@@ -54,7 +54,7 @@ export function getVerificationHtml(params: { name: string; code: string }): str
 export function getVerificationText(params: { name: string; code: string }): string {
   const { name, code } = params;
   return [
-    'Потвърдете своя имейл за Грация',
+    'Потвърдете своя имейл за LoveReWorn',
     '',
     `Здравейте${name ? `, ${name}` : ''}!`,
     '',
@@ -68,7 +68,7 @@ export function getVerificationText(params: { name: string; code: string }): str
 
 // --- Password reset ---
 
-const PASSWORD_RESET_SUBJECT = 'Нулиране на парола за Грация';
+const PASSWORD_RESET_SUBJECT = 'Нулиране на парола за LoveReWorn';
 
 export function getPasswordResetSubject(): string {
   return PASSWORD_RESET_SUBJECT;
@@ -120,7 +120,7 @@ export function getPasswordResetHtml(params: { name: string; resetLink: string }
 export function getPasswordResetText(params: { name: string; resetLink: string }): string {
   const { name, resetLink } = params;
   return [
-    'Нулиране на парола за Грация',
+    'Нулиране на парола за LoveReWorn',
     '',
     `Здравейте${name ? `, ${name}` : ''}!`,
     '',
@@ -134,7 +134,7 @@ export function getPasswordResetText(params: { name: string; resetLink: string }
 
 // --- New message (contact) notification ---
 
-const NEW_MESSAGE_SUBJECT = 'Ново съобщение в Грация';
+const NEW_MESSAGE_SUBJECT = 'Ново съобщение в LoveReWorn';
 
 export function getNewMessageSubject(): string {
   return NEW_MESSAGE_SUBJECT;
@@ -149,7 +149,7 @@ export function getNewMessageHtml(params: {
   const { recipientName, senderName, listingTitle, messagesUrl } = params;
   const context = listingTitle
     ? `относно обява „${listingTitle}"`
-    : 'в Грация';
+    : 'в LoveReWorn';
   return `
 <!DOCTYPE html>
 <html>
@@ -197,7 +197,7 @@ export function getNewMessageText(params: {
   const { recipientName, senderName, listingTitle, messagesUrl } = params;
   const context = listingTitle
     ? `относно обява „${listingTitle}"`
-    : 'в Грация';
+    : 'в LoveReWorn';
   return [
     NEW_MESSAGE_SUBJECT,
     '',
@@ -212,7 +212,7 @@ export function getNewMessageText(params: {
 
 // --- Order confirmation (protected checkout) ---
 
-const ORDER_CONFIRMATION_SUBJECT = 'Успешна защитена поръчка в Грация';
+const ORDER_CONFIRMATION_SUBJECT = 'Успешна защитена поръчка в LoveReWorn';
 
 export function getOrderConfirmationSubject(): string {
   return ORDER_CONFIRMATION_SUBJECT;
@@ -252,7 +252,7 @@ export function getOrderConfirmationHtml(params: {
                 <p style="margin:4px 0 0; font-size:16px; font-weight:600; color:#D4897E;">Обща сума: ${totalPrice}</p>
               </div>
               <p style="margin:0 0 16px; font-size:15px; line-height:1.6; color:#2D2D2D;">
-                Вашето плащане е <strong>задържано сигурно</strong> от Грация, докато не потвърдите, че сте получили роклята.
+                Вашето плащане е <strong>задържано сигурно</strong> от LoveReWorn, докато не потвърдите, че сте получили роклята.
               </p>
               <p style="margin:0 0 10px; font-size:15px; line-height:1.6; color:#2D2D2D;">
                 Какво следва:
@@ -312,5 +312,102 @@ export function getOrderConfirmationText(params: {
     'Вижте поръчката тук:',
     orderUrl,
   ].join('\n');
+}
+
+// --- New order notification for seller ---
+
+const SELLER_NEW_ORDER_SUBJECT = 'Нова защитена поръчка за вашата рокля в LoveReWorn';
+
+export function getSellerNewOrderSubject(): string {
+  return SELLER_NEW_ORDER_SUBJECT;
+}
+
+export function getSellerNewOrderHtml(params: {
+  sellerName: string;
+  orderUrl: string;
+  listingTitle: string;
+  totalPrice: string;
+  buyerName?: string | null;
+}): string {
+  const { sellerName, orderUrl, listingTitle, totalPrice, buyerName } = params;
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${SELLER_NEW_ORDER_SUBJECT}</title>
+</head>
+<body style="margin:0; padding:0; background-color:#FAF7F5; font-family:'Work Sans',sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#FAF7F5; padding:24px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" style="max-width:520px; border-radius:16px; border:1px solid #E8E0DC; background:#fff;">
+          <tr>
+            <td style="padding:32px 24px;">
+              <h1 style="margin:0 0 12px; font-family:'Playfair Display',serif; font-size:24px; font-weight:600; color:#D4A99A;">
+                Получихте нова поръчка
+              </h1>
+              <p style="margin:0 0 16px; font-size:16px; line-height:1.5; color:#2D2D2D;">
+                Здравейте${sellerName ? `, ${sellerName}` : ''}! Имате нова <strong>защитена поръчка</strong> за вашата рокля.
+              </p>
+              <div style="margin:20px 0; padding:14px 18px; border-radius:12px; background-color:#FAF7F5; border:1px solid #E8E0DC;">
+                <p style="margin:0 0 6px; font-size:15px; color:#6B6B6B;">Артикул</p>
+                <p style="margin:0 0 6px; font-size:16px; font-weight:600; color:#2D2D2D;">${listingTitle}</p>
+                <p style="margin:4px 0 0; font-size:16px; font-weight:600; color:#D4897E;">Обща сума: ${totalPrice}</p>
+                ${
+                  buyerName
+                    ? `<p style="margin:8px 0 0; font-size:14px; color:#6B6B6B;">Купувач: ${buyerName}</p>`
+                    : ''
+                }
+              </div>
+              <p style="margin:0 0 16px; font-size:15px; line-height:1.6; color:#2D2D2D;">
+                Плащането е задържано сигурно при LoveReWorn. След като изпратите роклята и купувачът потвърди получаването, сумата ще бъде изплатена към вас.
+              </p>
+              <p style="margin:0 0 18px; font-size:14px; line-height:1.6; color:#6B6B6B;">
+                Отворете страницата на поръчката, за да видите адрес за доставка и да добавите куриер и номер за проследяване.
+              </p>
+              <p style="margin:22px 0 0; text-align:center;">
+                <a href="${orderUrl}" style="display:inline-block; padding:14px 28px; border-radius:12px; background:linear-gradient(135deg,#D4A99A 0%,#C4918A 100%); color:#2D2D2D; font-size:16px; font-weight:600; text-decoration:none;">
+                  Отвори поръчката
+                </a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`.trim();
+}
+
+export function getSellerNewOrderText(params: {
+  sellerName: string;
+  orderUrl: string;
+  listingTitle: string;
+  totalPrice: string;
+  buyerName?: string | null;
+}): string {
+  const { sellerName, orderUrl, listingTitle, totalPrice, buyerName } = params;
+  return [
+    SELLER_NEW_ORDER_SUBJECT,
+    '',
+    sellerName ? `Здравейте, ${sellerName}!` : 'Здравейте!',
+    '',
+    'Имате нова защитена поръчка за ваша рокля.',
+    '',
+    `Артикул: ${listingTitle}`,
+    `Обща сума: ${totalPrice}`,
+    buyerName ? `Купувач: ${buyerName}` : '',
+    '',
+    'Плащането е задържано сигурно при LoveReWorn. След като изпратите роклята и купувачът потвърди получаването, сумата ще бъде изплатена към вас.',
+    '',
+    'Отворете поръчката тук:',
+    orderUrl,
+  ]
+    .filter(Boolean)
+    .join('\n');
 }
 

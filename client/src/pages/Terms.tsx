@@ -22,9 +22,6 @@ const Terms: React.FC = () => {
         <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
           {t('legal.languageNotice')}
         </Typography>
-        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-          {t('legal.noLegalAdvice')}
-        </Typography>
       </Box>
 
       <Box sx={{ mb: 3 }}>

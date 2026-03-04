@@ -8,6 +8,7 @@ import theme from './theme/theme';
 import { store } from './app/store';
 import { fetchMe } from './features/auth/authSlice';
 import MainLayout from './layouts/MainLayout';
+import ScrollToTop from './components/ScrollToTop';
 import Home from './pages/Home';
 import BrowseListings from './pages/BrowseListings';
 import ListingDetails from './pages/ListingDetails';
@@ -48,6 +49,7 @@ const App = () => {
       <CssBaseline />
       <BrowserRouter>
         <Elements stripe={stripePromise}>
+          <ScrollToTop />
           <Routes>
           <Route element={<MainLayout />}>
             <Route path="/" element={<Home />} />

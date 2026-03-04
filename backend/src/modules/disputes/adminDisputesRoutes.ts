@@ -1,11 +1,10 @@
 import { Router } from 'express';
-import { authMiddleware } from '../../middleware/authMiddleware';
-import { requireAdmin } from '../../middleware/requireAdmin';
+import { adminOrRequireAdmin } from '../../middleware/adminOrRequireAdmin';
 import * as adminDisputesController from './adminDisputesController';
 
 const router = Router();
 
-router.use(authMiddleware, requireAdmin);
+router.use(adminOrRequireAdmin);
 
 router.get('/', adminDisputesController.listDisputes);
 router.get('/:id', adminDisputesController.getDispute);

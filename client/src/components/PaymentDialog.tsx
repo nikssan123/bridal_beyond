@@ -11,6 +11,7 @@ import {
 } from '@mui/material';
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import type { StripeCardElementChangeEvent } from '@stripe/stripe-js';
+import { useTranslation } from 'react-i18next';
 
 interface PaymentDialogProps {
   open: boolean;
@@ -39,6 +40,7 @@ const PaymentDialog: React.FC<PaymentDialogProps> = ({
   clientSecret,
   onSuccess,
 }) => {
+  const { t } = useTranslation();
   const stripe = useStripe();
   const elements = useElements();
   const [submitting, setSubmitting] = useState(false);
@@ -115,14 +117,14 @@ const PaymentDialog: React.FC<PaymentDialogProps> = ({
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={handleClose} disabled={submitting}>
-            Cancel
+            {t('common.cancel', 'Cancel')}
           </Button>
           <Button
             type="submit"
             variant="contained"
             disabled={!stripe || !cardComplete || submitting}
           >
-            {submitting ? <CircularProgress size={24} /> : 'Authorize payment'}
+            {submitting ? <CircularProgress size={24} /> : t('checkout.authorizePayment', 'Authorize payment')}
           </Button>
         </DialogActions>
       </form>

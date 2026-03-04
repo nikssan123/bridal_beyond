@@ -26,6 +26,7 @@ const Home: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { listings, status } = useAppSelector((state) => state.listings);
+  const { isAuthenticated, user } = useAppSelector((state) => state.auth);
   const featured = listings.slice(0, 3);
 
   useEffect(() => {
@@ -105,7 +106,17 @@ const Home: React.FC = () => {
               <Button
                 variant="outlined"
                 size="large"
-                onClick={() => navigate('/create')}
+                onClick={() => {
+                  if (!isAuthenticated || !user) {
+                    navigate('/login');
+                    return;
+                  }
+                  if (!user.hasStripeAccount) {
+                    navigate('/profile');
+                    return;
+                  }
+                  navigate('/create');
+                }}
                 sx={{
                   borderColor: 'rgba(250,247,245,0.6)',
                   color: '#FAF7F5',
