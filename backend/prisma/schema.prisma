@@ -26,6 +26,7 @@ model User {
 
   stripe_account_id String? @db.VarChar(255)
   google_id         String? @unique @db.VarChar(255)
+  meta_id           String? @unique @db.VarChar(255)
 
   listings        Listing[]  @relation("UserListings")
   reviewsAuthored Review[]   @relation("UserReviewsAuthored")

@@ -23,6 +23,12 @@ export async function findByGoogleId(googleId: string): Promise<UserRow | null> 
   });
 }
 
+export async function findByMetaId(metaId: string): Promise<UserRow | null> {
+  return prisma.user.findUnique({
+    where: { meta_id: metaId },
+  });
+}
+
 export async function create(data: {
   name: string;
   email: string;
@@ -63,6 +69,33 @@ export async function createFromGoogle(data: {
       name: data.name.trim(),
       email: data.email.toLowerCase().trim(),
       google_id: data.googleId,
+      avatar_url: data.avatarUrl ?? null,
+      password_hash: null,
+      role: 'user',
+      member_since: new Date(),
+      email_verified_at: new Date(),
+    },
+  });
+}
+
+export async function setMetaId(userId: string, metaId: string): Promise<UserRow> {
+  return prisma.user.update({
+    where: { id: userId },
+    data: { meta_id: metaId, updated_at: new Date() },
+  });
+}
+
+export async function createFromMeta(data: {
+  email: string;
+  metaId: string;
+  name: string;
+  avatarUrl?: string | null;
+}): Promise<UserRow> {
+  return prisma.user.create({
+    data: {
+      name: data.name.trim(),
+      email: data.email.toLowerCase().trim(),
+      meta_id: data.metaId,
       avatar_url: data.avatarUrl ?? null,
       password_hash: null,
       role: 'user',
@@ -186,6 +219,8 @@ export async function anonymizeUser(userId: string): Promise<UserRow> {
       avatar_url: null,
       location: null,
       stripe_account_id: null,
+      google_id: null,
+      meta_id: null,
       email_verified_at: null,
       email_verification_code: null,
       email_verification_expires_at: null,

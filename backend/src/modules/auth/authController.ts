@@ -130,6 +130,93 @@ export async function google(req: Request, res: Response, next: NextFunction): P
   }
 }
 
+export async function meta(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const accessToken = req.body.accessToken as string;
+    let payload: authService.MetaTokenPayload;
+    try {
+      payload = await authService.verifyMetaAccessToken(accessToken);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Invalid token';
+      if (message.includes('not configured')) {
+        next(badRequest('Meta sign-in is not available'));
+        return;
+      }
+      if (message.includes('Missing email')) {
+        next(badRequest('Meta account email not available'));
+        return;
+      }
+      next(unauthorized('Invalid or expired Meta token'));
+      return;
+    }
+
+    let user = await authRepo.findByMetaId(payload.metaId);
+    if (user) {
+      const token = signToken({ sub: user.id, email: user.email, role: user.role });
+      res.json({ user: toAuthResponse(user), token });
+      return;
+    }
+
+    user = await authRepo.findByEmail(payload.email);
+    if (user) {
+      if (user.meta_id == null) {
+        await authRepo.setMetaId(user.id, payload.metaId);
+        const updated = await authRepo.findById(user.id);
+        user = updated ?? user;
+        const token = signToken({ sub: user.id, email: user.email, role: user.role });
+        res.json({ user: toAuthResponse(user), token });
+        return;
+      }
+      next(badRequest('This email is already linked to another Meta account'));
+      return;
+    }
+
+    const newUser = await authRepo.createFromMeta({
+      email: payload.email,
+      metaId: payload.metaId,
+      name: payload.name,
+      avatarUrl: payload.picture ?? null,
+    });
+    const token = signToken({ sub: newUser.id, email: newUser.email, role: newUser.role });
+    res.status(201).json({ user: toAuthResponse(newUser), token });
+  } catch (e) {
+    next(e);
+  }
+}
+
+/**
+ * Meta Data Deletion Callback (required for Meta app compliance).
+ * Meta POSTs signed_request when a user requests data deletion via Facebook settings.
+ * We verify the signature, find the user by meta_id, anonymize their account, and return the required JSON.
+ */
+export async function metaDataDeletionCallback(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const signedRequest = req.body.signed_request as string | undefined;
+    if (!signedRequest || typeof signedRequest !== 'string') {
+      res.status(400).json({ error: 'Missing signed_request' });
+      return;
+    }
+    let metaUserId: string;
+    try {
+      const parsed = authService.parseAndVerifyMetaSignedRequest(signedRequest);
+      metaUserId = parsed.userId;
+    } catch {
+      res.status(401).json({ error: 'Invalid signed_request' });
+      return;
+    }
+    const user = await authRepo.findByMetaId(metaUserId);
+    if (user) {
+      await authRepo.deleteUserListingsExceptActive(user.id);
+      await authRepo.anonymizeUser(user.id);
+    }
+    const confirmationCode = crypto.randomBytes(8).toString('hex');
+    const statusUrl = env.clientUrl;
+    res.status(200).json({ url: statusUrl, confirmation_code: confirmationCode });
+  } catch (e) {
+    next(e);
+  }
+}
+
 export async function me(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     if (!req.user) {

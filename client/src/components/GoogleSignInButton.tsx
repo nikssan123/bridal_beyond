@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box } from '@mui/material';
+import { Box, Button, Typography } from '@mui/material';
 import { GoogleLogin } from '@react-oauth/google';
 
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
@@ -37,9 +37,12 @@ interface GoogleSignInButtonProps {
 export function GoogleSignInButton({ onSuccess, onError, text = 'signin_with' }: GoogleSignInButtonProps): React.ReactElement | null {
   if (!googleClientId) return null;
 
+  const label = text === 'signup_with' ? 'Sign up with Google' : 'Sign in with Google';
+
   return (
     <Box
       sx={{
+        position: 'relative',
         width: '100%',
         mb: 2,
         borderRadius: 3,
@@ -51,6 +54,7 @@ export function GoogleSignInButton({ onSuccess, onError, text = 'signin_with' }:
         transition: 'border-color 0.2s, background-color 0.2s',
       }}
     >
+      {/* Visible custom button matching Meta style */}
       <Box
         sx={{
           display: 'flex',
@@ -58,8 +62,39 @@ export function GoogleSignInButton({ onSuccess, onError, text = 'signin_with' }:
           justifyContent: 'center',
           minHeight: 48,
           py: 0.5,
-          '& > div': { width: '100%' },
-          '& iframe': { width: '100% !important' },
+        }}
+      >
+        <Button
+          fullWidth
+          variant="outlined"
+          size="large"
+          startIcon={<GoogleLogo />}
+          sx={{
+            textTransform: 'none',
+            py: 1.5,
+            border: 'none',
+            color: 'text.primary',
+            '&:hover': { border: 'none', bgcolor: 'transparent' },
+          }}
+        >
+          <Typography variant="body1" sx={{ fontWeight: 500 }}>
+            {label}
+          </Typography>
+        </Button>
+      </Box>
+      {/* Invisible Google Login overlay so we still get the credential */}
+      <Box
+        sx={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 1,
+          opacity: 0,
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          '& > div': { width: '100%', height: '100%' },
+          '& iframe': { width: '100% !important', height: '100% !important', minHeight: 48 },
         }}
       >
         <GoogleLogin
@@ -71,9 +106,7 @@ export function GoogleSignInButton({ onSuccess, onError, text = 'signin_with' }:
           text={text}
           logo_alignment="left"
           width="100%"
-          containerProps={{
-            style: { width: '100%', display: 'flex', justifyContent: 'center' },
-          }}
+          containerProps={{ style: { width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' } }}
         />
       </Box>
     </Box>

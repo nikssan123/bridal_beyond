@@ -26,4 +26,6 @@ export const env = {
   adminUsername: getEnv('ADMIN_USERNAME', 'admin'),
   adminPassword: getEnv('ADMIN_PASSWORD', 'change-me'),
   googleClientId: getEnv('GOOGLE_CLIENT_ID'),
+  metaAppId: getEnv('META_APP_ID', ''),
+  metaAppSecret: getEnv('META_APP_SECRET', ''),
 };

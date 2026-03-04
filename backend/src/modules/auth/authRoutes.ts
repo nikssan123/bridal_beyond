@@ -46,6 +46,12 @@ const googleSchema = {
   }),
 };
 
+const metaSchema = {
+  body: z.object({
+    accessToken: z.string().min(1, 'Meta access token is required'),
+  }),
+};
+
 const updateProfileSchema = {
   body: z.object({
     name: z.string().min(1).max(255).optional(),
@@ -64,6 +70,8 @@ router.post('/verify-email', validateRequest(verifyEmailSchema), authController.
 router.post('/forgot-password', validateRequest(forgotPasswordSchema), authController.forgotPassword);
 router.post('/reset-password', validateRequest(resetPasswordSchema), authController.resetPassword);
 router.post('/google', validateRequest(googleSchema), authController.google);
+router.post('/meta', validateRequest(metaSchema), authController.meta);
+router.post('/meta/data-deletion', authController.metaDataDeletionCallback);
 router.get('/me', authMiddleware, authController.me);
 router.patch('/profile', authMiddleware, validateRequest(updateProfileSchema), authController.updateProfile);
 router.post('/profile/avatar', authMiddleware, uploadAvatarMiddleware, authController.uploadAvatar);

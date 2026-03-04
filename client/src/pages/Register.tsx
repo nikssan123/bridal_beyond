@@ -3,8 +3,9 @@ import { Box, TextField, Button, Typography, Link as MuiLink, Divider, Alert } f
 import { Link, useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/PageContainer';
 import { GoogleSignInButton, GoogleLogo, googleClientId } from '@/components/GoogleSignInButton';
+import { MetaSignInButton, MetaLogo, metaAppId } from '@/components/MetaSignInButton';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { registerUser, loginWithGoogle, clearAuthError } from '@/features/auth/authSlice';
+import { registerUser, loginWithGoogle, loginWithMeta, clearAuthError } from '@/features/auth/authSlice';
 import { useTranslation } from 'react-i18next';
 import { getAuthErrorKey } from '@/lib/authErrors';
 
@@ -32,6 +33,12 @@ const Register: React.FC = () => {
     if (!credential) return;
     dispatch(loginWithGoogle(credential)).then((result) => {
       if (loginWithGoogle.fulfilled.match(result)) navigate('/profile', { replace: true });
+    });
+  };
+
+  const handleMetaSuccess = (response: { accessToken: string }) => {
+    dispatch(loginWithMeta(response.accessToken)).then((result) => {
+      if (loginWithMeta.fulfilled.match(result)) navigate('/profile', { replace: true });
     });
   };
 
@@ -63,17 +70,27 @@ const Register: React.FC = () => {
           <Button type="submit" variant="contained" fullWidth size="large" sx={{ py: 1.5, mb: 2 }} disabled={status === 'loading'}>
             {t('auth.register')}
           </Button>
-          <Divider sx={{ my: 2 }}>
-            <Typography component="span" variant="caption" color="text.secondary" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
-              {t('auth.or')}
-              {googleClientId && <GoogleLogo />}
-            </Typography>
-          </Divider>
-          <GoogleSignInButton
-            text="signup_with"
-            onSuccess={handleGoogleSuccess}
-            onError={() => dispatch(clearAuthError())}
-          />
+          {(googleClientId || metaAppId) && (
+            <>
+              <Divider sx={{ my: 2 }}>
+                <Typography component="span" variant="caption" color="text.secondary" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+                  {t('auth.or')}
+                  {googleClientId && <GoogleLogo />}
+                  {metaAppId && <MetaLogo />}
+                </Typography>
+              </Divider>
+              <GoogleSignInButton
+                text="signup_with"
+                onSuccess={handleGoogleSuccess}
+                onError={() => dispatch(clearAuthError())}
+              />
+              <MetaSignInButton
+                variant="signup"
+                onSuccess={handleMetaSuccess}
+                onError={() => dispatch(clearAuthError())}
+              />
+            </>
+          )}
           <Typography variant="body2" sx={{ textAlign: 'center', mt: 2 }}>
             {t('auth.haveAccount')}{' '}
             <MuiLink component={Link} to="/login" sx={{ color: 'primary.dark', fontWeight: 500 }}>

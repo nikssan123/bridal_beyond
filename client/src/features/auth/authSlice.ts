@@ -175,6 +175,23 @@ export const loginWithGoogle = createAsyncThunk(
   }
 );
 
+export const loginWithMeta = createAsyncThunk(
+  'auth/loginWithMeta',
+  async (accessToken: string, { rejectWithValue }) => {
+    try {
+      const { data } = await api.post<{ user: User; token: string }>('/auth/meta', { accessToken });
+      localStorage.setItem('token', data.token);
+      return data.user;
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message ||
+        (err as Error)?.message ||
+        'Meta sign-in failed';
+      return rejectWithValue(message);
+    }
+  }
+);
+
 const authSlice = createSlice({
   name: 'auth',
   initialState,
@@ -326,6 +343,20 @@ const authSlice = createSlice({
       .addCase(loginWithGoogle.rejected, (state, action) => {
         state.status = 'failed';
         state.error = (action.payload as string) || action.error.message || 'Google sign-in failed';
+      })
+      .addCase(loginWithMeta.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(loginWithMeta.fulfilled, (state, action) => {
+        state.user = action.payload;
+        state.isAuthenticated = true;
+        state.status = 'succeeded';
+        state.error = null;
+      })
+      .addCase(loginWithMeta.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = (action.payload as string) || action.error.message || 'Meta sign-in failed';
       });
   },
 });
