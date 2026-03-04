@@ -170,6 +170,7 @@
     "minOrderForCheckout": "Minimum order for protected checkout is 10 €. Contact the seller to arrange the sale.",
     "minPrice": "Minimum price is 10 €.",
     "minPriceHelp": "Minimum 10 € for protected checkout",
+    "fieldRequired": "This field is required.",
     "paymentAuthorized": "Payment authorized. Funds will be captured when the seller confirms delivery.",
     "share": "Share listing",
     "shareLinkCopied": "Link copied to clipboard",

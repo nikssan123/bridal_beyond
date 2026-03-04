@@ -5,6 +5,7 @@ import {
   Button,
   Grid,
   FormControl,
+  FormHelperText,
   InputLabel,
   Select,
   MenuItem,
@@ -33,6 +34,7 @@ const CreateListing: React.FC = () => {
   const [submitted, setSubmitted] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [form, setForm] = useState({
     title: '', description: '', price: '', originalPrice: '',
     category: '', size: '', condition: '', color: '', brand: '',
@@ -41,13 +43,21 @@ const CreateListing: React.FC = () => {
 
   const update =
     (field: string) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | any) => {
-    setForm({ ...form, [field]: e.target.value });
-  };
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | { target: { value: unknown } }) => {
+      setForm({ ...form, [field]: e.target.value });
+      if (fieldErrors[field]) {
+        setFieldErrors((prev) => {
+          const next = { ...prev };
+          delete next[field];
+          return next;
+        });
+      }
+    };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError(null);
+    setFieldErrors({});
     if (!user) {
       navigate('/login');
       return;
@@ -60,9 +70,21 @@ const CreateListing: React.FC = () => {
       setImageError(t('listing.imagesAtLeastTwo', 'Please upload at least two photos.'));
       return;
     }
+    const requiredMessage = t('listing.fieldRequired', 'This field is required.');
+    const errors: Record<string, string> = {};
+    if (!form.title.trim()) errors.title = requiredMessage;
+    if (!form.description.trim()) errors.description = requiredMessage;
     const priceNum = Number(form.price);
-    if (!Number.isFinite(priceNum) || priceNum < MIN_PRICE_EUR) {
-      setSubmitError(t('listing.minPrice', 'Minimum price is 10 €.'));
+    if (form.price === '' || !Number.isFinite(priceNum)) {
+      errors.price = requiredMessage;
+    } else if (priceNum < MIN_PRICE_EUR) {
+      errors.price = t('listing.minPrice', 'Minimum price is 10 €.');
+    }
+    if (!form.category) errors.category = requiredMessage;
+    if (!form.size) errors.size = requiredMessage;
+    if (!form.condition) errors.condition = requiredMessage;
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
       return;
     }
     try {
@@ -238,10 +260,26 @@ const CreateListing: React.FC = () => {
 
         <Grid container spacing={2.5} sx={{ mt: 3 }}>
           <Grid item xs={12}>
-            <TextField fullWidth label={t('listing.titleLabel')} value={form.title} onChange={update('title')} required />
+            <TextField
+              fullWidth
+              label={t('listing.titleLabel')}
+              value={form.title}
+              onChange={update('title')}
+              error={!!fieldErrors.title}
+              helperText={fieldErrors.title}
+            />
           </Grid>
           <Grid item xs={12}>
-            <TextField fullWidth label={t('listing.description')} multiline rows={4} value={form.description} onChange={update('description')} required />
+            <TextField
+              fullWidth
+              label={t('listing.description')}
+              multiline
+              rows={4}
+              value={form.description}
+              onChange={update('description')}
+              error={!!fieldErrors.description}
+              helperText={fieldErrors.description}
+            />
           </Grid>
           <Grid item xs={6}>
             <TextField
@@ -249,35 +287,43 @@ const CreateListing: React.FC = () => {
               label={t('listing.price')}
               type="number"
               inputProps={{ min: MIN_PRICE_EUR, step: 0.01 }}
-              helperText={t('listing.minPriceHelp', 'Minimum 10 € for protected checkout')}
+              helperText={fieldErrors.price || t('listing.minPriceHelp', 'Minimum 10 € for protected checkout')}
               value={form.price}
               onChange={update('price')}
-              required
+              error={!!fieldErrors.price}
             />
           </Grid>
           <Grid item xs={6}>
-            <TextField fullWidth label={t('listing.originalPrice')} type="number" value={form.originalPrice} onChange={update('originalPrice')} required />
+            <TextField
+              fullWidth
+              label={t('listing.originalPrice')}
+              type="number"
+              value={form.originalPrice}
+              onChange={update('originalPrice')}
+            />
           </Grid>
           <Grid item xs={6}>
-            <FormControl fullWidth required>
+            <FormControl fullWidth error={!!fieldErrors.category}>
               <InputLabel>{t('listing.category')}</InputLabel>
               <Select value={form.category} label={t('listing.category')} onChange={update('category')}>
                 <MenuItem value="wedding">{t('listing.category_wedding')}</MenuItem>
                 <MenuItem value="graduation">{t('listing.category_graduation')}</MenuItem>
                 <MenuItem value="evening">{t('listing.category_evening')}</MenuItem>
               </Select>
+              {fieldErrors.category && <FormHelperText>{fieldErrors.category}</FormHelperText>}
             </FormControl>
           </Grid>
           <Grid item xs={6}>
-            <FormControl fullWidth required>
+            <FormControl fullWidth error={!!fieldErrors.size}>
               <InputLabel>{t('listing.size')}</InputLabel>
               <Select value={form.size} label={t('listing.size')} onChange={update('size')}>
                 {['XS', 'S', 'M', 'L', 'XL'].map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
               </Select>
+              {fieldErrors.size && <FormHelperText>{fieldErrors.size}</FormHelperText>}
             </FormControl>
           </Grid>
           <Grid item xs={6}>
-            <FormControl fullWidth required>
+            <FormControl fullWidth error={!!fieldErrors.condition}>
               <InputLabel>{t('listing.condition')}</InputLabel>
               <Select value={form.condition} label={t('listing.condition')} onChange={update('condition')}>
                 <MenuItem value="new">{t('listing.condition_new')}</MenuItem>
@@ -285,6 +331,7 @@ const CreateListing: React.FC = () => {
                 <MenuItem value="good">{t('listing.condition_good')}</MenuItem>
                 <MenuItem value="fair">{t('listing.condition_fair')}</MenuItem>
               </Select>
+              {fieldErrors.condition && <FormHelperText>{fieldErrors.condition}</FormHelperText>}
             </FormControl>
           </Grid>
           <Grid item xs={6}>
