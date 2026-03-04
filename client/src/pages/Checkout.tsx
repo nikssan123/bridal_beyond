@@ -38,6 +38,7 @@ const cardElementOptions = { hidePostalCode: true,
 };
 
 const BUYER_FEE_PERCENT = 5;
+const MIN_ORDER_EUR = 10;
 
 const Checkout: React.FC = () => {
   const { listingId } = useParams<{ listingId: string }>();
@@ -90,6 +91,11 @@ const Checkout: React.FC = () => {
       setError(t('checkout.phoneTooShort', 'Phone number must be at least 3 characters.'));
       return;
     }
+    const price = Number(listing?.price);
+    if (!Number.isFinite(price) || price < MIN_ORDER_EUR) {
+      setError(t('checkout.minOrder', 'Minimum order amount is 10 €.'));
+      return;
+    }
 
     setSubmitting(true);
     setError(null);
@@ -140,6 +146,8 @@ const Checkout: React.FC = () => {
     );
   }
 
+  const belowMinOrder = Number(listing.price) < MIN_ORDER_EUR;
+
   return (
     <PageContainer maxWidth="md">
       <Box sx={{ mb: 3 }}>
@@ -159,6 +167,15 @@ const Checkout: React.FC = () => {
           subtitle={t('checkout.subtitle', 'Your payment is securely held until you confirm delivery.')}
         />
       </Box>
+
+      {belowMinOrder && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          {t('checkout.minOrder', 'Minimum order amount is 10 €.')}{' '}
+          <Typography component="span" variant="body2">
+            {t('checkout.minOrderContact', 'You can contact the seller to arrange the sale.')}
+          </Typography>
+        </Alert>
+      )}
 
       <Grid container spacing={3}>
         <Grid item xs={12} md={5}>
@@ -205,13 +222,13 @@ const Checkout: React.FC = () => {
                 </Typography>
                 <Box sx={{ mt: 2 }}>
                   <Typography variant="body2" color="text.secondary">
-                    {t('checkout.subtotal', 'Subtotal')}: {listing.price} лв.
+                    {t('checkout.subtotal', 'Subtotal')}: {listing.price} €
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    {t('checkout.buyerFee', 'Buyer fee (5%)')}: {(listing.price * (BUYER_FEE_PERCENT / 100)).toFixed(2)} лв.
+                    {t('checkout.buyerFee', 'Buyer fee (5%)')}: {(listing.price * (BUYER_FEE_PERCENT / 100)).toFixed(2)} €
                   </Typography>
                   <Typography variant="h6" sx={{ mt: 0.5, fontWeight: 700, color: 'secondary.main' }}>
-                    {t('checkout.total', 'Total')}: {(listing.price * (1 + BUYER_FEE_PERCENT / 100)).toFixed(2)} лв.
+                    {t('checkout.total', 'Total')}: {(listing.price * (1 + BUYER_FEE_PERCENT / 100)).toFixed(2)} €
                   </Typography>
                 </Box>
               </Box>
@@ -333,7 +350,7 @@ const Checkout: React.FC = () => {
                 size="large"
                 fullWidth
                 sx={{ mt: 3, py: 1.5 }}
-                disabled={submitting || !stripe || !elements}
+                disabled={submitting || !stripe || !elements || belowMinOrder}
               >
                 {submitting ? (
                   <CircularProgress size={24} color="inherit" />

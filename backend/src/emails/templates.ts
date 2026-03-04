@@ -411,3 +411,91 @@ export function getSellerNewOrderText(params: {
     .join('\n');
 }
 
+// --- Order shipped notification for buyer ---
+
+const BUYER_ORDER_SHIPPED_SUBJECT = 'Вашата поръчка е изпратена – LoveReWorn';
+
+export function getBuyerOrderShippedSubject(): string {
+  return BUYER_ORDER_SHIPPED_SUBJECT;
+}
+
+export function getBuyerOrderShippedHtml(params: {
+  name: string;
+  orderUrl: string;
+  listingTitle: string;
+  courier: string;
+  trackingNumber: string;
+}): string {
+  const { name, orderUrl, listingTitle, courier, trackingNumber } = params;
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${BUYER_ORDER_SHIPPED_SUBJECT}</title>
+</head>
+<body style="margin:0; padding:0; background-color:#FAF7F5; font-family:'Work Sans',sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#FAF7F5; padding:24px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" style="max-width:520px; border-radius:16px; border:1px solid #E8E0DC; background:#fff;">
+          <tr>
+            <td style="padding:32px 24px;">
+              <h1 style="margin:0 0 12px; font-family:'Playfair Display',serif; font-size:24px; font-weight:600; color:#D4A99A;">
+                Вашата поръчка е изпратена
+              </h1>
+              <p style="margin:0 0 16px; font-size:16px; line-height:1.5; color:#2D2D2D;">
+                Здравейте${name ? `, ${name}` : ''}! Продавачът изпрати вашата рокля.
+              </p>
+              <div style="margin:20px 0; padding:14px 18px; border-radius:12px; background-color:#FAF7F5; border:1px solid #E8E0DC;">
+                <p style="margin:0 0 6px; font-size:15px; color:#6B6B6B;">Артикул</p>
+                <p style="margin:0 0 8px; font-size:16px; font-weight:600; color:#2D2D2D;">${listingTitle}</p>
+                <p style="margin:0 0 4px; font-size:14px; color:#2D2D2D;"><strong>Куриер:</strong> ${courier}</p>
+                <p style="margin:0; font-size:14px; color:#2D2D2D;"><strong>Номер за проследяване:</strong> ${trackingNumber}</p>
+              </div>
+              <p style="margin:0 0 18px; font-size:15px; line-height:1.6; color:#2D2D2D;">
+                След получаване проверете роклята и от страницата на поръчката натиснете „Потвърди получаването“, за да освободим плащането към продавача.
+              </p>
+              <p style="margin:22px 0 0; text-align:center;">
+                <a href="${orderUrl}" style="display:inline-block; padding:14px 28px; border-radius:12px; background:linear-gradient(135deg,#D4A99A 0%,#C4918A 100%); color:#2D2D2D; font-size:16px; font-weight:600; text-decoration:none;">
+                  Виж поръчката
+                </a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`.trim();
+}
+
+export function getBuyerOrderShippedText(params: {
+  name: string;
+  orderUrl: string;
+  listingTitle: string;
+  courier: string;
+  trackingNumber: string;
+}): string {
+  const { name, orderUrl, listingTitle, courier, trackingNumber } = params;
+  return [
+    BUYER_ORDER_SHIPPED_SUBJECT,
+    '',
+    name ? `Здравейте, ${name}!` : 'Здравейте!',
+    '',
+    'Продавачът изпрати вашата рокля.',
+    '',
+    `Артикул: ${listingTitle}`,
+    `Куриер: ${courier}`,
+    `Номер за проследяване: ${trackingNumber}`,
+    '',
+    'След получаване проверете роклята и от страницата на поръчката потвърдете получаването.',
+    '',
+    'Вижте поръчката тук:',
+    orderUrl,
+  ].join('\n');
+}
+

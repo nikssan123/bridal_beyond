@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import { Box, TextField, Button, Typography, Link as MuiLink, Divider, Alert } from '@mui/material';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { GoogleLogin } from '@react-oauth/google';
 import PageContainer from '@/components/PageContainer';
+import { GoogleSignInButton, GoogleLogo, googleClientId } from '@/components/GoogleSignInButton';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { loginUser, loginWithGoogle, clearAuthError } from '@/features/auth/authSlice';
 import { useTranslation } from 'react-i18next';
 import { getAuthErrorKey } from '@/lib/authErrors';
-
-const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
 
 const Login: React.FC = () => {
   const { t } = useTranslation();
@@ -75,15 +73,17 @@ const Login: React.FC = () => {
           <Button type="submit" variant="contained" fullWidth size="large" sx={{ py: 1.5, mb: 2 }} disabled={status === 'loading'}>
             {t('auth.signIn')}
           </Button>
-          <Divider sx={{ my: 2 }}><Typography variant="caption" color="text.secondary">{t('auth.or')}</Typography></Divider>
-          {googleClientId && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={() => dispatch(clearAuthError())}
-              />
-            </Box>
-          )}
+          <Divider sx={{ my: 2 }}>
+            <Typography component="span" variant="caption" color="text.secondary" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+              {t('auth.or')}
+              {googleClientId && <GoogleLogo />}
+            </Typography>
+          </Divider>
+          <GoogleSignInButton
+            text="signin_with"
+            onSuccess={handleGoogleSuccess}
+            onError={() => dispatch(clearAuthError())}
+          />
           <Typography variant="body2" sx={{ textAlign: 'center', mt: 2 }}>
             {t('auth.noAccount')}{' '}
             <MuiLink component={Link} to="/register" sx={{ color: 'primary.dark', fontWeight: 500 }}>

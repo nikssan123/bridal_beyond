@@ -1,5 +1,7 @@
 import type { User } from '@prisma/client';
 import { prisma } from '../../prisma';
+import * as disputesRepository from '../disputes/disputesRepository';
+import * as listingsRepository from '../listings/listingsRepository';
 
 export type UserRow = User;
 
@@ -138,6 +140,38 @@ export async function setStripeAccountId(userId: string, stripeAccountId: string
     where: { id: userId },
     data: { stripe_account_id: stripeAccountId, updated_at: new Date() },
   });
+}
+
+const ACTIVE_ORDER_STATUSES = ['payment_pending', 'payment_secured', 'shipped', 'completed'] as const;
+
+/**
+ * Deletes all listings owned by the user that are not in an active order or open dispute.
+ * Used when the user deletes their account.
+ */
+export async function deleteUserListingsExceptActive(userId: string): Promise<void> {
+  const listingIds = await prisma.listing.findMany({
+    where: { seller_id: userId },
+    select: { id: true },
+  }).then((rows) => rows.map((r) => r.id));
+  if (listingIds.length === 0) return;
+
+  const orders = await prisma.order.findMany({
+    where: { listing_id: { in: listingIds } },
+    select: { id: true, listing_id: true, status: true },
+  });
+  const orderIds = orders.map((o) => o.id);
+  const orderIdsWithOpenDispute =
+    orderIds.length > 0 ? await disputesRepository.findOrderIdsWithOpenDispute(orderIds) : [];
+  const protectedListingIds = new Set<string>();
+  for (const o of orders) {
+    const isActive = ACTIVE_ORDER_STATUSES.includes(o.status as (typeof ACTIVE_ORDER_STATUSES)[number]);
+    const hasOpenDispute = orderIdsWithOpenDispute.includes(o.id);
+    if (isActive || hasOpenDispute) protectedListingIds.add(o.listing_id);
+  }
+  const toDelete = listingIds.filter((id) => !protectedListingIds.has(id));
+  for (const listingId of toDelete) {
+    await listingsRepository.remove(listingId);
+  }
 }
 
 export async function anonymizeUser(userId: string): Promise<UserRow> {

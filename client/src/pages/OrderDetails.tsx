@@ -453,16 +453,16 @@ const OrderDetails: React.FC = () => {
                       return (
                         <>
                           <Typography variant="body2" color="text.secondary">
-                            {t('order.subtotal', 'Subtotal')}: {subtotalBgn.toFixed(2)} лв.
+                            {t('order.subtotal', 'Subtotal')}: {subtotalBgn.toFixed(2)} €
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
-                            {t('order.buyerFee', 'Buyer fee (5%)')}: {buyerFeeBgn.toFixed(2)} лв.
+                            {t('order.buyerFee', 'Buyer fee (5%)')}: {buyerFeeBgn.toFixed(2)} €
                           </Typography>
                           <Typography
                             variant="h6"
                             sx={{ mt: 0.5, fontWeight: 700, color: 'secondary.main' }}
                           >
-                            {t('order.total', 'Total')}: {totalBgn.toFixed(2)} лв.
+                            {t('order.total', 'Total')}: {totalBgn.toFixed(2)} €
                           </Typography>
                         </>
                       );

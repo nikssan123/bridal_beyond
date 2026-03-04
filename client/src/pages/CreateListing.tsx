@@ -21,6 +21,7 @@ import { useTranslation } from 'react-i18next';
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB per image
 const MAX_TOTAL_SIZE = 40 * 1024 * 1024; // 40MB total for all listing images
+const MIN_PRICE_EUR = 10;
 
 const CreateListing: React.FC = () => {
   const { t } = useTranslation();
@@ -57,6 +58,11 @@ const CreateListing: React.FC = () => {
     }
     if (images.length < 2) {
       setImageError(t('listing.imagesAtLeastTwo', 'Please upload at least two photos.'));
+      return;
+    }
+    const priceNum = Number(form.price);
+    if (!Number.isFinite(priceNum) || priceNum < MIN_PRICE_EUR) {
+      setSubmitError(t('listing.minPrice', 'Minimum price is 10 €.'));
       return;
     }
     try {
@@ -238,7 +244,16 @@ const CreateListing: React.FC = () => {
             <TextField fullWidth label={t('listing.description')} multiline rows={4} value={form.description} onChange={update('description')} required />
           </Grid>
           <Grid item xs={6}>
-            <TextField fullWidth label={t('listing.price')} type="number" value={form.price} onChange={update('price')} required />
+            <TextField
+              fullWidth
+              label={t('listing.price')}
+              type="number"
+              inputProps={{ min: MIN_PRICE_EUR, step: 0.01 }}
+              helperText={t('listing.minPriceHelp', 'Minimum 10 € for protected checkout')}
+              value={form.price}
+              onChange={update('price')}
+              required
+            />
           </Grid>
           <Grid item xs={6}>
             <TextField fullWidth label={t('listing.originalPrice')} type="number" value={form.originalPrice} onChange={update('originalPrice')} required />

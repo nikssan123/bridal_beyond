@@ -167,6 +167,9 @@
     "cannotReviewOwnListing": "You cannot leave a review on your own listing.",
     "contactSeller": "Contact the seller",
     "buyWithProtection": "Buy with Protection",
+    "minOrderForCheckout": "Minimum order for protected checkout is 10 €. Contact the seller to arrange the sale.",
+    "minPrice": "Minimum price is 10 €.",
+    "minPriceHelp": "Minimum 10 € for protected checkout",
     "paymentAuthorized": "Payment authorized. Funds will be captured when the seller confirms delivery.",
     "share": "Share listing",
     "shareLinkCopied": "Link copied to clipboard",
@@ -251,7 +254,9 @@
     "authorizePayment": "Authorize payment",
     "genericError": "Something went wrong while processing your payment. Please try again or use a different card.",
     "shippingRequired": "Please fill in all shipping fields.",
-    "phoneTooShort": "Phone number must be at least 3 characters."
+    "phoneTooShort": "Phone number must be at least 3 characters.",
+    "minOrder": "Minimum order amount is 10 €.",
+    "minOrderContact": "You can contact the seller to arrange the sale."
   },
   "order": {
     "title": "Order details",

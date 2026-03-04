@@ -8,7 +8,7 @@ import * as listingsController from './listingsController';
 const listingBodySchema = z.object({
   title: z.string().min(1).max(500),
   description: z.string().min(1),
-  price: z.number().positive(),
+  price: z.number().min(10, 'Minimum price is 10 €'),
   originalPrice: z.number().positive().optional(),
   category: z.enum(['wedding', 'graduation', 'evening']),
   size: z.string().min(1).max(20),

@@ -367,7 +367,7 @@ const Profile: React.FC = () => {
                       variant="body2"
                       sx={{ mt: 0.5, fontWeight: 600, color: 'secondary.main' }}
                     >
-                      {order.priceCents / 100} лв.
+                      {order.priceCents / 100} €
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                       {order.status}
@@ -438,7 +438,7 @@ const Profile: React.FC = () => {
                       variant="body2"
                       sx={{ mt: 0.5, fontWeight: 600, color: 'secondary.main' }}
                     >
-                      {order.priceCents / 100} лв.
+                      {order.priceCents / 100} €
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                       {order.status}

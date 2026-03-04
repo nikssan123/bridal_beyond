@@ -16,6 +16,9 @@ import {
   getSellerNewOrderSubject,
   getSellerNewOrderHtml,
   getSellerNewOrderText,
+  getBuyerOrderShippedSubject,
+  getBuyerOrderShippedHtml,
+  getBuyerOrderShippedText,
 } from '../emails/templates';
 
 let transport: nodemailer.Transporter | null = null;
@@ -154,6 +157,51 @@ export async function sendSellerNewOrderEmail(
     listingTitle: params.listingTitle,
     totalPrice: params.totalPrice,
     buyerName: params.buyerName,
+  });
+  await t.sendMail({
+    from: mailConfig.smtpUser,
+    to: params.to,
+    subject,
+    text,
+    html,
+  });
+}
+
+export interface SendBuyerOrderShippedEmailParams {
+  to: string;
+  name: string;
+  orderUrl: string;
+  listingTitle: string;
+  courier: string;
+  trackingNumber: string;
+}
+
+/**
+ * Sends an email to the buyer when the seller marks the order as shipped.
+ * No-ops if SMTP is not configured.
+ */
+export async function sendBuyerOrderShippedEmail(
+  params: SendBuyerOrderShippedEmailParams
+): Promise<void> {
+  const t = getTransport();
+  if (!t) {
+    console.warn('[mail] SMTP not configured; skipping buyer order shipped email to', params.to);
+    return;
+  }
+  const subject = getBuyerOrderShippedSubject();
+  const html = getBuyerOrderShippedHtml({
+    name: params.name,
+    orderUrl: params.orderUrl,
+    listingTitle: params.listingTitle,
+    courier: params.courier,
+    trackingNumber: params.trackingNumber,
+  });
+  const text = getBuyerOrderShippedText({
+    name: params.name,
+    orderUrl: params.orderUrl,
+    listingTitle: params.listingTitle,
+    courier: params.courier,
+    trackingNumber: params.trackingNumber,
   });
   await t.sendMail({
     from: mailConfig.smtpUser,

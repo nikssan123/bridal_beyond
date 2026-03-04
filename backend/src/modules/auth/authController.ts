@@ -324,6 +324,7 @@ export async function deleteAccount(req: Request, res: Response, next: NextFunct
       next(unauthorized());
       return;
     }
+    await authRepo.deleteUserListingsExceptActive(req.user.id);
     await authRepo.anonymizeUser(req.user.id);
     res.status(204).send();
   } catch (e) {

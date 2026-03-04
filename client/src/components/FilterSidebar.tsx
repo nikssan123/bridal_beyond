@@ -63,7 +63,7 @@ const FilterContent: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
 
       <Divider sx={{ my: 2 }} />
 
-      <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>Цена (лв.)</Typography>
+      <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>Цена (€)</Typography>
       <Slider
         value={sliderValue}
         onChange={(_, val) => dispatch(setPriceRange(val as [number, number]))}
@@ -74,8 +74,8 @@ const FilterContent: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
         sx={{ color: 'primary.dark', mb: 1 }}
       />
       <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-        <Typography variant="caption" color="text.secondary">{filters.priceRange[0]} лв.</Typography>
-        <Typography variant="caption" color="text.secondary">{filters.priceRange[1]} лв.</Typography>
+        <Typography variant="caption" color="text.secondary">{filters.priceRange[0]} €</Typography>
+        <Typography variant="caption" color="text.secondary">{filters.priceRange[1]} €</Typography>
       </Box>
 
       {onClose && (

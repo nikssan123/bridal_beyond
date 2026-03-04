@@ -6,7 +6,7 @@ import * as stripeService from '../../services/stripe.service';
 import * as ordersRepository from './ordersRepository';
 import * as paymentsRepository from '../payments/paymentsRepository';
 import * as disputesRepository from '../disputes/disputesRepository';
-import { sendOrderConfirmationEmail, sendSellerNewOrderEmail } from '../../services/mailService';
+import { sendOrderConfirmationEmail, sendSellerNewOrderEmail, sendBuyerOrderShippedEmail } from '../../services/mailService';
 
 const createOrderBody = z.object({
   listingId: z.string().uuid('Invalid listing'),
@@ -63,6 +63,11 @@ export async function createOrder(req: Request, res: Response): Promise<void> {
     const status = listing.status ?? 'active';
     if (status !== 'active') {
       res.status(400).json({ message: 'Listing not active' });
+      return;
+    }
+    const listingPriceNum = Number(listing.price);
+    if (listingPriceNum < 10) {
+      res.status(400).json({ message: 'Minimum order amount is 10 €. This listing does not meet the minimum for protected checkout.' });
       return;
     }
     const seller = listing.seller;
@@ -212,6 +217,21 @@ export async function markShipped(req: Request, res: Response): Promise<void> {
       courier: parsed.data.courier,
       trackingNumber: parsed.data.trackingNumber,
     });
+    const orderWithDetails = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { buyer: true, listing: true },
+    });
+    if (orderWithDetails?.buyer?.email && orderWithDetails.listing) {
+      const orderUrl = `${env.clientUrl}/orders/${orderId}`;
+      await sendBuyerOrderShippedEmail({
+        to: orderWithDetails.buyer.email,
+        name: orderWithDetails.buyer.name,
+        orderUrl,
+        listingTitle: orderWithDetails.listing.title,
+        courier: parsed.data.courier,
+        trackingNumber: parsed.data.trackingNumber,
+      });
+    }
     res.json(updated);
   } catch (err) {
     console.error('Mark shipped error:', err);

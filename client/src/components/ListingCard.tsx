@@ -173,10 +173,10 @@ const ListingCard: React.FC<Props> = ({ listing, isFavorite: isFavoriteProp, onR
         </Typography>
         <Box sx={{ mt: 'auto', display: 'flex', alignItems: 'baseline', gap: 1 }}>
           <Typography variant="h6" sx={{ fontWeight: 600, color: 'secondary.main' }}>
-            {listing.price} лв.
+            {listing.price} €
           </Typography>
           <Typography variant="body2" sx={{ textDecoration: 'line-through', color: 'text.secondary' }}>
-            {listing.originalPrice} лв.
+            {listing.originalPrice} €
           </Typography>
           <Chip
             label={`-${Math.round((1 - listing.price / listing.originalPrice) * 100)}%`}

@@ -53,7 +53,7 @@ export async function handleStripeWebhook(req: Request, res: Response): Promise<
 
             if (order.buyer && order.seller && order.listing) {
               const orderUrl = `${env.clientUrl}/orders/${order.id}`;
-              const totalPrice = `${(Number(order.price_cents) / 100).toFixed(2)} лв.`;
+              const totalPrice = `${(Number(order.price_cents) / 100).toFixed(2)} €`;
 
               // Fire-and-forget buyer email
               sendOrderConfirmationEmail({

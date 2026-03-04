@@ -40,6 +40,8 @@ const conditionLabels: Record<string, string> = {
   new: 'Нова', 'like-new': 'Като нова', good: 'Добро', fair: 'Задоволително',
 };
 
+const MIN_ORDER_EUR = 10;
+
 const ListingDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -107,7 +109,7 @@ const ListingDetails: React.FC = () => {
     if (!listing) return;
     const url = `${window.location.origin}/listings/${listing.id}`;
     const title = listing.title;
-    const text = `${listing.title} - ${listing.price} лв.`;
+    const text = `${listing.title} - ${listing.price} €`;
     try {
       if (typeof navigator !== 'undefined' && navigator.share) {
         await navigator.share({ title, text, url });
@@ -276,10 +278,10 @@ const ListingDetails: React.FC = () => {
 
           <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.5, my: 3 }}>
             <Typography variant="h3" sx={{ fontWeight: 700, color: 'secondary.main' }}>
-              {listing.price} лв.
+              {listing.price} €
             </Typography>
             <Typography variant="h6" sx={{ textDecoration: 'line-through', color: 'text.secondary' }}>
-              {listing.originalPrice} лв.
+              {listing.originalPrice} €
             </Typography>
           </Box>
 
@@ -309,18 +311,26 @@ const ListingDetails: React.FC = () => {
                   {t('listing.contactSeller')}
                 </Button>
                 {isAuthenticated && listingActive && (
-                  <Button
-                    variant="contained"
-                    color="secondary"
-                    size="large"
-                    fullWidth
-                    onClick={() => {
-                      if (!listing?.id) return;
-                      navigate(`/checkout/${listing.id}`);
-                    }}
-                  >
-                    {t('listing.buyWithProtection', 'Buy with Protection')}
-                  </Button>
+                  <>
+                    {Number(listing.price) >= MIN_ORDER_EUR ? (
+                      <Button
+                        variant="contained"
+                        color="secondary"
+                        size="large"
+                        fullWidth
+                        onClick={() => {
+                          if (!listing?.id) return;
+                          navigate(`/checkout/${listing.id}`);
+                        }}
+                      >
+                        {t('listing.buyWithProtection', 'Buy with Protection')}
+                      </Button>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary" sx={{ alignSelf: 'center' }}>
+                        {t('listing.minOrderForCheckout', 'Minimum order for protected checkout is 10 €. Contact the seller to arrange the sale.')}
+                      </Typography>
+                    )}
+                  </>
                 )}
               </Box>
             )}
