@@ -22,6 +22,10 @@ export async function createExpressAccount(
     business_profile: {
       url: businessProfileUrl,
     },
+    capabilities: {
+      card_payments: { requested: true },
+      transfers: { requested: true },
+    },
   });
   return account.id;
 }
@@ -34,6 +38,19 @@ export async function createOnboardingLink(accountId: string): Promise<string> {
     return_url: `${env.clientUrl}/profile`,
   });
   return link.url;
+}
+
+/** Returns requirements for a Connect account (e.g. identity document). Used to prompt the user to complete verification. */
+export async function getAccountRequirements(accountId: string): Promise<{
+  hasRequirementsDue: boolean;
+  currentlyDue: string[];
+}> {
+  const account = await stripe.accounts.retrieve(accountId);
+  const currentlyDue = account.requirements?.currently_due ?? [];
+  return {
+    hasRequirementsDue: currentlyDue.length > 0,
+    currentlyDue: Array.isArray(currentlyDue) ? currentlyDue : [],
+  };
 }
 
 export async function createAccountUpdateLink(accountId: string): Promise<string> {

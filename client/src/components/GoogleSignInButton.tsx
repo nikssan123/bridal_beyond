@@ -1,6 +1,6 @@
 import React from 'react';
-import { Box, Button, Typography } from '@mui/material';
-import { GoogleLogin } from '@react-oauth/google';
+import { Box, Button, CircularProgress, Typography } from '@mui/material';
+import { useGoogleLogin } from '@react-oauth/google';
 
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
 
@@ -28,21 +28,48 @@ export function GoogleLogo(): React.ReactElement {
 }
 
 interface GoogleSignInButtonProps {
-  onSuccess: (credentialResponse: { credential?: string }) => void;
+  onSuccess: (response: { accessToken: string }) => void;
   onError?: () => void;
   /** Button text: signin_with ("Sign in with Google") or signup_with ("Sign up with Google") */
   text?: 'signin_with' | 'signup_with';
 }
 
-export function GoogleSignInButton({ onSuccess, onError, text = 'signin_with' }: GoogleSignInButtonProps): React.ReactElement | null {
+export function GoogleSignInButton({
+  onSuccess,
+  onError,
+  text = 'signin_with',
+}: GoogleSignInButtonProps): React.ReactElement | null {
   if (!googleClientId) return null;
 
-  const label = text === 'signup_with' ? 'Sign up with Google' : 'Sign in with Google';
+  const [loading, setLoading] = React.useState(false);
+
+  const login = useGoogleLogin({
+    flow: 'implicit',
+    scope: 'openid email profile',
+    onSuccess: (tokenResponse) => {
+      setLoading(false);
+      if (tokenResponse.access_token) {
+        onSuccess({ accessToken: tokenResponse.access_token });
+      } else {
+        onError?.();
+      }
+    },
+    onError: () => {
+      setLoading(false);
+      onError?.();
+    },
+    onNonOAuthError: () => {
+      setLoading(false);
+      onError?.();
+    },
+  });
+
+  const label =
+    text === 'signup_with' ? 'Sign up with Google' : 'Sign in with Google';
 
   return (
     <Box
       sx={{
-        position: 'relative',
         width: '100%',
         mb: 2,
         borderRadius: 3,
@@ -54,7 +81,6 @@ export function GoogleSignInButton({ onSuccess, onError, text = 'signin_with' }:
         transition: 'border-color 0.2s, background-color 0.2s',
       }}
     >
-      {/* Visible custom button matching Meta style */}
       <Box
         sx={{
           display: 'flex',
@@ -68,7 +94,12 @@ export function GoogleSignInButton({ onSuccess, onError, text = 'signin_with' }:
           fullWidth
           variant="outlined"
           size="large"
-          startIcon={<GoogleLogo />}
+          disabled={loading}
+          onClick={() => {
+            setLoading(true);
+            login();
+          }}
+          startIcon={loading ? <CircularProgress size={20} /> : <GoogleLogo />}
           sx={{
             textTransform: 'none',
             py: 1.5,
@@ -78,36 +109,9 @@ export function GoogleSignInButton({ onSuccess, onError, text = 'signin_with' }:
           }}
         >
           <Typography variant="body1" sx={{ fontWeight: 500 }}>
-            {label}
+            {loading ? 'Loading...' : label}
           </Typography>
         </Button>
-      </Box>
-      {/* Invisible Google Login overlay so we still get the credential */}
-      <Box
-        sx={{
-          position: 'absolute',
-          inset: 0,
-          zIndex: 1,
-          opacity: 0,
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          '& > div': { width: '100%', height: '100%' },
-          '& iframe': { width: '100% !important', height: '100% !important', minHeight: 48 },
-        }}
-      >
-        <GoogleLogin
-          onSuccess={onSuccess}
-          onError={onError}
-          theme="outline"
-          size="large"
-          shape="rectangular"
-          text={text}
-          logo_alignment="left"
-          width="100%"
-          containerProps={{ style: { width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' } }}
-        />
       </Box>
     </Box>
   );

@@ -160,9 +160,9 @@ export const deleteAccount = createAsyncThunk(
 
 export const loginWithGoogle = createAsyncThunk(
   'auth/loginWithGoogle',
-  async (credential: string, { rejectWithValue }) => {
+  async (accessToken: string, { rejectWithValue }) => {
     try {
-      const { data } = await api.post<{ user: User; token: string }>('/auth/google', { credential });
+      const { data } = await api.post<{ user: User; token: string }>('/auth/google', { accessToken });
       localStorage.setItem('token', data.token);
       return data.user;
     } catch (err: unknown) {

@@ -11,6 +11,7 @@ import {
   ListItemText,
   CircularProgress,
   Table,
+  TableContainer,
   TableHead,
   TableRow,
   TableCell,
@@ -21,13 +22,23 @@ import {
   Select,
   MenuItem,
   Grid,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Chip,
 } from '@mui/material';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined';
+import GavelOutlinedIcon from '@mui/icons-material/GavelOutlined';
 import PageContainer from '@/components/PageContainer';
 import SectionHeader from '@/components/SectionHeader';
 import api from '@/api/axios';
 
 interface TableRowData {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface AdminDisputeOrder {
@@ -88,6 +99,9 @@ const AdminPortal: React.FC = () => {
   const [partialAmount, setPartialAmount] = useState('');
   const [resolveLoading, setResolveLoading] = useState(false);
   const [resolveError, setResolveError] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [listingToDelete, setListingToDelete] = useState<{ id: string; title?: string } | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const isLoggedIn = !!token;
 
@@ -250,6 +264,41 @@ const AdminPortal: React.FC = () => {
     }
   };
 
+  const handleDeleteListingClick = (row: TableRowData) => {
+    const id = row.id as string;
+    const title = (row.title as string) || id.slice(0, 8);
+    setListingToDelete({ id, title });
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteListingConfirm = async () => {
+    if (!token || !listingToDelete) return;
+    setDeletingId(listingToDelete.id);
+    try {
+      await api.delete(`/admin/listings/${listingToDelete.id}`, {
+        headers: adminHeaders(token),
+      });
+      setDeleteDialogOpen(false);
+      setListingToDelete(null);
+      loadRows(selectedTable!, token);
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        (err as Error)?.message ||
+        'Failed to delete listing';
+      setDataError(msg);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleDeleteDialogClose = () => {
+    if (!deletingId) {
+      setDeleteDialogOpen(false);
+      setListingToDelete(null);
+    }
+  };
+
   if (!isLoggedIn) {
     return (
       <PageContainer maxWidth="sm">
@@ -290,21 +339,23 @@ const AdminPortal: React.FC = () => {
     );
   }
 
-  const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
+  const allColumns = rows.length > 0 ? Object.keys(rows[0]) : [];
+  const showDeleteColumn = selectedTable === 'listings' && rows.length > 0;
   const isOpenDispute = currentDispute?.status === 'open';
   const isPreCapture = currentDispute?.order?.status === 'shipped';
   const order = currentDispute?.order;
 
   return (
-    <PageContainer maxWidth="lg">
-      <SectionHeader
-        title="Admin portal"
-        subtitle={section === 'tables' ? 'Read-only view of core database tables.' : 'Review and resolve buyer disputes.'}
-      />
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-        <Typography variant="body2" color="text.secondary">
-          Environment-based admin access. Make sure ADMIN_USERNAME / ADMIN_PASSWORD are set on the backend.
-        </Typography>
+    <PageContainer maxWidth="xl">
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1, mb: 3 }}>
+        <SectionHeader
+          title="Admin portal"
+          subtitle={
+            section === 'tables'
+              ? 'Browse database tables. Listings can be deleted from here.'
+              : 'Review and resolve buyer disputes.'
+          }
+        />
         <Button variant="outlined" size="small" onClick={handleLogout}>
           Log out
         </Button>
@@ -312,7 +363,7 @@ const AdminPortal: React.FC = () => {
       {(dataError || disputesError || resolveError) && (
         <Alert
           severity="error"
-          sx={{ mb: 2 }}
+          sx={{ mb: 2, borderRadius: 2 }}
           onClose={() => {
             setDataError(null);
             setDisputesError(null);
@@ -322,22 +373,32 @@ const AdminPortal: React.FC = () => {
           {dataError || disputesError || resolveError}
         </Alert>
       )}
-      <Box sx={{ display: 'flex', gap: 2 }}>
-        <Paper sx={{ width: 220, flexShrink: 0, borderRadius: 3, overflow: 'hidden' }}>
-          <List dense>
-            <ListItemButton selected={section === 'tables'} onClick={() => setSection('tables')}>
-              <ListItemText primary="Tables" />
+      <Box sx={{ display: 'flex', gap: 3 }}>
+        <Paper sx={{ width: 260, flexShrink: 0, borderRadius: 3, overflow: 'hidden' }} elevation={0} variant="outlined">
+          <List dense sx={{ py: 0 }}>
+            <ListItemButton
+              selected={section === 'tables'}
+              onClick={() => setSection('tables')}
+              sx={{ borderRadius: 0 }}
+            >
+              <TableChartOutlinedIcon sx={{ mr: 1.5, color: section === 'tables' ? 'primary.main' : 'text.secondary' }} />
+              <ListItemText primary="Data tables" secondary="Users, listings, orders…" />
             </ListItemButton>
-            <ListItemButton selected={section === 'disputes'} onClick={() => setSection('disputes')}>
-              <ListItemText primary="Disputes" />
+            <ListItemButton
+              selected={section === 'disputes'}
+              onClick={() => setSection('disputes')}
+              sx={{ borderRadius: 0 }}
+            >
+              <GavelOutlinedIcon sx={{ mr: 1.5, color: section === 'disputes' ? 'primary.main' : 'text.secondary' }} />
+              <ListItemText primary="Disputes" secondary="Resolve refunds" />
             </ListItemButton>
           </List>
           {section === 'tables' && (
             <>
               <Divider />
-              <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                  Tables
+              <Box sx={{ px: 2, py: 1.5, bgcolor: 'action.hover' }}>
+                <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 600 }}>
+                  Table
                 </Typography>
               </Box>
               {loadingTables ? (
@@ -351,8 +412,9 @@ const AdminPortal: React.FC = () => {
                       key={name}
                       selected={name === selectedTable}
                       onClick={() => setSelectedTable(name)}
+                      sx={{ py: 0.75 }}
                     >
-                      <ListItemText primary={name} />
+                      <ListItemText primary={name} primaryTypographyProps={{ variant: 'body2' }} />
                     </ListItemButton>
                   ))}
                   {tables.length === 0 && (
@@ -370,14 +432,14 @@ const AdminPortal: React.FC = () => {
             <>
               <Divider />
               <Box sx={{ p: 2 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                  Disputes
+                <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 600 }}>
+                  Status
                 </Typography>
-                <FormControl size="small" fullWidth>
-                  <InputLabel>Status</InputLabel>
+                <FormControl size="small" fullWidth sx={{ mt: 1 }}>
+                  <InputLabel>Filter</InputLabel>
                   <Select
                     value={disputeStatusFilter}
-                    label="Status"
+                    label="Filter"
                     onChange={(e) => setDisputeStatusFilter(e.target.value)}
                   >
                     <MenuItem value="open">Open</MenuItem>
@@ -399,10 +461,16 @@ const AdminPortal: React.FC = () => {
                       key={d.id}
                       selected={d.id === selectedDisputeId}
                       onClick={() => setSelectedDisputeId(d.id)}
+                      sx={{ py: 0.75 }}
                     >
                       <ListItemText
-                        primary={`${d.order?.id?.slice(0, 8) ?? d.order_id}…`}
-                        secondary={d.status}
+                        primary={d.order?.listing?.title ?? `Order ${(d.order_id || d.order?.id || '').slice(0, 8)}`}
+                        secondary={
+                          <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
+                            <Chip size="small" label={d.status} sx={{ height: 18, fontSize: '0.7rem' }} />
+                          </Box>
+                        }
+                        primaryTypographyProps={{ variant: 'body2', noWrap: true }}
                       />
                     </ListItemButton>
                   ))}
@@ -419,51 +487,80 @@ const AdminPortal: React.FC = () => {
           )}
         </Paper>
 
-        <Paper sx={{ flex: 1, borderRadius: 3, p: 2 }}>
+        <Paper sx={{ flex: 1, minWidth: 0, borderRadius: 3, overflow: 'hidden' }} elevation={0} variant="outlined">
           {section === 'tables' && (
             <>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+              <Box sx={{ px: 3, py: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
                   {selectedTable || 'Select a table'}
                 </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Showing up to 50 rows (read-only)
+                <Typography variant="body2" color="text.secondary">
+                  {selectedTable ? 'Up to 50 rows. Listings table supports delete.' : 'Choose a table from the sidebar.'}
                 </Typography>
               </Box>
-              <Divider sx={{ mb: 2 }} />
               {loadingRows ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
                   <CircularProgress />
                 </Box>
               ) : rows.length === 0 ? (
-                <Typography variant="body2" color="text.secondary">
-                  No data found for this table.
-                </Typography>
+                <Box sx={{ p: 4, textAlign: 'center' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    No data for this table.
+                  </Typography>
+                </Box>
               ) : (
-                <Box sx={{ overflowX: 'auto' }}>
-                  <Table size="small">
+                <TableContainer sx={{ maxHeight: 'calc(100vh - 320px)' }}>
+                  <Table size="small" stickyHeader>
                     <TableHead>
                       <TableRow>
-                        {columns.map((col) => (
-                          <TableCell key={col}>{col}</TableCell>
+                        {allColumns.map((col) => (
+                          <TableCell key={col} sx={{ fontWeight: 600, bgcolor: 'background.default' }}>
+                            {col}
+                          </TableCell>
                         ))}
+                        {showDeleteColumn && (
+                          <TableCell sx={{ fontWeight: 600, bgcolor: 'background.default', width: 72 }}>
+                            Actions
+                          </TableCell>
+                        )}
                       </TableRow>
                     </TableHead>
                     <TableBody>
                       {rows.map((row, idx) => (
-                        <TableRow key={idx}>
-                          {columns.map((col) => (
-                            <TableCell key={col}>
-                              {typeof row[col] === 'object' && row[col] !== null
-                                ? JSON.stringify(row[col])
-                                : String(row[col] ?? '')}
+                        <TableRow key={(row.id as string) || idx} hover>
+                          {allColumns.map((col) => {
+                            const val = row[col];
+                            const isDate =
+                              typeof val === 'string' &&
+                              /^\d{4}-\d{2}-\d{2}/.test(val) &&
+                              (col.includes('_at') || col.includes('_since') || col === 'created_at' || col === 'updated_at');
+                            return (
+                              <TableCell key={col} sx={{ maxWidth: 200 }}>
+                                {typeof val === 'object' && val !== null
+                                  ? JSON.stringify(val).slice(0, 80) + (JSON.stringify(val).length > 80 ? '…' : '')
+                                  : isDate
+                                    ? new Date(val as string).toLocaleString()
+                                    : String(val ?? '')}
+                              </TableCell>
+                            );
+                          })}
+                          {showDeleteColumn && (
+                            <TableCell>
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => handleDeleteListingClick(row)}
+                                title="Delete listing"
+                              >
+                                <DeleteOutlineIcon fontSize="small" />
+                              </IconButton>
                             </TableCell>
-                          ))}
+                          )}
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
-                </Box>
+                </TableContainer>
               )}
             </>
           )}
@@ -471,36 +568,35 @@ const AdminPortal: React.FC = () => {
           {section === 'disputes' && (
             <>
               {!selectedDisputeId ? (
-                <Typography variant="body2" color="text.secondary">
-                  Select a dispute from the list to view details and resolve.
-                </Typography>
+                <Box sx={{ p: 4, textAlign: 'center' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Select a dispute from the list to view details and resolve.
+                  </Typography>
+                </Box>
               ) : currentDisputeLoading ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
                   <CircularProgress />
                 </Box>
               ) : currentDispute ? (
-                <Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                      Dispute {currentDispute.id.slice(0, 8)}…
+                <Box sx={{ p: 3 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                      Dispute details
                     </Typography>
-                    <Button size="small" onClick={() => setSelectedDisputeId(null)}>
+                    <Button variant="outlined" size="small" onClick={() => setSelectedDisputeId(null)}>
                       Back to list
                     </Button>
                   </Box>
-                  <Divider sx={{ mb: 2 }} />
-                  <Grid container spacing={2}>
+                  <Grid container spacing={3}>
                     <Grid item xs={12} md={6}>
-                      <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                      <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>
                           Dispute
                         </Typography>
-                        <Typography variant="body2">
-                          <strong>Status:</strong> {currentDispute.status}
-                        </Typography>
-                        <Typography variant="body2">
-                          <strong>Type:</strong> {currentDispute.type ?? '–'}
-                        </Typography>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1.5 }}>
+                          <Chip size="small" label={currentDispute.status} color={currentDispute.status === 'open' ? 'warning' : 'default'} />
+                          {currentDispute.type && <Chip size="small" label={currentDispute.type} variant="outlined" />}
+                        </Box>
                         <Typography variant="body2">
                           <strong>Reason:</strong> {currentDispute.reason}
                         </Typography>
@@ -509,19 +605,19 @@ const AdminPortal: React.FC = () => {
                             {currentDispute.description}
                           </Typography>
                         )}
-                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                          Created: {new Date(currentDispute.created_at).toLocaleString()}
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1.5 }}>
+                          Created {new Date(currentDispute.created_at).toLocaleString()}
                         </Typography>
                         {currentDispute.resolution_notes && (
-                          <Typography variant="body2" sx={{ mt: 1 }}>
+                          <Typography variant="body2" sx={{ mt: 1.5 }}>
                             <strong>Resolution notes:</strong> {currentDispute.resolution_notes}
                           </Typography>
                         )}
                       </Paper>
                     </Grid>
                     <Grid item xs={12} md={6}>
-                      <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                      <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>
                           Order
                         </Typography>
                         {order ? (
@@ -560,7 +656,7 @@ const AdminPortal: React.FC = () => {
                     </Grid>
                     {isOpenDispute && (
                       <Grid item xs={12}>
-                        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+                        <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
                           <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>
                             Resolve dispute
                           </Typography>
@@ -638,14 +734,35 @@ const AdminPortal: React.FC = () => {
                   </Grid>
                 </Box>
               ) : (
-                <Typography variant="body2" color="text.secondary">
-                  Dispute not found.
-                </Typography>
+                <Box sx={{ p: 4 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Dispute not found.
+                  </Typography>
+                </Box>
               )}
             </>
           )}
         </Paper>
       </Box>
+
+      <Dialog open={deleteDialogOpen} onClose={handleDeleteDialogClose}>
+        <DialogTitle>Delete listing?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {listingToDelete
+              ? `This will permanently delete the listing "${listingToDelete.title}". This cannot be undone.`
+              : 'Permanently delete this listing?'}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDeleteDialogClose} disabled={!!deletingId}>
+            Cancel
+          </Button>
+          <Button color="error" variant="contained" onClick={handleDeleteListingConfirm} disabled={!!deletingId}>
+            {deletingId ? <CircularProgress size={20} color="inherit" /> : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </PageContainer>
   );
 };

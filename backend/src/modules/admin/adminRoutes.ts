@@ -6,6 +6,7 @@ const router = Router();
 router.post('/login', adminController.login);
 router.get('/tables', adminController.listTables);
 router.get('/tables/:name', adminController.getTable);
+router.delete('/listings/:id', adminController.deleteListing);
 
 export default router;
 

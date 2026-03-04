@@ -15,6 +15,7 @@ import {
   TextField,
   Tooltip,
   Chip,
+  Alert,
 } from '@mui/material';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
@@ -28,7 +29,7 @@ import ListingCard from '@/components/ListingCard';
 import RatingDisplay from '@/components/RatingDisplay';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { fetchMe, updateProfile, uploadAvatar, deleteAccount, logout } from '@/features/auth/authSlice';
-import { connectStripe, openStripeAccount } from '@/features/stripe/stripeSlice';
+import { connectStripe, openStripeAccount, fetchStripeAccountStatus } from '@/features/stripe/stripeSlice';
 import { fetchReviewsBySellerId } from '@/features/reviews/reviewsSlice';
 import { fetchListingsBySeller } from '@/features/listings/listingsSlice';
 import { fetchMyBuyerOrders, fetchMySellerOrders } from '@/features/orders/ordersSlice';
@@ -65,6 +66,8 @@ const Profile: React.FC = () => {
   const authError = useAppSelector((state) => state.auth.error);
   const stripeConnectStatus = useAppSelector((state) => state.stripe.connectStatus);
   const stripeConnectError = useAppSelector((state) => state.stripe.connectError);
+  const stripeAccountStatus = useAppSelector((state) => state.stripe.accountStatus);
+  const stripeAccountStatusLoading = useAppSelector((state) => state.stripe.accountStatusLoading);
   const { buyerOrders, buyerOrdersStatus, myOrders, sellerOrdersStatus } = useAppSelector(
     (state) => state.orders
   );
@@ -92,6 +95,12 @@ const Profile: React.FC = () => {
       setUploadError(null);
     }
   }, [user, editOpen]);
+
+  useEffect(() => {
+    if (user?.hasStripeAccount) {
+      dispatch(fetchStripeAccountStatus());
+    }
+  }, [dispatch, user?.hasStripeAccount]);
 
   const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -159,6 +168,34 @@ const Profile: React.FC = () => {
           bgcolor: 'background.paper',
         }}
       >
+        {hasStripeAccount && stripeAccountStatus?.hasRequirementsDue && (
+          <Alert
+            severity="warning"
+            sx={{ mb: 2 }}
+            action={
+              <Button
+                color="inherit"
+                size="small"
+                disabled={stripeConnectStatus === 'loading'}
+                onClick={async () => {
+                  const result = await dispatch(openStripeAccount());
+                  if (openStripeAccount.fulfilled.match(result) && result.payload) {
+                    window.location.href = result.payload as string;
+                  }
+                }}
+              >
+                {stripeConnectStatus === 'loading'
+                  ? t('common.loading', 'Loading...')
+                  : t('profile.completeVerification', 'Complete verification')}
+              </Button>
+            }
+          >
+            {t(
+              'profile.stripeVerificationRequired',
+              'Stripe needs to verify your identity. Complete verification to avoid disruptions to payouts.'
+            )}
+          </Alert>
+        )}
         <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 3 }}>
           <Avatar
             src={getAvatarUrl(user.avatarUrl) || undefined}
@@ -254,11 +291,27 @@ const Profile: React.FC = () => {
                 ? t('profile.editPaymentInfo', 'Edit payment info')
                 : t('profile.connectStripe', 'Connect Stripe')}
             </Button>
+            {hasStripeAccount && (
+              <Button
+                variant="text"
+                size="small"
+                disabled={stripeConnectStatus === 'loading'}
+                onClick={async () => {
+                  const result = await dispatch(openStripeAccount());
+                  if (openStripeAccount.fulfilled.match(result) && result.payload) {
+                    window.location.href = result.payload as string;
+                  }
+                }}
+                sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}
+              >
+                {t('profile.verifyIdentity', 'Verify identity')}
+              </Button>
+            )}
             <Typography variant="caption" color="text.secondary" sx={{ maxWidth: 260, textAlign: 'right' }}>
               {hasStripeAccount
                 ? t(
                     'profile.payoutsDescriptionActive',
-                    'Your payouts are active via Stripe. You can update your bank details on Stripe at any time.'
+                    'Your payouts are active via Stripe. You can update your bank details or verify your identity on Stripe at any time.'
                   )
                 : t(
                     'profile.payoutsDescriptionSetup',

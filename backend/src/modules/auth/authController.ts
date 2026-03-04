@@ -82,10 +82,10 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
 
 export async function google(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const credential = req.body.credential as string;
+    const accessToken = req.body.accessToken as string;
     let payload: authService.GoogleTokenPayload;
     try {
-      payload = await authService.verifyGoogleIdToken(credential);
+      payload = await authService.verifyGoogleAccessToken(accessToken);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Invalid token';
       if (message.includes('Missing email')) {

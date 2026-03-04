@@ -53,3 +53,23 @@ export async function createAccountUpdateLink(req: Request, res: Response): Prom
     res.status(500).json({ message: 'Failed to create Stripe account update link' });
   }
 }
+
+export async function getAccountStatus(req: Request, res: Response): Promise<void> {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+    const user = await authRepository.findById(userId);
+    if (!user || !user.stripe_account_id) {
+      res.status(200).json({ hasRequirementsDue: false, currentlyDue: [] });
+      return;
+    }
+    const requirements = await stripeService.getAccountRequirements(user.stripe_account_id);
+    res.status(200).json(requirements);
+  } catch (err) {
+    console.error('Stripe account status error:', err);
+    res.status(500).json({ message: 'Failed to load Stripe account status' });
+  }
+}

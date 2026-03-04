@@ -38,10 +38,8 @@ const Login: React.FC = () => {
       });
   };
 
-  const handleGoogleSuccess = (credentialResponse: { credential?: string }) => {
-    const credential = credentialResponse.credential;
-    if (!credential) return;
-    dispatch(loginWithGoogle(credential)).then((result) => {
+  const handleGoogleSuccess = (response: { accessToken: string }) => {
+    dispatch(loginWithGoogle(response.accessToken)).then((result) => {
       if (loginWithGoogle.fulfilled.match(result)) navigate(redirectTo || '/profile', { replace: true });
     });
   };

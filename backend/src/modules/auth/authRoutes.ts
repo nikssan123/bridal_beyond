@@ -42,7 +42,7 @@ const resetPasswordSchema = {
 
 const googleSchema = {
   body: z.object({
-    credential: z.string().min(1, 'Google credential is required'),
+    accessToken: z.string().min(1, 'Google access token is required'),
   }),
 };
 

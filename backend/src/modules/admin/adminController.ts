@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { env } from '../../config/env';
 import { prisma } from '../../prisma';
+import * as listingsRepo from '../listings/listingsRepository';
 
 const loginBody = z.object({
   username: z.string().min(1),
@@ -74,5 +75,28 @@ export async function getTable(req: Request, res: Response): Promise<void> {
   }
   const rows = await fetcher(limit);
   res.json({ rows });
+}
+
+const deleteListingParams = z.object({ id: z.string().uuid() });
+
+export async function deleteListing(req: Request, res: Response): Promise<void> {
+  const token = req.header('x-admin-token');
+  if (!verifyAdminToken(token)) {
+    res.status(401).json({ message: 'Unauthorized' });
+    return;
+  }
+  const parsed = deleteListingParams.safeParse(req.params);
+  if (!parsed.success) {
+    res.status(400).json({ message: 'Invalid listing ID' });
+    return;
+  }
+  const { id } = parsed.data;
+  const existing = await prisma.listing.findUnique({ where: { id } });
+  if (!existing) {
+    res.status(404).json({ message: 'Listing not found' });
+    return;
+  }
+  await listingsRepo.remove(id);
+  res.status(204).send();
 }
 

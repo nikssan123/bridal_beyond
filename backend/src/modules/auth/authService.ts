@@ -30,6 +30,35 @@ export async function verifyGoogleIdToken(idToken: string): Promise<GoogleTokenP
   };
 }
 
+export async function verifyGoogleAccessToken(accessToken: string): Promise<GoogleTokenPayload> {
+  const res = await fetch(
+    'https://www.googleapis.com/oauth2/v3/userinfo',
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  );
+  if (!res.ok) {
+    throw new Error('Invalid or expired Google token');
+  }
+  const data = (await res.json()) as {
+    sub?: string;
+    email?: string;
+    name?: string;
+    picture?: string;
+  };
+  if (!data.email || !data.sub) {
+    throw new Error('Missing email in Google profile');
+  }
+  return {
+    email: data.email,
+    sub: data.sub,
+    name: data.name ?? data.email.split('@')[0],
+    picture: data.picture,
+  };
+}
+
 const META_GRAPH_BASE = 'https://graph.facebook.com/v21.0';
 
 export interface MetaTokenPayload {
