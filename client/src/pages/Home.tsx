@@ -14,7 +14,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import heroImg from '@/assets/hero-wedding.jpg';
+import heroImg from '@/assets/test.png';
 import ListingCard from '@/components/ListingCard';
 import SectionHeader from '@/components/SectionHeader';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
@@ -165,23 +165,23 @@ const Home: React.FC = () => {
             </Box>
           ) : (
             <>
-          <Grid container spacing={3}>
-            {featured.map((listing) => (
-              <Grid item xs={12} sm={6} md={4} key={listing.id}>
-                <ListingCard listing={listing} />
+              <Grid container spacing={3}>
+                {featured.map((listing) => (
+                  <Grid item xs={12} sm={6} md={4} key={listing.id}>
+                    <ListingCard listing={listing} />
+                  </Grid>
+                ))}
               </Grid>
-            ))}
-          </Grid>
-          <Box sx={{ textAlign: 'center', mt: 5 }}>
-            <Button
-              variant="outlined"
-              endIcon={<ArrowForwardIcon />}
-              onClick={() => navigate('/listings')}
-              sx={{ borderColor: 'secondary.main', color: 'secondary.main', px: 4 }}
-            >
-              {t('home.viewAllListings')}
-            </Button>
-          </Box>
+              <Box sx={{ textAlign: 'center', mt: 5 }}>
+                <Button
+                  variant="outlined"
+                  endIcon={<ArrowForwardIcon />}
+                  onClick={() => navigate('/listings')}
+                  sx={{ borderColor: 'secondary.main', color: 'secondary.main', px: 4 }}
+                >
+                  {t('home.viewAllListings')}
+                </Button>
+              </Box>
             </>
           )}
         </Container>
