@@ -17,7 +17,7 @@ import SectionHeader from '@/components/SectionHeader';
 import ImageUploader from '@/components/ImageUploader';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { createListing, uploadListingImage } from '@/features/listings/listingsSlice';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB per image
@@ -63,7 +63,7 @@ const CreateListing: React.FC = () => {
       return;
     }
     if (!user.hasStripeAccount) {
-      navigate('/profile');
+      navigate('/profile?stripe_required=1', { replace: true });
       return;
     }
     if (images.length < 2) {
@@ -119,6 +119,11 @@ const CreateListing: React.FC = () => {
     }
   };
 
+  // When user has no Stripe, redirect to profile with param so the Stripe-required alert is shown.
+  if (user && !user.hasStripeAccount) {
+    return <Navigate to="/profile?stripe_required=1" replace />;
+  }
+
   if (!user) {
     return (
       <PageContainer maxWidth="sm">
@@ -136,34 +141,6 @@ const CreateListing: React.FC = () => {
           sx={{ mt: 2 }}
         >
           {t('nav.login', 'Sign in')}
-        </Button>
-      </PageContainer>
-    );
-  }
-
-  if (!user.hasStripeAccount) {
-    return (
-      <PageContainer maxWidth="sm">
-        <SectionHeader
-          title={t('listing.addListing')}
-          subtitle={t(
-            'profile.payoutsNotSetup',
-            'Payouts not set up'
-          )}
-        />
-        <Alert severity="warning" sx={{ mb: 3, borderRadius: 2 }}>
-          {t(
-            'profile.payoutsDescriptionSetup',
-            'To receive payouts for your sold dresses, connect your Stripe account. We will redirect you to Stripe for a quick, secure setup.'
-          )}
-        </Alert>
-        <Button
-          variant="contained"
-          fullWidth
-          onClick={() => navigate('/profile')}
-          sx={{ mt: 2 }}
-        >
-          {t('profile.connectStripe', 'Connect Stripe')}
         </Button>
       </PageContainer>
     );

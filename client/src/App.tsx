@@ -3,7 +3,7 @@ import { Provider } from 'react-redux';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import theme from './theme/theme';
 import { store } from './app/store';
 import { fetchMe } from './features/auth/authSlice';
@@ -32,10 +32,20 @@ import AdminDisputes from './pages/AdminDisputes';
 import AdminDisputeDetails from './pages/AdminDisputeDetails';
 import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
+import CookieConsentBanner, { getStoredConsent } from './components/CookieConsentBanner';
+import { useMetaPixelPageView } from './hooks/useMetaPixelPageView';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ?? '');
 
+const PixelTracker: React.FC<{ consentGiven: boolean }> = ({ consentGiven }) => {
+  useMetaPixelPageView(consentGiven);
+  return null;
+};
+
 const App = () => {
+  const [consent, setConsent] = useState<'accepted' | 'declined' | null>(() => getStoredConsent());
+  const consentGiven = consent === 'accepted';
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token && !store.getState().auth.user) {
@@ -50,6 +60,7 @@ const App = () => {
       <BrowserRouter>
         <Elements stripe={stripePromise}>
           <ScrollToTop />
+          <PixelTracker consentGiven={consentGiven} />
           <Routes>
           <Route element={<MainLayout />}>
             <Route path="/" element={<Home />} />
@@ -83,6 +94,7 @@ const App = () => {
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>
+        <CookieConsentBanner onChange={setConsent} />
         </Elements>
       </BrowserRouter>
     </ThemeProvider>

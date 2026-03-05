@@ -35,6 +35,7 @@ import { fetchListingsBySeller } from '@/features/listings/listingsSlice';
 import { fetchMyBuyerOrders, fetchMySellerOrders } from '@/features/orders/ordersSlice';
 import { getAvatarUrl } from '@/lib/avatarUrl';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router-dom';
 
 /** Avatar URL is internal if it is a path like /uploads/avatars/... (uploaded via app). */
 function isInternalAvatarUrl(url: string | undefined | null): boolean {
@@ -48,7 +49,9 @@ const MAX_AVATAR_SIZE = 2 * 1024 * 1024; // 2MB
 const Profile: React.FC = () => {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
+  const [searchParams] = useSearchParams();
   const user = useAppSelector((state) => state.auth.user);
+  const stripeRequiredForListing = searchParams.get('stripe_required') === '1';
   const { profileListings, profileListingsStatus } = useAppSelector((state) => state.listings);
   const reviews = useAppSelector((state) =>
     user ? state.reviews.reviewsBySeller[user.id] || [] : []
@@ -157,6 +160,11 @@ const Profile: React.FC = () => {
 
   return (
     <PageContainer>
+      {!hasStripeAccount && stripeRequiredForListing && (
+        <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
+          {t('profile.stripeRequiredForListing', 'To create a listing you must connect your Stripe account. Click the button to set up payouts.')}
+        </Alert>
+      )}
       {/* Profile header */}
       <Box
         sx={{
@@ -263,10 +271,11 @@ const Profile: React.FC = () => {
           </Box>
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1, minWidth: 0 }}>
             <Button
-              variant="outlined"
+              variant={!hasStripeAccount && stripeRequiredForListing ? 'contained' : 'outlined'}
+              color={!hasStripeAccount && stripeRequiredForListing ? 'error' : 'secondary'}
               startIcon={
                 stripeConnectStatus === 'loading' ? (
-                  <CircularProgress size={20} sx={{ color: 'primary.dark' }} />
+                  <CircularProgress size={20} sx={{ color: stripeRequiredForListing ? 'inherit' : 'primary.dark' }} />
                 ) : (
                   <AccountBalanceWalletIcon />
                 )
@@ -285,7 +294,18 @@ const Profile: React.FC = () => {
                   }
                 }
               }}
-              sx={{ borderColor: 'secondary.main', color: 'secondary.dark', whiteSpace: 'nowrap' }}
+              sx={{
+                borderColor: 'secondary.main',
+                color: stripeRequiredForListing ? undefined : 'secondary.dark',
+                whiteSpace: 'nowrap',
+                ...(stripeRequiredForListing && {
+                  boxShadow: 2,
+                  fontWeight: 600,
+                  px: 2.5,
+                  py: 1.25,
+                  '&:hover': { boxShadow: 4 },
+                }),
+              }}
             >
               {hasStripeAccount
                 ? t('profile.editPaymentInfo', 'Edit payment info')

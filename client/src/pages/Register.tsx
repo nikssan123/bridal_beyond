@@ -8,6 +8,7 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { registerUser, loginWithGoogle, loginWithMeta, clearAuthError } from '@/features/auth/authSlice';
 import { useTranslation } from 'react-i18next';
 import { getAuthErrorKey } from '@/lib/authErrors';
+import { trackCompleteRegistration } from '@/lib/metaPixel';
 
 const Register: React.FC = () => {
   const { t } = useTranslation();
@@ -28,10 +29,8 @@ const Register: React.FC = () => {
     }
   }, [isAuthenticated, navigate]);
 
-  const handleGoogleSuccess = (credentialResponse: { credential?: string }) => {
-    const credential = credentialResponse.credential;
-    if (!credential) return;
-    dispatch(loginWithGoogle(credential)).then((result) => {
+  const handleGoogleSuccess = (response: { accessToken: string }) => {
+    dispatch(loginWithGoogle(response.accessToken)).then((result) => {
       if (loginWithGoogle.fulfilled.match(result)) navigate('/profile', { replace: true });
     });
   };
@@ -46,6 +45,7 @@ const Register: React.FC = () => {
     e.preventDefault();
     dispatch(registerUser({ name, email, password })).then((result) => {
       if (registerUser.fulfilled.match(result)) {
+        trackCompleteRegistration();
         navigate('/verify-email', { state: { email } });
       }
     });
@@ -84,11 +84,12 @@ const Register: React.FC = () => {
                 onSuccess={handleGoogleSuccess}
                 onError={() => dispatch(clearAuthError())}
               />
-              <MetaSignInButton
+              {/* TODO: return when we have a meta account */}
+              {/* <MetaSignInButton
                 variant="signup"
                 onSuccess={handleMetaSuccess}
                 onError={() => dispatch(clearAuthError())}
-              />
+              /> */}
             </>
           )}
           <Typography variant="body2" sx={{ textAlign: 'center', mt: 2 }}>
