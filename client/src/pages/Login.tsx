@@ -92,11 +92,12 @@ const Login: React.FC = () => {
                 onSuccess={handleGoogleSuccess}
                 onError={() => dispatch(clearAuthError())}
               />
-              <MetaSignInButton
+              {/* TODO: bring back end we verify the meta account */}
+              {/* <MetaSignInButton
                 variant="signin"
                 onSuccess={handleMetaSuccess}
                 onError={() => dispatch(clearAuthError())}
-              />
+              /> */}
             </>
           )}
           <Typography variant="body2" sx={{ textAlign: 'center', mt: 2 }}>
