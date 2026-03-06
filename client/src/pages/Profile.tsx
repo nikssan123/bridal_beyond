@@ -269,49 +269,29 @@ const Profile: React.FC = () => {
               {t('profile.deleteAccount', 'Delete account')}
             </Button>
           </Box>
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1, minWidth: 0 }}>
-            <Button
-              variant={!hasStripeAccount && stripeRequiredForListing ? 'contained' : 'outlined'}
-              color={!hasStripeAccount && stripeRequiredForListing ? 'error' : 'secondary'}
-              startIcon={
-                stripeConnectStatus === 'loading' ? (
-                  <CircularProgress size={20} sx={{ color: stripeRequiredForListing ? 'inherit' : 'primary.dark' }} />
-                ) : (
-                  <AccountBalanceWalletIcon />
-                )
-              }
-              disabled={stripeConnectStatus === 'loading'}
-              onClick={async () => {
-                if (hasStripeAccount) {
+          {hasStripeAccount && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1, minWidth: 0 }}>
+              <Button
+                variant="outlined"
+                color="secondary"
+                startIcon={
+                  stripeConnectStatus === 'loading' ? (
+                    <CircularProgress size={20} sx={{ color: 'primary.dark' }} />
+                  ) : (
+                    <AccountBalanceWalletIcon />
+                  )
+                }
+                disabled={stripeConnectStatus === 'loading'}
+                onClick={async () => {
                   const result = await dispatch(openStripeAccount());
                   if (openStripeAccount.fulfilled.match(result) && result.payload) {
                     window.location.href = result.payload as string;
                   }
-                } else {
-                  const result = await dispatch(connectStripe());
-                  if (connectStripe.fulfilled.match(result) && result.payload) {
-                    window.location.href = result.payload as string;
-                  }
-                }
-              }}
-              sx={{
-                borderColor: 'secondary.main',
-                color: stripeRequiredForListing ? undefined : 'secondary.dark',
-                whiteSpace: 'nowrap',
-                ...(stripeRequiredForListing && {
-                  boxShadow: 2,
-                  fontWeight: 600,
-                  px: 2.5,
-                  py: 1.25,
-                  '&:hover': { boxShadow: 4 },
-                }),
-              }}
-            >
-              {hasStripeAccount
-                ? t('profile.editPaymentInfo', 'Edit payment info')
-                : t('profile.connectStripe', 'Connect Stripe')}
-            </Button>
-            {hasStripeAccount && (
+                }}
+                sx={{ borderColor: 'secondary.main', color: 'secondary.dark', whiteSpace: 'nowrap' }}
+              >
+                {t('profile.editPaymentInfo', 'Edit payment info')}
+              </Button>
               <Button
                 variant="text"
                 size="small"
@@ -326,19 +306,14 @@ const Profile: React.FC = () => {
               >
                 {t('profile.verifyIdentity', 'Verify identity')}
               </Button>
-            )}
-            <Typography variant="caption" color="text.secondary" sx={{ maxWidth: 260, textAlign: 'right' }}>
-              {hasStripeAccount
-                ? t(
-                    'profile.payoutsDescriptionActive',
-                    'Your payouts are active via Stripe. You can update your bank details or verify your identity on Stripe at any time.'
-                  )
-                : t(
-                    'profile.payoutsDescriptionSetup',
-                    'To receive payouts for your sold dresses, connect your Stripe account. We will redirect you to Stripe for a quick, secure setup.'
-                  )}
-            </Typography>
-          </Box>
+              <Typography variant="caption" color="text.secondary" sx={{ maxWidth: 260, textAlign: 'right' }}>
+                {t(
+                  'profile.payoutsDescriptionActive',
+                  'Your payouts are active via Stripe. You can update your bank details or verify your identity on Stripe at any time.'
+                )}
+              </Typography>
+            </Box>
+          )}
         </Box>
         {stripeConnectError && (
           <Typography variant="body2" color="error" sx={{ mt: 2 }}>
@@ -346,6 +321,90 @@ const Profile: React.FC = () => {
           </Typography>
         )}
       </Box>
+
+      {!hasStripeAccount && (
+        <Box
+          sx={{
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: 3,
+            p: { xs: 3, sm: 3.5 },
+            mb: 4,
+            bgcolor: 'background.paper',
+          }}
+        >
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <AccountBalanceWalletIcon sx={{ color: 'primary.main' }} />
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                {t('profile.payoutInfoTitle')}
+              </Typography>
+            </Box>
+            <Typography variant="body2" color="text.secondary">
+              {t('profile.payoutInfoSubtitle')}
+            </Typography>
+            <Box
+              component="ul"
+              sx={{
+                m: 0,
+                pl: 2,
+                display: 'grid',
+                rowGap: 0.5,
+              }}
+            >
+              <Typography component="li" variant="body2" color="text.secondary">
+                {t('profile.payoutInfoPoint1')}
+              </Typography>
+              <Typography component="li" variant="body2" color="text.secondary">
+                {t('profile.payoutInfoPoint2')}
+              </Typography>
+              <Typography component="li" variant="body2" color="text.secondary">
+                {t('profile.payoutInfoPoint3')}
+              </Typography>
+            </Box>
+            <Box
+              sx={{
+                mt: 1,
+                display: 'flex',
+                justifyContent: { xs: 'stretch', sm: 'flex-start' },
+              }}
+            >
+              <Button
+                variant={stripeRequiredForListing ? 'contained' : 'outlined'}
+                color={stripeRequiredForListing ? 'error' : 'secondary'}
+                startIcon={
+                  stripeConnectStatus === 'loading' ? (
+                    <CircularProgress size={20} sx={{ color: stripeRequiredForListing ? 'inherit' : 'primary.dark' }} />
+                  ) : (
+                    <AccountBalanceWalletIcon />
+                  )
+                }
+                disabled={stripeConnectStatus === 'loading'}
+                onClick={async () => {
+                  const result = await dispatch(connectStripe());
+                  if (connectStripe.fulfilled.match(result) && result.payload) {
+                    window.location.href = result.payload as string;
+                  }
+                }}
+                sx={{
+                  minWidth: { xs: '100%', sm: 'auto' },
+                  borderColor: 'secondary.main',
+                  color: stripeRequiredForListing ? undefined : 'secondary.dark',
+                  ...(stripeRequiredForListing && {
+                    boxShadow: 2,
+                    fontWeight: 600,
+                    px: 2.5,
+                    py: 1.25,
+                    '&:hover': { boxShadow: 4 },
+                  }),
+                }}
+              >
+                {t('profile.connectStripe', 'Connect Stripe')}
+              </Button>
+            </Box>
+          </Box>
+        </Box>
+      )}
 
       {/* Reviews – prominent */}
       <Box sx={{ mb: 4 }}>

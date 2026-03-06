@@ -96,9 +96,17 @@ export async function createOrder(req: Request, res: Response): Promise<void> {
       listingPriceCents * (env.stripeBuyerFeePercent / 100)
     );
     const amountCents = listingPriceCents + buyerFeeCents;
-    const platformFeeCents =
-      Math.round(listingPriceCents * (env.stripePlatformFeePercent / 100)) +
-      buyerFeeCents;
+
+    // First N orders: no seller commission, only charge buyer fee.
+    const totalOrdersSoFar = await ordersRepository.countAll();
+    const isWithinFreeSellerCommission =
+      totalOrdersSoFar < env.stripeFreeSellerCommissionOrderLimit;
+
+    const sellerCommissionCents = isWithinFreeSellerCommission
+      ? 0
+      : Math.round(listingPriceCents * (env.stripePlatformFeePercent / 100));
+
+    const platformFeeCents = sellerCommissionCents + buyerFeeCents;
 
     const { id: paymentIntentId, client_secret } = await stripeService.createPaymentIntent({
       amountCents,

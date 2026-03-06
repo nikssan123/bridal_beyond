@@ -21,6 +21,10 @@ export const env = {
   stripeWebhookSecret: getEnv('STRIPE_WEBHOOK_SECRET', ''),
   stripePlatformFeePercent: parseInt(getEnv('STRIPE_PLATFORM_FEE_PERCENT', '5'), 10),
   stripeBuyerFeePercent: parseInt(getEnv('STRIPE_BUYER_FEE_PERCENT', '5'), 10),
+  stripeFreeSellerCommissionOrderLimit: parseInt(
+    getEnv('STRIPE_FREE_SELLER_COMMISSION_ORDER_LIMIT', '0'),
+    10
+  ),
   clientUrl: getEnv('CLIENT_URL', 'http://localhost:5173'),
   stripeCurrency: (getEnv('STRIPE_CURRENCY', 'eur') || 'eur').toLowerCase(),
   adminUsername: getEnv('ADMIN_USERNAME', 'admin'),

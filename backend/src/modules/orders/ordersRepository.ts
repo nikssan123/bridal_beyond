@@ -36,6 +36,10 @@ export async function createOrder(params: {
   });
 }
 
+export async function countAll() {
+  return prisma.order.count();
+}
+
 export async function findByIdForUser(orderId: string, userId: string) {
   return prisma.order.findFirst({
     where: {
