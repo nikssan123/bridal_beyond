@@ -9,6 +9,7 @@ import paymentsReducer from '../features/payments/paymentsSlice';
 import stripeReducer from '../features/stripe/stripeSlice';
 import ordersReducer from '../features/orders/ordersSlice';
 import adminDisputesReducer from '../features/admin/disputesSlice';
+import sellersReducer from '../features/sellers/sellersSlice';
 
 export const store = configureStore({
   reducer: {
@@ -22,6 +23,7 @@ export const store = configureStore({
     stripe: stripeReducer,
     orders: ordersReducer,
     adminDisputes: adminDisputesReducer,
+    sellers: sellersReducer,
   },
 });
 

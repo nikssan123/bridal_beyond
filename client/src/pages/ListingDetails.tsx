@@ -406,7 +406,7 @@ const ListingDetails: React.FC = () => {
           </Box>
 
           <Divider sx={{ my: 3 }} />
-          <SellerCard seller={listing.seller} />
+          <SellerCard seller={listing.seller} sellerId={listing.seller.id} />
         </Grid>
       </Grid>
 

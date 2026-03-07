@@ -9,6 +9,7 @@ export interface SellerSummaryRow {
   rating: number;
   listings_count: number;
   is_verified: boolean;
+  has_payment_setup: boolean;
 }
 
 export async function getSellerSummary(sellerId: string): Promise<SellerSummaryRow | null> {
@@ -36,6 +37,7 @@ export async function getSellerSummary(sellerId: string): Promise<SellerSummaryR
     rating,
     listings_count,
     is_verified: !!user.email_verified_at,
+    has_payment_setup: !!user.stripe_account_id,
   };
 }
 

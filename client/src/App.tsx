@@ -30,6 +30,7 @@ import Favorites from './pages/Favorites';
 import Messages from './pages/Messages';
 import AdminDisputes from './pages/AdminDisputes';
 import AdminDisputeDetails from './pages/AdminDisputeDetails';
+import SellerProfile from './pages/SellerProfile';
 import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
 import CookieConsentBanner, { getStoredConsent } from './components/CookieConsentBanner';
@@ -79,6 +80,7 @@ const App = () => {
             <Route path="/admin" element={<AdminPortal />} />
             <Route path="/admin/disputes" element={<AdminRoute><AdminDisputes /></AdminRoute>} />
             <Route path="/admin/disputes/:id" element={<AdminRoute><AdminDisputeDetails /></AdminRoute>} />
+            <Route path="/sellers/:id" element={<SellerProfile />} />
             <Route path="/create" element={<CreateListing />} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />

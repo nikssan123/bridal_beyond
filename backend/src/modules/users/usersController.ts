@@ -19,6 +19,7 @@ export async function getSeller(req: Request, res: Response, next: NextFunction)
       location: row.location ?? '',
       memberSince: row.member_since ? String(row.member_since.getFullYear()) : '',
       isVerified: row.is_verified,
+      hasPaymentSetup: row.has_payment_setup,
     });
   } catch (e) {
     next(e);
