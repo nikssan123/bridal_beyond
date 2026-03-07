@@ -67,8 +67,8 @@ const AdminDisputes: React.FC = () => {
         </Box>
       )}
       {listStatus === 'succeeded' && (
-        <TableContainer component={Paper} sx={{ borderRadius: 3 }}>
-          <Table>
+        <TableContainer component={Paper} sx={{ borderRadius: 3, overflowX: 'auto' }}>
+          <Table sx={{ minWidth: 700 }}>
             <TableHead>
               <TableRow>
                 <TableCell>Order ID</TableCell>

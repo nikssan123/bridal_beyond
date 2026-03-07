@@ -35,15 +35,15 @@ function formatZodMessage(flatten: { formErrors?: string[]; fieldErrors?: Record
 }
 
 export async function createOrder(req: Request, res: Response): Promise<void> {
+  const parsed = createOrderBody.safeParse(req.body);
+  const userId = (req as any).user?.id as string | undefined;
   try {
-    const parsed = createOrderBody.safeParse(req.body);
     if (!parsed.success) {
       const friendlyMessage = formatZodMessage(parsed.error.flatten());
       res.status(400).json({ message: friendlyMessage, code: 'VALIDATION_ERROR', errors: parsed.error.flatten() });
       return;
     }
     const { listingId, shippingAddress } = parsed.data;
-    const userId = (req as any).user?.id as string | undefined;
     if (!userId) {
       res.status(401).json({ message: 'Unauthorized' });
       return;
@@ -96,6 +96,27 @@ export async function createOrder(req: Request, res: Response): Promise<void> {
 
     const connectAccount = await stripeService.getConnectAccount(seller.stripe_account_id);
     if (!connectAccount) {
+      const profileUrl = `${env.clientUrl}/profile`;
+      if (seller.email) {
+        await sendSellerBuyerWantsToBuyEmail({
+          to: seller.email,
+          sellerName: seller.name,
+          listingTitle: listing.title,
+          profileUrl,
+          buyerName: (await authRepository.findById(userId))?.name ?? null,
+        });
+      }
+      res.status(400).json({
+        code: 'SELLER_PAYMENT_NOT_SET_UP',
+        message:
+          "This seller hasn't completed payment setup yet, so checkout isn't available. You can send them a private message to ask when they'll be ready to accept orders.",
+        sellerId: listing.seller_id,
+        listingId: listing.id,
+      });
+      return;
+    }
+
+    if (!connectAccount.charges_enabled) {
       const profileUrl = `${env.clientUrl}/profile`;
       if (seller.email) {
         await sendSellerBuyerWantsToBuyEmail({
@@ -183,13 +204,33 @@ export async function createOrder(req: Request, res: Response): Promise<void> {
     console.error('Create order error:', err);
     const code = err?.code ?? err?.raw?.code;
     const param = err?.param ?? err?.raw?.param;
-    if (
+    const isDestinationError =
       (err?.type === 'StripeInvalidRequestError' || code === 'resource_missing') &&
-      (param === 'transfer_data[destination]' || err?.message?.includes('No such destination'))
-    ) {
+      (param === 'transfer_data[destination]' || err?.message?.includes('No such destination'));
+    if (isDestinationError && parsed.success) {
+      const { listingId: lid } = parsed.data;
+      const listingForEmail = await prisma.listing.findUnique({
+        where: { id: lid },
+        include: { seller: true },
+      });
+      const sellerForEmail = listingForEmail?.seller;
+      if (sellerForEmail?.email) {
+        const profileUrl = `${env.clientUrl}/profile`;
+        const buyer = userId ? await authRepository.findById(userId) : null;
+        await sendSellerBuyerWantsToBuyEmail({
+          to: sellerForEmail.email,
+          sellerName: sellerForEmail.name,
+          listingTitle: listingForEmail?.title ?? '',
+          profileUrl,
+          buyerName: buyer?.name ?? null,
+        });
+      }
       res.status(400).json({
+        code: 'SELLER_PAYMENT_NOT_SET_UP',
         message:
-          'The seller\'s payment account is not set up for payments. Please ask them to reconnect Stripe in their profile, then try again.',
+          "This seller hasn't completed payment setup yet, so checkout isn't available. You can send them a private message to ask when they'll be ready to accept orders.",
+        sellerId: listingForEmail?.seller_id ?? '',
+        listingId: lid,
       });
       return;
     }

@@ -29,6 +29,8 @@ import {
   DialogContentText,
   DialogActions,
   Chip,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined';
@@ -104,6 +106,8 @@ const AdminPortal: React.FC = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const isLoggedIn = !!token;
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const loadTables = async (currentToken: string) => {
     setLoadingTables(true);
@@ -373,8 +377,24 @@ const AdminPortal: React.FC = () => {
           {dataError || disputesError || resolveError}
         </Alert>
       )}
-      <Box sx={{ display: 'flex', gap: 3 }}>
-        <Paper sx={{ width: 260, flexShrink: 0, borderRadius: 3, overflow: 'hidden' }} elevation={0} variant="outlined">
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', md: 'row' },
+          gap: 3,
+          minHeight: 0,
+        }}
+      >
+        <Paper
+          sx={{
+            width: { xs: '100%', md: 260 },
+            flexShrink: 0,
+            borderRadius: 3,
+            overflow: 'hidden',
+          }}
+          elevation={0}
+          variant="outlined"
+        >
           <List dense sx={{ py: 0 }}>
             <ListItemButton
               selected={section === 'tables'}
@@ -487,7 +507,19 @@ const AdminPortal: React.FC = () => {
           )}
         </Paper>
 
-        <Paper sx={{ flex: 1, minWidth: 0, borderRadius: 3, overflow: 'hidden' }} elevation={0} variant="outlined">
+        <Paper
+          sx={{
+            flex: 1,
+            minWidth: 0,
+            minHeight: isMobile ? 400 : 0,
+            borderRadius: 3,
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+          elevation={0}
+          variant="outlined"
+        >
           {section === 'tables' && (
             <>
               <Box sx={{ px: 3, py: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
@@ -509,8 +541,14 @@ const AdminPortal: React.FC = () => {
                   </Typography>
                 </Box>
               ) : (
-                <TableContainer sx={{ maxHeight: 'calc(100vh - 320px)' }}>
-                  <Table size="small" stickyHeader>
+                <TableContainer
+                  sx={{
+                    maxHeight: { xs: 'none', md: 'calc(100vh - 320px)' },
+                    overflowX: 'auto',
+                    overflowY: { md: 'auto' },
+                  }}
+                >
+                  <Table size="small" stickyHeader sx={{ minWidth: 640 }}>
                     <TableHead>
                       <TableRow>
                         {allColumns.map((col) => (
