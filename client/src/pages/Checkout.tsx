@@ -19,6 +19,7 @@ import SectionHeader from '@/components/SectionHeader';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { fetchListingById } from '@/features/listings/listingsSlice';
 import { createOrder } from '@/features/orders/ordersSlice';
+import { createOrGetConversation } from '@/features/conversations/conversationsSlice';
 import { getAvatarUrl } from '@/lib/avatarUrl';
 import { getStripeErrorKey } from '@/lib/stripeErrors';
 import { useTranslation } from 'react-i18next';
@@ -58,6 +59,11 @@ const Checkout: React.FC = () => {
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sellerNoPayment, setSellerNoPayment] = useState<{
+    message: string;
+    sellerId: string;
+    listingId: string;
+  } | null>(null);
 
   useEffect(() => {
     if (listingId) {
@@ -127,12 +133,31 @@ const Checkout: React.FC = () => {
 
       navigate(`/orders/${orderId}`);
     } catch (err: any) {
+      setSubmitting(false);
+      const payload = err && typeof err === 'object' ? err : undefined;
+      const code = payload?.code;
+      const sellerId = payload?.sellerId;
+      const listingId = payload?.listingId;
+      if (code === 'SELLER_PAYMENT_NOT_SET_UP' && sellerId && listingId) {
+        setSellerNoPayment({
+          message: t(
+            'checkout.sellerNoPayment',
+            "This seller hasn't completed payment setup yet, so checkout isn't available. You can send them a private message to ask when they'll be ready to accept orders."
+          ),
+          sellerId,
+          listingId,
+        });
+        setError(null);
+        return;
+      }
       const message =
         typeof err === 'string'
           ? err
-          : err?.response?.data?.message ?? err?.message ?? t('checkout.genericError', 'Something went wrong. Please try again.');
+          : (payload && typeof payload.message === 'string' ? payload.message : null) ??
+            err?.response?.data?.message ??
+            err?.message ??
+            t('checkout.genericError', 'Something went wrong. Please try again.');
       setError(message);
-      setSubmitting(false);
     }
   };
 
@@ -337,6 +362,40 @@ const Checkout: React.FC = () => {
               >
                 <CardElement options={cardElementOptions} />
               </Box>
+
+              {sellerNoPayment && (
+                <Alert
+                  severity="warning"
+                  sx={{ mt: 2 }}
+                  action={
+                    <Button
+                      color="inherit"
+                      size="small"
+                      variant="outlined"
+                      onClick={async () => {
+                        if (!sellerNoPayment) return;
+                        try {
+                          const conv = await dispatch(
+                            createOrGetConversation({
+                              otherUserId: sellerNoPayment.sellerId,
+                              listingId: sellerNoPayment.listingId,
+                            })
+                          ).unwrap();
+                          navigate(`/messages/${conv.id}`);
+                        } catch {
+                          setError(t('checkout.messageSellerFailed', 'Could not open conversation. Please try again.'));
+                        } finally {
+                          setSellerNoPayment(null);
+                        }
+                      }}
+                    >
+                      {t('checkout.messageSeller', 'Message seller')}
+                    </Button>
+                  }
+                >
+                  {sellerNoPayment.message}
+                </Alert>
+              )}
 
               {error && (
                 <Alert severity="error" sx={{ mt: 2 }} onClose={() => setError(null)}>

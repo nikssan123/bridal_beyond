@@ -11,13 +11,18 @@ import {
   MenuItem,
   Typography,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material';
 import PageContainer from '@/components/PageContainer';
 import SectionHeader from '@/components/SectionHeader';
 import ImageUploader from '@/components/ImageUploader';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { createListing, uploadListingImage } from '@/features/listings/listingsSlice';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB per image
@@ -35,6 +40,7 @@ const CreateListing: React.FC = () => {
   const [imageError, setImageError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [showNoPaymentModal, setShowNoPaymentModal] = useState(false);
   const [form, setForm] = useState({
     title: '', description: '', price: '', originalPrice: '',
     category: '', size: '', condition: '', color: '', brand: '',
@@ -63,9 +69,14 @@ const CreateListing: React.FC = () => {
       return;
     }
     if (!user.hasStripeAccount) {
-      navigate('/profile?stripe_required=1', { replace: true });
+      setShowNoPaymentModal(true);
       return;
     }
+    await doCreate();
+  };
+
+  const doCreate = async () => {
+    if (!user) return;
     if (images.length < 2) {
       setImageError(t('listing.imagesAtLeastTwo', 'Please upload at least two photos.'));
       return;
@@ -108,6 +119,7 @@ const CreateListing: React.FC = () => {
           images,
         })
       ).unwrap();
+      setShowNoPaymentModal(false);
       setSubmitted(true);
       setTimeout(() => navigate('/listings'), 1500);
     } catch (err: any) {
@@ -119,11 +131,7 @@ const CreateListing: React.FC = () => {
     }
   };
 
-  // When user has no Stripe, redirect to profile with param so the Stripe-required alert is shown.
-  if (user && !user.hasStripeAccount) {
-    return <Navigate to="/profile?stripe_required=1" replace />;
-  }
-
+  // When user has no payment method, we still show the form; on submit we show a confirmation modal.
   if (!user) {
     return (
       <PageContainer maxWidth="sm">
@@ -148,6 +156,33 @@ const CreateListing: React.FC = () => {
 
   return (
     <PageContainer maxWidth="md">
+      <Dialog open={showNoPaymentModal} onClose={() => setShowNoPaymentModal(false)}>
+        <DialogTitle>
+          {t('listing.noPaymentModalTitle', 'No payment method set up yet')}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {t(
+              'listing.noPaymentModalBody',
+              "You haven't set up a payment method yet. You can still publish your listing, but you won't receive any payments or be able to complete a sale until you connect a payment method in your Profile. Do you want to proceed anyway?"
+            )}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowNoPaymentModal(false)}>
+            {t('common.cancel', 'Cancel')}
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => {
+              setShowNoPaymentModal(false);
+              doCreate();
+            }}
+          >
+            {t('listing.proceedAnyway', 'Proceed anyway')}
+          </Button>
+        </DialogActions>
+      </Dialog>
       <SectionHeader title={t('listing.addListing')} subtitle={t('listing.addListingSubtitle')} />
       {submitError && (
         <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setSubmitError(null)}>

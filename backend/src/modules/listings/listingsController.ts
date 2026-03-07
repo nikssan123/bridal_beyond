@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
+import { env } from '../../config/env';
 import * as listingsRepo from './listingsRepository';
 import * as authRepository from '../auth/authRepository';
+import { sendListingCreatedNoPaymentEmail } from '../../services/mailService';
 import { notFound, unauthorized, badRequest, forbidden } from '../../middleware/errorHandler';
 import { ListingCreateInput } from './listingsTypes';
 
@@ -67,10 +69,6 @@ export async function create(req: Request, res: Response, next: NextFunction): P
        next(unauthorized());
        return;
      }
-     if (!user.stripe_account_id) {
-       next(badRequest('Stripe payouts are not connected. Please connect Stripe before creating a listing.'));
-       return;
-     }
     const body = req.body as ListingCreateInput;
     const listing = await listingsRepo.create(userId, {
       title: body.title,
@@ -88,6 +86,15 @@ export async function create(req: Request, res: Response, next: NextFunction): P
       length: body.measurements.length,
       images: Array.isArray(body.images) ? body.images : [],
     });
+    if (!user.stripe_account_id && user.email) {
+      const profileUrl = `${env.clientUrl}/profile`;
+      await sendListingCreatedNoPaymentEmail({
+        to: user.email,
+        sellerName: user.name,
+        listingTitle: listing.title,
+        profileUrl,
+      });
+    }
     res.status(201).json(listing);
   } catch (e) {
     next(e);

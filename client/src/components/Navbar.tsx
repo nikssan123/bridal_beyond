@@ -46,10 +46,6 @@ const Navbar: React.FC = () => {
       navigate('/login');
       return;
     }
-    if (!user.hasStripeAccount) {
-      navigate('/profile?stripe_required=1');
-      return;
-    }
     navigate('/create');
   };
 

@@ -499,3 +499,162 @@ export function getBuyerOrderShippedText(params: {
   ].join('\n');
 }
 
+// --- Listing created without payment method (reminder to connect) ---
+
+const LISTING_CREATED_NO_PAYMENT_SUBJECT = 'Обявата ви е активна – настройте плащане, за да получавате пари';
+
+export function getListingCreatedNoPaymentSubject(): string {
+  return LISTING_CREATED_NO_PAYMENT_SUBJECT;
+}
+
+export function getListingCreatedNoPaymentHtml(params: {
+  sellerName: string;
+  listingTitle: string;
+  profileUrl: string;
+}): string {
+  const { sellerName, listingTitle, profileUrl } = params;
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${LISTING_CREATED_NO_PAYMENT_SUBJECT}</title>
+</head>
+<body style="margin:0; padding:0; background-color:#FAF7F5; font-family:'Work Sans',sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#FAF7F5; padding:24px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" style="max-width:520px; border-radius:16px; border:1px solid #E8E0DC; background:#fff;">
+          <tr>
+            <td style="padding:32px 24px;">
+              <h1 style="margin:0 0 12px; font-family:'Playfair Display',serif; font-size:24px; font-weight:600; color:#D4A99A;">
+                Обявата ви е активна
+              </h1>
+              <p style="margin:0 0 16px; font-size:16px; line-height:1.5; color:#2D2D2D;">
+                Здравейте${sellerName ? `, ${sellerName}` : ''}! Обявата ви <strong>${listingTitle}</strong> е публикувана и е видима за купувачите.
+              </p>
+              <p style="margin:0 0 16px; font-size:16px; line-height:1.5; color:#2D2D2D;">
+                <strong>Важно:</strong> Няма да можете да получавате плащания или да завършите продажба, докато не свържете начин на плащане в профила си. Купувачите виждат обявата, но плащането с защита е блокирано, докато не завършите настройката за изплащания.
+              </p>
+              <p style="margin:0 0 20px; font-size:15px; line-height:1.6; color:#6B6B6B;">
+                За да получавате пари, когато някой купи артикула ви, отидете в профила си и завършете еднократната настройка на плащането. Процесът е сигурен и отнема само няколко минути. Дотогава препоръчваме да пишете на заинтересованите купувачи и да ги информирате, че настройвате плащанията.
+              </p>
+              <p style="margin:22px 0 0; text-align:center;">
+                <a href="${profileUrl}" style="display:inline-block; padding:14px 28px; border-radius:12px; background:linear-gradient(135deg,#D4A99A 0%,#C4918A 100%); color:#2D2D2D; font-size:16px; font-weight:600; text-decoration:none;">
+                  Отвори профил и настрой плащане
+                </a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`.trim();
+}
+
+export function getListingCreatedNoPaymentText(params: {
+  sellerName: string;
+  listingTitle: string;
+  profileUrl: string;
+}): string {
+  const { sellerName, listingTitle, profileUrl } = params;
+  return [
+    LISTING_CREATED_NO_PAYMENT_SUBJECT,
+    '',
+    sellerName ? `Здравейте, ${sellerName}!` : 'Здравейте!',
+    '',
+    `Обявата ви "${listingTitle}" е публикувана и е видима за купувачите.`,
+    '',
+    'Важно: Няма да можете да получавате плащания или да завършите продажба, докато не свържете начин на плащане в профила си. Купувачите виждат обявата, но плащането с защита е блокирано до завършване на настройката.',
+    '',
+    'За да получавате пари при покупка, отидете в профила си и завършете еднократната настройка на плащането. Процесът е сигурен и отнема само няколко минути.',
+    '',
+    'Отворете профила си тук:',
+    profileUrl,
+  ].join('\n');
+}
+
+// --- Seller: someone tried to buy but you have no payment (urgent) ---
+
+const SELLER_BUYER_WANTS_TO_BUY_SUBJECT = 'Някой иска да купи от обявата ви – завършете настройката за плащане сега';
+
+export function getSellerBuyerWantsToBuySubject(): string {
+  return SELLER_BUYER_WANTS_TO_BUY_SUBJECT;
+}
+
+export function getSellerBuyerWantsToBuyHtml(params: {
+  sellerName: string;
+  listingTitle: string;
+  profileUrl: string;
+  buyerName?: string | null;
+}): string {
+  const { sellerName, listingTitle, profileUrl, buyerName } = params;
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${SELLER_BUYER_WANTS_TO_BUY_SUBJECT}</title>
+</head>
+<body style="margin:0; padding:0; background-color:#FAF7F5; font-family:'Work Sans',sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#FAF7F5; padding:24px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" style="max-width:520px; border-radius:16px; border:1px solid #E8E0DC; background:#fff;">
+          <tr>
+            <td style="padding:32px 24px;">
+              <h1 style="margin:0 0 12px; font-family:'Playfair Display',serif; font-size:24px; font-weight:600; color:#c0392b;">
+                Купувач се опита да закупи от обявата ви
+              </h1>
+              <p style="margin:0 0 16px; font-size:16px; line-height:1.5; color:#2D2D2D;">
+                Здравейте${sellerName ? `, ${sellerName}` : ''}! Някой се опита да купи обявата ви <strong>${listingTitle}</strong>, но не успя да завърши покупката, защото начинът ви за плащане все още не е свързан.
+              </p>
+              ${buyerName ? `<p style="margin:0 0 16px; font-size:15px; color:#6B6B6B;">Заинтересованият купувач е: <strong>${buyerName}</strong>. Помолихме го да ви изпрати лично съобщение в сайта. Отговорете му, след като завършите настройката за плащане, за да може да купи.</p>` : ''}
+              <p style="margin:0 0 16px; font-size:16px; line-height:1.5; color:#2D2D2D;">
+                <strong>Завършете настройката за плащане сега</strong>, за да получавате пари, когато купувачите закупуват от вас. Отидете в профила си и натиснете червения бутон <strong>Свържи начин на плащане</strong>, за да завършите еднократната настройка. Дотогава за вашите обяви не могат да се правят поръчки.
+              </p>
+              <p style="margin:22px 0 0; text-align:center;">
+                <a href="${profileUrl}" style="display:inline-block; padding:14px 28px; border-radius:12px; background:#c0392b; color:#fff; font-size:16px; font-weight:600; text-decoration:none;">
+                  Отвори профил и свържи плащане
+                </a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`.trim();
+}
+
+export function getSellerBuyerWantsToBuyText(params: {
+  sellerName: string;
+  listingTitle: string;
+  profileUrl: string;
+  buyerName?: string | null;
+}): string {
+  const { sellerName, listingTitle, profileUrl, buyerName } = params;
+  return [
+    SELLER_BUYER_WANTS_TO_BUY_SUBJECT,
+    '',
+    sellerName ? `Здравейте, ${sellerName}!` : 'Здравейте!',
+    '',
+    `Някой се опита да купи обявата ви "${listingTitle}", но не успя да завърши покупката, защото начинът ви за плащане все още не е свързан.`,
+    buyerName ? `Заинтересованият купувач е: ${buyerName}. Помолихме го да ви изпрати лично съобщение в сайта.` : '',
+    '',
+    'Завършете настройката за плащане сега: отидете в профила си и натиснете червения бутон "Свържи начин на плащане". Дотогава за вашите обяви не могат да се правят поръчки.',
+    '',
+    'Отворете профила си тук:',
+    profileUrl,
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+

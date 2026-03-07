@@ -19,6 +19,12 @@ import {
   getBuyerOrderShippedSubject,
   getBuyerOrderShippedHtml,
   getBuyerOrderShippedText,
+  getListingCreatedNoPaymentSubject,
+  getListingCreatedNoPaymentHtml,
+  getListingCreatedNoPaymentText,
+  getSellerBuyerWantsToBuySubject,
+  getSellerBuyerWantsToBuyHtml,
+  getSellerBuyerWantsToBuyText,
 } from '../emails/templates';
 
 let transport: nodemailer.Transporter | null = null;
@@ -202,6 +208,87 @@ export async function sendBuyerOrderShippedEmail(
     listingTitle: params.listingTitle,
     courier: params.courier,
     trackingNumber: params.trackingNumber,
+  });
+  await t.sendMail({
+    from: mailConfig.smtpUser,
+    to: params.to,
+    subject,
+    text,
+    html,
+  });
+}
+
+export interface SendListingCreatedNoPaymentEmailParams {
+  to: string;
+  sellerName: string;
+  listingTitle: string;
+  profileUrl: string;
+}
+
+/**
+ * Sends an email to the seller after they create a listing without a connected payment method.
+ * Explains they must connect payment in profile to receive money. No-ops if SMTP is not configured.
+ */
+export async function sendListingCreatedNoPaymentEmail(
+  params: SendListingCreatedNoPaymentEmailParams
+): Promise<void> {
+  const t = getTransport();
+  if (!t) {
+    console.warn('[mail] SMTP not configured; skipping listing-created-no-payment email to', params.to);
+    return;
+  }
+  const subject = getListingCreatedNoPaymentSubject();
+  const html = getListingCreatedNoPaymentHtml({
+    sellerName: params.sellerName,
+    listingTitle: params.listingTitle,
+    profileUrl: params.profileUrl,
+  });
+  const text = getListingCreatedNoPaymentText({
+    sellerName: params.sellerName,
+    listingTitle: params.listingTitle,
+    profileUrl: params.profileUrl,
+  });
+  await t.sendMail({
+    from: mailConfig.smtpUser,
+    to: params.to,
+    subject,
+    text,
+    html,
+  });
+}
+
+export interface SendSellerBuyerWantsToBuyEmailParams {
+  to: string;
+  sellerName: string;
+  listingTitle: string;
+  profileUrl: string;
+  buyerName?: string | null;
+}
+
+/**
+ * Sends an urgent email to the seller when a buyer tried to purchase but the seller has no payment method connected.
+ * No-ops if SMTP is not configured.
+ */
+export async function sendSellerBuyerWantsToBuyEmail(
+  params: SendSellerBuyerWantsToBuyEmailParams
+): Promise<void> {
+  const t = getTransport();
+  if (!t) {
+    console.warn('[mail] SMTP not configured; skipping seller-buyer-wants-to-buy email to', params.to);
+    return;
+  }
+  const subject = getSellerBuyerWantsToBuySubject();
+  const html = getSellerBuyerWantsToBuyHtml({
+    sellerName: params.sellerName,
+    listingTitle: params.listingTitle,
+    profileUrl: params.profileUrl,
+    buyerName: params.buyerName,
+  });
+  const text = getSellerBuyerWantsToBuyText({
+    sellerName: params.sellerName,
+    listingTitle: params.listingTitle,
+    profileUrl: params.profileUrl,
+    buyerName: params.buyerName,
   });
   await t.sendMail({
     from: mailConfig.smtpUser,

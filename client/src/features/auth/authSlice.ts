@@ -112,6 +112,20 @@ export const verifyEmail = createAsyncThunk(
   }
 );
 
+export const resendVerificationEmail = createAsyncThunk(
+  'auth/resendVerificationEmail',
+  async (email: string, { rejectWithValue }) => {
+    try {
+      await api.post('/auth/resend-verification', { email });
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message
+        || (err as Error)?.message
+        || 'Failed to resend code';
+      return rejectWithValue(message);
+    }
+  }
+);
+
 export const forgotPassword = createAsyncThunk(
   'auth/forgotPassword',
   async (payload: { email: string }, { rejectWithValue }) => {

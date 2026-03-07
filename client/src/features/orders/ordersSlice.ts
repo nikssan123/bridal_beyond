@@ -71,7 +71,11 @@ export const createOrder = createAsyncThunk(
             : Array.isArray(addr) ? addr[0] : null);
         if (first) message = first;
       }
-      return rejectWithValue(message);
+      return rejectWithValue(
+        res && (res.code || res.sellerId != null || res.listingId != null)
+          ? { message: res.message || message, code: res.code, sellerId: res.sellerId, listingId: res.listingId }
+          : message
+      );
     }
   }
 );
@@ -320,7 +324,10 @@ const ordersSlice = createSlice({
       })
       .addCase(createOrder.rejected, (state, action) => {
         state.status = 'failed';
-        state.error = (action.payload as string) || 'Failed to create order';
+        const payload = action.payload;
+        state.error = typeof payload === 'object' && payload && 'message' in payload
+          ? (payload as { message: string }).message
+          : (payload as string) || 'Failed to create order';
       })
       .addCase(fetchOrderById.pending, (state) => {
         state.status = 'loading';

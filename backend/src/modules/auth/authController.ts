@@ -322,6 +322,28 @@ export async function uploadAvatar(req: Request, res: Response, next: NextFuncti
   }
 }
 
+export async function resendVerificationEmail(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { email } = req.body;
+    const user = await authRepo.findByEmail(email);
+    if (!user) {
+      res.status(202).json({ message: 'If an account exists with this email, a new code has been sent.' });
+      return;
+    }
+    if (user.email_verified_at) {
+      res.status(202).json({ message: 'If an account exists with this email, a new code has been sent.' });
+      return;
+    }
+    const code = generateVerificationCode();
+    const expiresAt = new Date(Date.now() + VERIFICATION_CODE_EXPIRY_MINUTES * 60 * 1000);
+    await authRepo.setVerificationCode(user.id, code, expiresAt);
+    await sendVerificationEmail({ to: user.email, name: user.name, code });
+    res.status(202).json({ message: 'A new verification code has been sent to your email.' });
+  } catch (e) {
+    next(e);
+  }
+}
+
 export async function verifyEmail(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const { email, code } = req.body;

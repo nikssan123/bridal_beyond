@@ -116,6 +116,20 @@ export async function setEmailVerified(userId: string): Promise<UserRow> {
   });
 }
 
+export async function setVerificationCode(
+  userId: string,
+  code: string,
+  expiresAt: Date
+): Promise<UserRow> {
+  return prisma.user.update({
+    where: { id: userId },
+    data: {
+      email_verification_code: code,
+      email_verification_expires_at: expiresAt,
+    },
+  });
+}
+
 export async function setPasswordResetToken(
   userId: string,
   tokenHash: string,

@@ -33,6 +33,11 @@
     "verificationCodeLabel": "Verification code (6 digits)",
     "verificationCodePlaceholder": "000000",
     "confirm": "Confirm",
+    "didNotReceiveCode": "Didn't receive the code?",
+    "resendCode": "Resend code",
+    "resendCodeIn": "Resend in {{seconds}}s",
+    "resendCodeSuccess": "A new code has been sent to your email.",
+    "resendCodeError": "Failed to resend code. Try again.",
     "forgotPasswordTitle": "Forgot password",
     "forgotPasswordSubtitle": "Enter your email and we'll send you instructions to reset your password.",
     "forgotPasswordSuccess": "If an account exists with this email, you will receive instructions to reset your password.",
@@ -187,7 +192,10 @@
     "deleteListing": "Delete listing",
     "deleteConfirm": "Are you sure you want to delete this listing? This action cannot be undone.",
     "editForbidden": "You can only edit your own listings.",
-    "loading": "Loading listing..."
+    "loading": "Loading listing...",
+    "noPaymentModalTitle": "No payment method set up yet",
+    "noPaymentModalBody": "You haven't set up a payment method yet. You can still publish your listing, but you won't receive any payments or be able to complete a sale until you connect a payment method in your Profile. Do you want to proceed anyway?",
+    "proceedAnyway": "Proceed anyway"
   },
   "notFound": {
     "title": "Oops! Page not found",
@@ -197,7 +205,8 @@
     "language": "Language",
     "bg": "Български",
     "en": "English",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "cancel": "Cancel"
   },
   "cookieConsent": {
     "message": "We use cookies and Meta Pixel to analyze traffic and measure the performance of our ads. You can accept or decline optional tracking.",
@@ -230,6 +239,9 @@
     "payoutsDescriptionSetup": "To receive money for your sold dresses, you need a payout account with our secure payment partner. We will redirect you for a quick, free setup.",
     "stripeRequiredForListing": "To publish a listing you need to set up a payout account so we can transfer your earnings to your bank once a sale is completed.",
     "payoutsDescriptionActive": "Your payouts are active. You can update your bank details or verification information at any time through our payment partner.",
+    "paymentRequiredForPayouts": "To receive payments from buyers you must connect a payment method. Click the red button below to set up payouts.",
+    "verificationRequired": "Our payment provider needs to verify your identity. Complete verification to avoid disruptions to payouts.",
+    "connectPayment": "Connect payment",
     "payoutInfoTitle": "How payouts work",
     "payoutInfoSubtitle": "To get paid for your sales, you need a free payout account with our trusted payment partner.",
     "payoutInfoPoint1": "The account is used only to send your earnings from completed orders directly to your bank (IBAN).",
@@ -269,7 +281,10 @@
     "shippingRequired": "Please fill in all shipping fields.",
     "phoneTooShort": "Phone number must be at least 3 characters.",
     "minOrder": "Minimum order amount is 10 €.",
-    "minOrderContact": "You can contact the seller to arrange the sale."
+    "minOrderContact": "You can contact the seller to arrange the sale.",
+    "sellerNoPayment": "This seller hasn't completed payment setup yet, so checkout isn't available. You can send them a private message to ask when they'll be ready to accept orders.",
+    "messageSeller": "Message seller",
+    "messageSellerFailed": "Could not open conversation. Please try again."
   },
   "order": {
     "title": "Order details",

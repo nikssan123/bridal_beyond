@@ -162,7 +162,7 @@ const Profile: React.FC = () => {
     <PageContainer>
       {!hasStripeAccount && stripeRequiredForListing && (
         <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
-          {t('profile.stripeRequiredForListing', 'To create a listing you must connect your Stripe account. Click the button to set up payouts.')}
+          {t('profile.paymentRequiredForPayouts', 'To receive payments from buyers you must connect a payment method. Click the red button below to set up payouts.')}
         </Alert>
       )}
       {/* Profile header */}
@@ -199,8 +199,8 @@ const Profile: React.FC = () => {
             }
           >
             {t(
-              'profile.stripeVerificationRequired',
-              'Stripe needs to verify your identity. Complete verification to avoid disruptions to payouts.'
+              'profile.verificationRequired',
+              'Our payment provider needs to verify your identity. Complete verification to avoid disruptions to payouts.'
             )}
           </Alert>
         )}
@@ -309,7 +309,7 @@ const Profile: React.FC = () => {
               <Typography variant="caption" color="text.secondary" sx={{ maxWidth: 260, textAlign: 'right' }}>
                 {t(
                   'profile.payoutsDescriptionActive',
-                  'Your payouts are active via Stripe. You can update your bank details or verify your identity on Stripe at any time.'
+                  'Your payouts are active. You can update your bank details or complete verification in your payment settings at any time.'
                 )}
               </Typography>
             </Box>
@@ -399,7 +399,7 @@ const Profile: React.FC = () => {
                   }),
                 }}
               >
-                {t('profile.connectStripe', 'Connect Stripe')}
+                {t('profile.connectPayment', 'Connect payment')}
               </Button>
             </Box>
           </Box>

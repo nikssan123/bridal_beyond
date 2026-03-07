@@ -111,10 +111,6 @@ const Home: React.FC = () => {
                     navigate('/login');
                     return;
                   }
-                  if (!user.hasStripeAccount) {
-                    navigate('/profile');
-                    return;
-                  }
                   navigate('/create');
                 }}
                 sx={{

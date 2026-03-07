@@ -6,7 +6,8 @@ import * as stripeService from '../../services/stripe.service';
 import * as ordersRepository from './ordersRepository';
 import * as paymentsRepository from '../payments/paymentsRepository';
 import * as disputesRepository from '../disputes/disputesRepository';
-import { sendOrderConfirmationEmail, sendSellerNewOrderEmail, sendBuyerOrderShippedEmail } from '../../services/mailService';
+import { sendOrderConfirmationEmail, sendSellerNewOrderEmail, sendBuyerOrderShippedEmail, sendSellerBuyerWantsToBuyEmail } from '../../services/mailService';
+import * as authRepository from '../auth/authRepository';
 
 const createOrderBody = z.object({
   listingId: z.string().uuid('Invalid listing'),
@@ -72,15 +73,45 @@ export async function createOrder(req: Request, res: Response): Promise<void> {
     }
     const seller = listing.seller;
     if (!seller?.stripe_account_id) {
-      res.status(400).json({ message: 'Seller has not connected Stripe' });
+      const profileUrl = `${env.clientUrl}/profile`;
+      const buyer = await authRepository.findById(userId);
+      if (seller.email) {
+        await sendSellerBuyerWantsToBuyEmail({
+          to: seller.email,
+          sellerName: seller.name,
+          listingTitle: listing.title,
+          profileUrl,
+          buyerName: buyer?.name ?? null,
+        });
+      }
+      res.status(400).json({
+        code: 'SELLER_PAYMENT_NOT_SET_UP',
+        message:
+          "This seller hasn't completed payment setup yet, so checkout isn't available. You can send them a private message to ask when they'll be ready to accept orders.",
+        sellerId: listing.seller_id,
+        listingId: listing.id,
+      });
       return;
     }
 
     const connectAccount = await stripeService.getConnectAccount(seller.stripe_account_id);
     if (!connectAccount) {
+      const profileUrl = `${env.clientUrl}/profile`;
+      if (seller.email) {
+        await sendSellerBuyerWantsToBuyEmail({
+          to: seller.email,
+          sellerName: seller.name,
+          listingTitle: listing.title,
+          profileUrl,
+          buyerName: (await authRepository.findById(userId))?.name ?? null,
+        });
+      }
       res.status(400).json({
+        code: 'SELLER_PAYMENT_NOT_SET_UP',
         message:
-          "The seller's payment account is not set up for payments. Please ask them to reconnect Stripe in their profile, then try again.",
+          "This seller hasn't completed payment setup yet, so checkout isn't available. You can send them a private message to ask when they'll be ready to accept orders.",
+        sellerId: listing.seller_id,
+        listingId: listing.id,
       });
       return;
     }
