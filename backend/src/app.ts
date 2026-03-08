@@ -12,7 +12,29 @@ import webhooksStripeRoutes from './modules/webhooks/webhooksStripeRoutes';
 const app = express();
 
 app.use(helmet());
-app.use(morgan(env.nodeEnv === 'development' ? 'dev' : 'combined'));
+
+// Extend HTTP logs with authenticated user info while preserving the existing structure.
+// We mirror morgan's built-in formats and append a `user=:user` field at the end.
+morgan.token('user', (req: any) => {
+  const user = (req as any).user;
+  if (!user) return 'anonymous';
+
+  const id = (user as any).id;
+  const email = (user as any).email;
+
+  if (id && email) return `${id}:${email}`;
+  if (id) return String(id);
+  if (email) return String(email);
+
+  return 'authenticated';
+});
+
+const morganFormat =
+  env.nodeEnv === 'development'
+    ? ':method :url :status :response-time ms - :res[content-length] user=:user'
+    : ':remote-addr - :remote-user [:date[clf]] ":method :url HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent" user=:user';
+
+app.use(morgan(morganFormat));
 app.use(cors({ origin: env.corsOrigin.split(',').map((o) => o.trim()), credentials: true }));
 
 // Stripe webhook must receive raw body for signature verification (before express.json())

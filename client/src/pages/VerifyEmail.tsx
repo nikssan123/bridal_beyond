@@ -6,6 +6,7 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { verifyEmail, resendVerificationEmail, clearAuthError } from '@/features/auth/authSlice';
 import { useTranslation } from 'react-i18next';
 import { getAuthErrorKey } from '@/lib/authErrors';
+import { trackCompleteRegistration } from '@/lib/metaPixel';
 
 const RESEND_COOLDOWN_SECONDS = 60;
 
@@ -49,7 +50,10 @@ const VerifyEmail: React.FC = () => {
     e.preventDefault();
     setResendSuccess(false);
     dispatch(verifyEmail({ email, code })).then((result) => {
-      if (verifyEmail.fulfilled.match(result)) navigate('/profile');
+      if (verifyEmail.fulfilled.match(result)) {
+        trackCompleteRegistration();
+        navigate('/profile');
+      }
     });
   };
 

@@ -260,14 +260,14 @@ const Profile: React.FC = () => {
             >
               {t('profile.editProfile')}
             </Button>
-            <Button
+            {/* <Button
               variant="text"
               color="error"
               onClick={() => setDeleteDialogOpen(true)}
               sx={{ justifyContent: 'flex-start', p: 0, minWidth: 0 }}
             >
               {t('profile.deleteAccount', 'Delete account')}
-            </Button>
+            </Button> */}
           </Box>
           {hasStripeAccount && (
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1, minWidth: 0 }}>

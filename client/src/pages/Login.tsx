@@ -8,6 +8,7 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { loginUser, loginWithGoogle, loginWithMeta, clearAuthError } from '@/features/auth/authSlice';
 import { useTranslation } from 'react-i18next';
 import { getAuthErrorKey } from '@/lib/authErrors';
+import { trackCompleteRegistration } from '@/lib/metaPixel';
 
 const Login: React.FC = () => {
   const { t } = useTranslation();
@@ -40,7 +41,12 @@ const Login: React.FC = () => {
 
   const handleGoogleSuccess = (response: { accessToken: string }) => {
     dispatch(loginWithGoogle(response.accessToken)).then((result) => {
-      if (loginWithGoogle.fulfilled.match(result)) navigate(redirectTo || '/profile', { replace: true });
+      if (loginWithGoogle.fulfilled.match(result)) {
+        if (result.payload.isNewUser) {
+          trackCompleteRegistration();
+        }
+        navigate(redirectTo || '/profile', { replace: true });
+      }
     });
   };
 

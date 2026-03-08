@@ -31,7 +31,12 @@ const Register: React.FC = () => {
 
   const handleGoogleSuccess = (response: { accessToken: string }) => {
     dispatch(loginWithGoogle(response.accessToken)).then((result) => {
-      if (loginWithGoogle.fulfilled.match(result)) navigate('/profile', { replace: true });
+      if (loginWithGoogle.fulfilled.match(result)) {
+        if (result.payload.isNewUser) {
+          trackCompleteRegistration();
+        }
+        navigate('/profile', { replace: true });
+      }
     });
   };
 
@@ -45,7 +50,6 @@ const Register: React.FC = () => {
     e.preventDefault();
     dispatch(registerUser({ name, email, password })).then((result) => {
       if (registerUser.fulfilled.match(result)) {
-        trackCompleteRegistration();
         navigate('/verify-email', { state: { email } });
       }
     });

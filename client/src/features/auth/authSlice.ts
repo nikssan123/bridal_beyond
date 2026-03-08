@@ -172,13 +172,22 @@ export const deleteAccount = createAsyncThunk(
   }
 );
 
+interface GoogleAuthResponse {
+  user: User;
+  token: string;
+  isNewUser?: boolean;
+}
+
 export const loginWithGoogle = createAsyncThunk(
   'auth/loginWithGoogle',
   async (accessToken: string, { rejectWithValue }) => {
     try {
-      const { data } = await api.post<{ user: User; token: string }>('/auth/google', { accessToken });
+      const { data } = await api.post<GoogleAuthResponse>('/auth/google', { accessToken });
       localStorage.setItem('token', data.token);
-      return data.user;
+      return {
+        user: data.user,
+        isNewUser: data.isNewUser ?? false,
+      };
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message ||
@@ -349,7 +358,7 @@ const authSlice = createSlice({
         state.error = null;
       })
       .addCase(loginWithGoogle.fulfilled, (state, action) => {
-        state.user = action.payload;
+        state.user = action.payload.user;
         state.isAuthenticated = true;
         state.status = 'succeeded';
         state.error = null;

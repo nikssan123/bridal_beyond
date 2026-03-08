@@ -99,7 +99,7 @@ export async function google(req: Request, res: Response, next: NextFunction): P
     let user = await authRepo.findByGoogleId(payload.sub);
     if (user) {
       const token = signToken({ sub: user.id, email: user.email, role: user.role });
-      res.json({ user: toAuthResponse(user), token });
+      res.json({ user: toAuthResponse(user), token, isNewUser: false });
       return;
     }
 
@@ -110,7 +110,7 @@ export async function google(req: Request, res: Response, next: NextFunction): P
         const updated = await authRepo.findById(user.id);
         user = updated ?? user;
         const token = signToken({ sub: user.id, email: user.email, role: user.role });
-        res.json({ user: toAuthResponse(user), token });
+        res.json({ user: toAuthResponse(user), token, isNewUser: false });
         return;
       }
       next(badRequest('This email is already linked to another Google account'));
@@ -124,7 +124,7 @@ export async function google(req: Request, res: Response, next: NextFunction): P
       avatarUrl: payload.picture ?? null,
     });
     const token = signToken({ sub: newUser.id, email: newUser.email, role: newUser.role });
-    res.status(201).json({ user: toAuthResponse(newUser), token });
+    res.status(201).json({ user: toAuthResponse(newUser), token, isNewUser: true });
   } catch (e) {
     next(e);
   }

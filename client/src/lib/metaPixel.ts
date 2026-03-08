@@ -2,6 +2,7 @@ declare global {
   interface Window {
     fbq?: (...args: any[]) => void;
     META_PIXEL_INITIALIZED?: boolean;
+    META_COMPLETE_REGISTRATION_TRACKED?: boolean;
   }
 }
 
@@ -20,7 +21,8 @@ export function trackPageView(): void {
 }
 
 export function trackCompleteRegistration(): void {
-  if (!window.fbq || !window.META_PIXEL_INITIALIZED) return;
+  if (!window.fbq || !window.META_PIXEL_INITIALIZED || window.META_COMPLETE_REGISTRATION_TRACKED) return;
   window.fbq('track', 'CompleteRegistration');
+  window.META_COMPLETE_REGISTRATION_TRACKED = true;
 }
 
