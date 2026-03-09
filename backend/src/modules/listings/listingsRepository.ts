@@ -162,7 +162,7 @@ export async function list(filters: ListFilters): Promise<ListResult> {
   const limit = filters.limit ?? 24;
   const offset = filters.offset ?? 0;
 
-  const [total, rows, stats] = await Promise.all([
+  const [total, rows, agg] = await Promise.all([
     prisma.listing.count({ where }),
     prisma.listing.findMany({
       where,
@@ -186,7 +186,10 @@ export async function list(filters: ListFilters): Promise<ListResult> {
         return orderBy;
       })(),
     }),
-    getOrInitListingStats(),
+    prisma.listing.aggregate({
+      where,
+      _max: { price: true },
+    }),
   ]);
 
   const listings = rows.map((l: any) => {
@@ -227,7 +230,7 @@ export async function list(filters: ListFilters): Promise<ListResult> {
     );
   });
 
-  const maxPrice = Number(stats.max_active_price ?? 0);
+  const maxPrice = agg._max.price != null ? Number(agg._max.price) : 0;
 
   return { listings, total, maxPrice };
 }

@@ -37,7 +37,7 @@ const initialState: ListingsState = {
   status: 'idle',
   error: null,
   // default max price (EUR) used before backend value arrives
-  maxPrice: 100000,
+  maxPrice: 0,
    featured: [],
    featuredStatus: 'idle',
 };

@@ -15,9 +15,9 @@ interface Props {
 const FilterContent: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
   const dispatch = useAppDispatch();
   const filters = useAppSelector((state) => state.filters);
-  const maxPrice = useAppSelector((state) => state.listings.maxPrice || 100000);
-
-  const sliderMax = maxPrice > 0 ? maxPrice : 100000;
+  const backendMaxPrice = useAppSelector((state) => state.listings.maxPrice);
+  const fallbackMax = 5000;
+  const sliderMax = backendMaxPrice && backendMaxPrice > 0 ? backendMaxPrice : fallbackMax;
   const sliderValue: [number, number] = [
     Math.max(0, Math.min(filters.priceRange[0], sliderMax)),
     Math.max(0, Math.min(filters.priceRange[1], sliderMax)),

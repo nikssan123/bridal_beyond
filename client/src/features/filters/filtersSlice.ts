@@ -13,7 +13,7 @@ const initialState: FiltersState = {
   category: '',
   size: '',
   condition: '',
-  priceRange: [0, 100000],
+  priceRange: [0, 5000],
   sortBy: 'newest',
   searchQuery: '',
 };
