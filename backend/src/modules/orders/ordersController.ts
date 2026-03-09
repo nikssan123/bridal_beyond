@@ -351,7 +351,7 @@ export async function confirmReceived(req: Request, res: Response): Promise<void
 
     const updated = await prisma.order.update({
       where: { id: orderId },
-      data: { status: 'completed' },
+      data: { status: 'completed', payout_released_at: new Date() },
     });
 
     res.json(updated);

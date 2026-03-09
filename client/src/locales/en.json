@@ -376,7 +376,8 @@
         "current": "This order was cancelled or the payment failed.",
         "next": "You can start a new order by going back to the listing."
       }
-    }
+    },
+    "disputeWindowHint": "You can open a dispute while the payment is held in protection and up to 3 days after the payment is released to the seller."
   },
   "stripeErrors": {
     "card_declined": "Your card was declined. Try a different card or contact your bank.",

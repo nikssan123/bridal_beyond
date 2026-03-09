@@ -312,6 +312,25 @@ const OrderDetails: React.FC = () => {
         title={t('order.title', 'Order details')}
         subtitle={t('order.subtitle', 'Track the status of your protected purchase.')}
       />
+      {isBuyer && (
+        <Box
+          sx={{
+            mt: 1,
+            mb: 2,
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 1,
+          }}
+        >
+          <InfoOutlinedIcon sx={{ fontSize: 18, color: 'text.secondary', mt: 0.3 }} />
+          <Typography variant="body2" color="text.secondary">
+            {t(
+              'order.disputeWindowHint',
+              'You can open a dispute while the payment is held in protection and up to 3 days after the payment is released to the seller.'
+            )}
+          </Typography>
+        </Box>
+      )}
       {error && (
         <Alert severity="error" sx={{ mb: 3 }} onClose={() => {}}>
           {error}

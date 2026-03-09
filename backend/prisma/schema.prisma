@@ -187,6 +187,7 @@ model Order {
 
   created_at          DateTime @default(now())
   updated_at          DateTime @default(now())
+  payout_released_at  DateTime?
 
   listing Listing @relation(fields: [listing_id], references: [id], onDelete: Cascade)
   buyer   User    @relation("UserOrdersAsBuyer", fields: [buyer_id], references: [id], onDelete: Cascade)

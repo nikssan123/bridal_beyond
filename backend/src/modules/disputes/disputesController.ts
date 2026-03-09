@@ -39,6 +39,18 @@ export async function createForOrder(req: Request, res: Response): Promise<void>
       return;
     }
 
+    if (order.payout_released_at) {
+      const payoutReleasedAt = new Date(order.payout_released_at);
+      const deadline = new Date(payoutReleasedAt.getTime() + 3 * 24 * 60 * 60 * 1000);
+      const now = new Date();
+      if (now > deadline) {
+        res.status(400).json({
+          message: 'Disputes can only be opened within 3 days after the payment is released to the seller',
+        });
+        return;
+      }
+    }
+
     const existingOpen = await disputesRepository.findOpenByOrderId(orderId);
     if (existingOpen) {
       res.status(400).json({ message: 'An open dispute already exists for this order' });

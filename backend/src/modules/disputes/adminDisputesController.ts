@@ -122,7 +122,7 @@ export async function resolveDispute(req: Request, res: Response): Promise<void>
         await stripeService.capturePaymentIntent(order.payment_intent_id);
         await prisma.order.update({
           where: { id: order.id },
-          data: { status: 'completed' },
+          data: { status: 'completed', payout_released_at: new Date() },
         });
         newStatus = body.outcome === 'seller_payout' ? 'resolved_seller' : 'cancelled';
       }
@@ -151,6 +151,13 @@ export async function resolveDispute(req: Request, res: Response): Promise<void>
 
         newStatus = 'resolved_buyer';
       } else if (body.outcome === 'seller_payout') {
+        // Payment was already captured earlier; ensure payout timestamp is set if missing.
+        if (!order.payout_released_at) {
+          await prisma.order.update({
+            where: { id: order.id },
+            data: { payout_released_at: new Date() },
+          });
+        }
         newStatus = 'resolved_seller';
       } else if (body.outcome === 'no_refund') {
         newStatus = 'cancelled';
