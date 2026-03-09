@@ -16,6 +16,7 @@ import {
 import SendIcon from '@mui/icons-material/Send';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import PageContainer from '@/components/PageContainer';
+import SafetyInfoCard from '@/components/SafetyInfoCard';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   fetchConversations,
@@ -173,6 +174,11 @@ const Messages: React.FC = () => {
       >
         {t('messages.title')}
       </Typography>
+
+      <SafetyInfoCard
+        title={t('safety.keepCommunicationOnPlatformTitle')}
+        body={t('safety.keepCommunicationOnPlatformBody')}
+      />
 
       <Box
         sx={{

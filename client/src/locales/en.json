@@ -184,6 +184,7 @@
     "imagesInvalidType": "File must be an image (JPEG, PNG or WebP).",
     "imagesTooLarge": "File is too large. Maximum size is 20MB per image.",
     "imagesTotalTooLarge": "Total images size would exceed 40MB. Remove some or use smaller files.",
+    "photosHint": "For best results upload at least three photos: front of the dress, back of the dress, and one photo where you are wearing it.",
     "imageUploadTimeout": "Upload took too long. Try a smaller image or better connection.",
     "editListing": "Edit listing",
     "saveChanges": "Save changes",
@@ -212,6 +213,10 @@
     "message": "We use cookies and Meta Pixel to analyze traffic and measure the performance of our ads. You can accept or decline optional tracking.",
     "accept": "Accept",
     "decline": "Decline"
+  },
+  "safety": {
+    "keepCommunicationOnPlatformTitle": "Keep communication on the platform",
+    "keepCommunicationOnPlatformBody": "All communication must take place on the site – this way we have evidence if a dispute arises and can always protect the honest user. Listings or messages that encourage communication outside the platform will be deleted and the users removed."
   },
   "profile": {
     "editProfile": "Edit profile",

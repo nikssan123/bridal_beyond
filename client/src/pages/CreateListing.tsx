@@ -20,6 +20,7 @@ import {
 import PageContainer from '@/components/PageContainer';
 import SectionHeader from '@/components/SectionHeader';
 import ImageUploader from '@/components/ImageUploader';
+import SafetyInfoCard from '@/components/SafetyInfoCard';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { createListing, uploadListingImage } from '@/features/listings/listingsSlice';
 import { useNavigate } from 'react-router-dom';
@@ -184,6 +185,10 @@ const CreateListing: React.FC = () => {
         </DialogActions>
       </Dialog>
       <SectionHeader title={t('listing.addListing')} subtitle={t('listing.addListingSubtitle')} />
+      <SafetyInfoCard
+        title={t('safety.keepCommunicationOnPlatformTitle')}
+        body={t('safety.keepCommunicationOnPlatformBody')}
+      />
       {submitError && (
         <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setSubmitError(null)}>
           {submitError}
@@ -195,7 +200,18 @@ const CreateListing: React.FC = () => {
         </Alert>
       )}
       <Box component="form" onSubmit={handleSubmit}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, fontFamily: "'Playfair Display', serif" }}>{t('listing.photos')}</Typography>
+        <Typography
+          variant="subtitle1"
+          sx={{ fontWeight: 600, mb: 0.5, fontFamily: "'Playfair Display', serif" }}
+        >
+          {t('listing.photos')}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          {t(
+            'listing.photosHint',
+            'For best results upload at least three photos: front of the dress, back of the dress, and one photo where you are wearing it.'
+          )}
+        </Typography>
         <ImageUploader
           images={images}
           onChange={(urls) => {
