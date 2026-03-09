@@ -39,6 +39,7 @@ const listQuerySchema = {
     sortBy: z.enum(['newest', 'price-asc', 'price-desc']).optional(),
     sellerId: z.string().optional(),
     status: z.string().optional(),
+    featured: z.enum(['true', 'false']).optional(),
     limit: z.coerce.number().min(1).max(100).optional(),
     offset: z.coerce.number().min(0).optional(),
   }),

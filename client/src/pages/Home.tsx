@@ -18,20 +18,24 @@ import heroImg from '@/assets/test.png';
 import ListingCard from '@/components/ListingCard';
 import SectionHeader from '@/components/SectionHeader';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { fetchListings } from '@/features/listings/listingsSlice';
+import { fetchListings, fetchFeaturedListings } from '@/features/listings/listingsSlice';
 import { useTranslation } from 'react-i18next';
 
 const Home: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { listings, status } = useAppSelector((state) => state.listings);
+  const { listings, status, featured, featuredStatus } = useAppSelector((state) => state.listings);
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
-  const featured = listings.slice(0, 3);
-
   useEffect(() => {
     if (status === 'idle') dispatch(fetchListings({}));
   }, [dispatch, status]);
+
+  useEffect(() => {
+    if (featuredStatus === 'idle') {
+      dispatch(fetchFeaturedListings());
+    }
+  }, [dispatch, featuredStatus]);
 
   return (
     <>
@@ -155,7 +159,7 @@ const Home: React.FC = () => {
       <Box sx={{ bgcolor: 'background.paper', py: { xs: 5, md: 8 } }}>
         <Container maxWidth="lg">
           <SectionHeader title={t('home.featured')} subtitle={t('home.featuredSubtitle')} />
-          {status === 'loading' && listings.length === 0 ? (
+          {featuredStatus === 'loading' && featured.length === 0 ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
               <CircularProgress sx={{ color: 'primary.dark' }} />
             </Box>

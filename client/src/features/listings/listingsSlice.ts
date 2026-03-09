@@ -22,6 +22,8 @@ interface ListingsState {
   status: 'idle' | 'loading' | 'succeeded' | 'failed';
   error: string | null;
   maxPrice: number;
+  featured: Listing[];
+  featuredStatus: 'idle' | 'loading' | 'succeeded' | 'failed';
 }
 
 const initialState: ListingsState = {
@@ -36,6 +38,8 @@ const initialState: ListingsState = {
   error: null,
   // default max price (EUR) used before backend value arrives
   maxPrice: 100000,
+   featured: [],
+   featuredStatus: 'idle',
 };
 
 export const fetchListings = createAsyncThunk(
@@ -145,6 +149,16 @@ export const fetchListingsBySeller = createAsyncThunk(
   }
 );
 
+export const fetchFeaturedListings = createAsyncThunk(
+  'listings/fetchFeaturedListings',
+  async () => {
+    const { data } = await api.get<ListResponse>('/listings', {
+      params: { featured: 'true', limit: 3 },
+    });
+    return data.listings;
+  }
+);
+
 const listingsSlice = createSlice({
   name: 'listings',
   initialState,
@@ -216,6 +230,18 @@ const listingsSlice = createSlice({
         state.profileListings = action.payload;
       })
       .addCase(fetchListingsBySeller.rejected, (state) => { state.profileListingsStatus = 'failed'; });
+      builder
+        .addCase(fetchFeaturedListings.pending, (state) => {
+          state.featuredStatus = 'loading';
+        })
+        .addCase(fetchFeaturedListings.fulfilled, (state, action) => {
+          state.featuredStatus = 'succeeded';
+          state.featured = action.payload;
+        })
+        .addCase(fetchFeaturedListings.rejected, (state) => {
+          state.featuredStatus = 'failed';
+          state.featured = [];
+        });
   },
 });
 

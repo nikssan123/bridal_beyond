@@ -17,6 +17,9 @@ export async function list(req: Request, res: Response, next: NextFunction): Pro
     const sortBy = (req.query.sortBy as 'newest' | 'price-asc' | 'price-desc') || 'newest';
     const sellerId = (req.query.sellerId as string) || undefined;
     let status = (req.query.status as string) || undefined;
+    const featuredParam = (req.query.featured as string) || undefined;
+    const featured =
+      featuredParam === 'true' ? true : featuredParam === 'false' ? false : undefined;
     // By default, hide non-active (e.g. sold) listings from public browse endpoints.
     // Seller profile views explicitly pass a status filter and are not affected.
     if (!status && !sellerId) {
@@ -36,6 +39,7 @@ export async function list(req: Request, res: Response, next: NextFunction): Pro
       status,
       limit,
       offset,
+      featured,
     });
     res.json(result);
   } catch (e) {

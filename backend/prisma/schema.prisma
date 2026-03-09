@@ -63,6 +63,7 @@ model Listing {
   length         String   @db.VarChar(50)
   seller_id      String   @db.Uuid
   status         String?  @default("active") @db.VarChar(20)
+  is_featured    Boolean  @default(false)
   created_at     DateTime @default(now())
 
   seller        User           @relation("UserListings", fields: [seller_id], references: [id])

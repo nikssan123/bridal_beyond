@@ -69,6 +69,7 @@ export interface ListFilters {
   status?: string;
   limit?: number;
   offset?: number;
+  featured?: boolean;
 }
 
 async function getOrInitListingStats() {
@@ -137,6 +138,13 @@ export async function list(filters: ListFilters): Promise<ListResult> {
   if (filters.status) {
     whereBase.status = filters.status;
     where.status = filters.status;
+  }
+  if (filters.featured === true) {
+    whereBase.is_featured = true;
+    where.is_featured = true;
+  } else if (filters.featured === false) {
+    whereBase.is_featured = false;
+    where.is_featured = false;
   }
 
   // For public browsing (no specific seller filter), hide listings that have an active order

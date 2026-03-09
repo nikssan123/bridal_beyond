@@ -35,6 +35,9 @@ import {
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined';
 import GavelOutlinedIcon from '@mui/icons-material/GavelOutlined';
+import PhotoLibraryOutlinedIcon from '@mui/icons-material/PhotoLibraryOutlined';
+import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
+import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import PageContainer from '@/components/PageContainer';
 import SectionHeader from '@/components/SectionHeader';
 import api from '@/api/axios';
@@ -73,6 +76,12 @@ interface AdminDispute {
   order?: AdminDisputeOrder;
 }
 
+interface AdminListingImage {
+  id: string;
+  url: string;
+  position: number;
+}
+
 const adminHeaders = (token: string) => ({ 'X-Admin-Token': token });
 
 const AdminPortal: React.FC = () => {
@@ -89,7 +98,7 @@ const AdminPortal: React.FC = () => {
   const [loadingRows, setLoadingRows] = useState(false);
   const [dataError, setDataError] = useState<string | null>(null);
 
-  const [section, setSection] = useState<'tables' | 'disputes'>('tables');
+  const [section, setSection] = useState<'tables' | 'disputes' | 'photos'>('tables');
   const [disputes, setDisputes] = useState<AdminDispute[]>([]);
   const [disputeStatusFilter, setDisputeStatusFilter] = useState<string>('open');
   const [disputesLoading, setDisputesLoading] = useState(false);
@@ -104,6 +113,18 @@ const AdminPortal: React.FC = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [listingToDelete, setListingToDelete] = useState<{ id: string; title?: string } | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const [photoListingId, setPhotoListingId] = useState('');
+  const [photoListingTitle, setPhotoListingTitle] = useState<string | null>(null);
+  const [photoImages, setPhotoImages] = useState<AdminListingImage[]>([]);
+  const [photoLoading, setPhotoLoading] = useState(false);
+  const [photoSaving, setPhotoSaving] = useState(false);
+
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingListing, setEditingListing] = useState<{ id: string; title: string; description: string } | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
 
   const isLoggedIn = !!token;
   const theme = useTheme();
@@ -303,6 +324,70 @@ const AdminPortal: React.FC = () => {
     }
   };
 
+  const loadListingPhotos = async () => {
+    if (!token || !photoListingId.trim()) return;
+    setPhotoLoading(true);
+    setDataError(null);
+    try {
+      const { data } = await api.get<{ images: AdminListingImage[] }>(
+        `/admin/listings/${photoListingId.trim()}/images/order`,
+        { headers: adminHeaders(token) },
+      );
+      setPhotoImages(
+        (data.images || []).slice().sort((a, b) => a.position - b.position),
+      );
+      setPhotoListingTitle(photoListingTitle ?? null);
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Failed to load listing photos';
+      setDataError(msg);
+      setPhotoImages([]);
+      setPhotoListingTitle(null);
+    } finally {
+      setPhotoLoading(false);
+    }
+  };
+
+  const handleSetMainImage = (index: number) => {
+    setPhotoImages((prev) => {
+      if (index <= 0 || index >= prev.length) return prev;
+      const next = [...prev];
+      const [item] = next.splice(index, 1);
+      return [item, ...next];
+    });
+  };
+
+  const movePhoto = (index: number, direction: 'left' | 'right') => {
+    setPhotoImages((prev) => {
+      const next = [...prev];
+      const targetIndex = direction === 'left' ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= next.length) return prev;
+      const [item] = next.splice(index, 1);
+      next.splice(targetIndex, 0, item);
+      return next;
+    });
+  };
+
+  const handleSavePhotoOrder = async () => {
+    if (!token || !photoListingId.trim() || photoImages.length === 0) return;
+    setPhotoSaving(true);
+    setDataError(null);
+    try {
+      const { data } = await api.patch<{ images: AdminListingImage[] }>(
+        `/admin/listings/${photoListingId.trim()}/images/order`,
+        { imageIds: photoImages.map((img) => img.id) },
+        { headers: adminHeaders(token) },
+      );
+      setPhotoImages(
+        (data.images || []).slice().sort((a, b) => a.position - b.position),
+      );
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Failed to save image order';
+      setDataError(msg);
+    } finally {
+      setPhotoSaving(false);
+    }
+  };
+
   if (!isLoggedIn) {
     return (
       <PageContainer maxWidth="sm">
@@ -345,6 +430,8 @@ const AdminPortal: React.FC = () => {
 
   const allColumns = rows.length > 0 ? Object.keys(rows[0]) : [];
   const showDeleteColumn = selectedTable === 'listings' && rows.length > 0;
+  const showFeaturedColumn = selectedTable === 'listings' && rows.length > 0;
+  const showEditColumn = selectedTable === 'listings' && rows.length > 0;
   const isOpenDispute = currentDispute?.status === 'open';
   const isPreCapture = currentDispute?.order?.status === 'shipped';
   const order = currentDispute?.order;
@@ -357,7 +444,9 @@ const AdminPortal: React.FC = () => {
           subtitle={
             section === 'tables'
               ? 'Browse database tables. Listings can be deleted from here.'
-              : 'Review and resolve buyer disputes.'
+              : section === 'disputes'
+                ? 'Review and resolve buyer disputes.'
+                : 'Inspect and reorder listing photos to choose the main image.'
           }
         />
         <Button variant="outlined" size="small" onClick={handleLogout}>
@@ -411,6 +500,14 @@ const AdminPortal: React.FC = () => {
             >
               <GavelOutlinedIcon sx={{ mr: 1.5, color: section === 'disputes' ? 'primary.main' : 'text.secondary' }} />
               <ListItemText primary="Disputes" secondary="Resolve refunds" />
+            </ListItemButton>
+            <ListItemButton
+              selected={section === 'photos'}
+              onClick={() => setSection('photos')}
+              sx={{ borderRadius: 0 }}
+            >
+              <PhotoLibraryOutlinedIcon sx={{ mr: 1.5, color: section === 'photos' ? 'primary.main' : 'text.secondary' }} />
+              <ListItemText primary="Listing photos" secondary="Choose main image" />
             </ListItemButton>
           </List>
           {section === 'tables' && (
@@ -556,6 +653,16 @@ const AdminPortal: React.FC = () => {
                             {col}
                           </TableCell>
                         ))}
+                        {showFeaturedColumn && (
+                          <TableCell sx={{ fontWeight: 600, bgcolor: 'background.default', width: 100 }}>
+                            Featured
+                          </TableCell>
+                        )}
+                        {showEditColumn && (
+                          <TableCell sx={{ fontWeight: 600, bgcolor: 'background.default', width: 120 }}>
+                            Edit text
+                          </TableCell>
+                        )}
                         {showDeleteColumn && (
                           <TableCell sx={{ fontWeight: 600, bgcolor: 'background.default', width: 72 }}>
                             Actions
@@ -564,38 +671,93 @@ const AdminPortal: React.FC = () => {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {rows.map((row, idx) => (
-                        <TableRow key={(row.id as string) || idx} hover>
-                          {allColumns.map((col) => {
-                            const val = row[col];
-                            const isDate =
-                              typeof val === 'string' &&
-                              /^\d{4}-\d{2}-\d{2}/.test(val) &&
-                              (col.includes('_at') || col.includes('_since') || col === 'created_at' || col === 'updated_at');
-                            return (
-                              <TableCell key={col} sx={{ maxWidth: 200 }}>
-                                {typeof val === 'object' && val !== null
-                                  ? JSON.stringify(val).slice(0, 80) + (JSON.stringify(val).length > 80 ? '…' : '')
-                                  : isDate
-                                    ? new Date(val as string).toLocaleString()
-                                    : String(val ?? '')}
+                      {rows.map((row, idx) => {
+                        const id = row.id as string | undefined;
+                        const isFeatured = Boolean((row as any).is_featured);
+                        return (
+                          <TableRow key={id || idx} hover>
+                            {allColumns.map((col) => {
+                              const val = row[col];
+                              const isDate =
+                                typeof val === 'string' &&
+                                /^\d{4}-\d{2}-\d{2}/.test(val) &&
+                                (col.includes('_at') || col.includes('_since') || col === 'created_at' || col === 'updated_at');
+                              return (
+                                <TableCell key={col} sx={{ maxWidth: 200 }}>
+                                  {typeof val === 'object' && val !== null
+                                    ? JSON.stringify(val).slice(0, 80) + (JSON.stringify(val).length > 80 ? '…' : '')
+                                    : isDate
+                                      ? new Date(val as string).toLocaleString()
+                                      : String(val ?? '')}
+                                </TableCell>
+                              );
+                            })}
+                            {showFeaturedColumn && (
+                              <TableCell>
+                                <Button
+                                  size="small"
+                                  variant={isFeatured ? 'contained' : 'outlined'}
+                                  color={isFeatured ? 'secondary' : 'inherit'}
+                                  disabled={!id}
+                                  onClick={async () => {
+                                    if (!token || !id) return;
+                                    try {
+                                      const { data } = await api.patch<{ id: string; isFeatured: boolean }>(
+                                        `/admin/listings/${id}/featured`,
+                                        { isFeatured: !isFeatured },
+                                        { headers: adminHeaders(token) },
+                                      );
+                                      setRows((prev) =>
+                                        prev.map((r) =>
+                                          (r.id as string) === data.id ? { ...r, is_featured: data.isFeatured } : r,
+                                        ),
+                                      );
+                                    } catch (err: any) {
+                                      const msg =
+                                        err?.response?.data?.message || err?.message || 'Failed to update featured flag';
+                                      setDataError(msg);
+                                    }
+                                  }}
+                                >
+                                  {isFeatured ? 'Yes' : 'No'}
+                                </Button>
                               </TableCell>
-                            );
-                          })}
-                          {showDeleteColumn && (
-                            <TableCell>
-                              <IconButton
-                                size="small"
-                                color="error"
-                                onClick={() => handleDeleteListingClick(row)}
-                                title="Delete listing"
-                              >
-                                <DeleteOutlineIcon fontSize="small" />
-                              </IconButton>
-                            </TableCell>
-                          )}
-                        </TableRow>
-                      ))}
+                            )}
+                            {showEditColumn && (
+                              <TableCell>
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  disabled={!id}
+                                  onClick={() => {
+                                    if (!id) return;
+                                    const currentTitle = String((row as any).title ?? '');
+                                    const currentDescription = String((row as any).description ?? '');
+                                    setEditingListing({ id, title: currentTitle, description: currentDescription });
+                                    setEditTitle(currentTitle);
+                                    setEditDescription(currentDescription);
+                                    setEditDialogOpen(true);
+                                  }}
+                                >
+                                  Edit
+                                </Button>
+                              </TableCell>
+                            )}
+                            {showDeleteColumn && (
+                              <TableCell>
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  onClick={() => handleDeleteListingClick(row)}
+                                  title="Delete listing"
+                                >
+                                  <DeleteOutlineIcon fontSize="small" />
+                                </IconButton>
+                              </TableCell>
+                            )}
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </TableContainer>
@@ -780,6 +942,157 @@ const AdminPortal: React.FC = () => {
               )}
             </>
           )}
+
+          {section === 'photos' && (
+            <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                Listing photos
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                Enter a listing ID to load its photos, then choose which one should appear as the main image.
+              </Typography>
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: 1.5,
+                  alignItems: 'center',
+                }}
+              >
+                <TextField
+                  label="Listing ID"
+                  size="small"
+                  value={photoListingId}
+                  onChange={(e) => setPhotoListingId(e.target.value)}
+                  sx={{ minWidth: 260 }}
+                />
+                <Button
+                  variant="contained"
+                  onClick={loadListingPhotos}
+                  disabled={photoLoading || !photoListingId.trim()}
+                >
+                  {photoLoading ? <CircularProgress size={20} color="inherit" /> : 'Load photos'}
+                </Button>
+              </Box>
+              {photoImages.length > 0 && (
+                <>
+                  <Typography variant="subtitle2" sx={{ mt: 1 }}>
+                    Photos for listing <strong>{photoListingId}</strong>
+                  </Typography>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: 2,
+                      mt: 1,
+                    }}
+                  >
+                    {photoImages.map((img, index) => (
+                      <Box
+                        key={img.id}
+                        sx={{
+                          width: 120,
+                          borderRadius: 2,
+                          border: '1px solid',
+                          borderColor: index === 0 ? 'primary.main' : 'divider',
+                          overflow: 'hidden',
+                          position: 'relative',
+                          bgcolor: 'background.default',
+                        }}
+                      >
+                        <Box
+                          component="img"
+                          src={img.url}
+                          alt=""
+                          sx={{
+                            width: '100%',
+                            height: 140,
+                            objectFit: 'cover',
+                          }}
+                        />
+                        {index === 0 && (
+                          <Box
+                            sx={{
+                              position: 'absolute',
+                              top: 6,
+                              left: 6,
+                              px: 0.75,
+                              py: 0.25,
+                              borderRadius: 999,
+                              bgcolor: 'primary.main',
+                              color: 'primary.contrastText',
+                              fontSize: '0.65rem',
+                              fontWeight: 600,
+                            }}
+                          >
+                            Main
+                          </Box>
+                        )}
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            px: 0.75,
+                            py: 0.5,
+                            gap: 0.5,
+                          }}
+                        >
+                          <Typography variant="caption" color="text.secondary">
+                            #{index + 1}
+                          </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+                            <IconButton
+                              size="small"
+                              onClick={() => movePhoto(index, 'left')}
+                              disabled={index === 0}
+                            >
+                              <ArrowBackIosNewIcon sx={{ fontSize: 14 }} />
+                            </IconButton>
+                            <IconButton
+                              size="small"
+                              onClick={() => movePhoto(index, 'right')}
+                              disabled={index === photoImages.length - 1}
+                            >
+                              <ArrowForwardIosIcon sx={{ fontSize: 14 }} />
+                            </IconButton>
+                          </Box>
+                        </Box>
+                        <Button
+                          onClick={() => handleSetMainImage(index)}
+                          size="small"
+                          fullWidth
+                          variant={index === 0 ? 'outlined' : 'text'}
+                          sx={{ borderTop: '1px solid', borderColor: 'divider', borderRadius: 0 }}
+                        >
+                          Set as main
+                        </Button>
+                      </Box>
+                    ))}
+                  </Box>
+                  <Box sx={{ mt: 2 }}>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={handleSavePhotoOrder}
+                      disabled={photoSaving || photoImages.length === 0}
+                    >
+                      {photoSaving ? (
+                        <CircularProgress size={20} color="inherit" />
+                      ) : (
+                        'Save image order'
+                      )}
+                    </Button>
+                  </Box>
+                </>
+              )}
+              {!photoLoading && photoImages.length === 0 && photoListingId.trim() && (
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                  No photos loaded for this listing yet. Check the ID and try again.
+                </Typography>
+              )}
+            </Box>
+          )}
         </Paper>
       </Box>
 
@@ -798,6 +1111,99 @@ const AdminPortal: React.FC = () => {
           </Button>
           <Button color="error" variant="contained" onClick={handleDeleteListingConfirm} disabled={!!deletingId}>
             {deletingId ? <CircularProgress size={20} color="inherit" /> : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={editDialogOpen}
+        onClose={() => {
+          if (!editSaving) {
+            setEditDialogOpen(false);
+            setEditingListing(null);
+          }
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Edit listing text</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>
+            Update the title and description to remove disruptive or vulgar language. Changes apply immediately.
+          </DialogContentText>
+          <TextField
+            fullWidth
+            margin="normal"
+            label="Title"
+            value={editTitle}
+            onChange={(e) => setEditTitle(e.target.value)}
+          />
+          <TextField
+            fullWidth
+            margin="normal"
+            label="Description"
+            value={editDescription}
+            onChange={(e) => setEditDescription(e.target.value)}
+            multiline
+            minRows={4}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              if (!editSaving) {
+                setEditDialogOpen(false);
+                setEditingListing(null);
+              }
+            }}
+            disabled={editSaving}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={async () => {
+              if (!token || !editingListing) return;
+              const payload: { title?: string; description?: string } = {};
+              if (editTitle.trim() !== editingListing.title) {
+                payload.title = editTitle.trim();
+              }
+              if (editDescription.trim() !== editingListing.description) {
+                payload.description = editDescription.trim();
+              }
+              if (!payload.title && !payload.description) {
+                setEditDialogOpen(false);
+                setEditingListing(null);
+                return;
+              }
+              setEditSaving(true);
+              setDataError(null);
+              try {
+                const { data } = await api.patch<{ id: string; title: string; description: string }>(
+                  `/admin/listings/${editingListing.id}/text`,
+                  payload,
+                  { headers: adminHeaders(token) },
+                );
+                setRows((prev) =>
+                  prev.map((r) =>
+                    (r.id as string) === data.id ? { ...r, title: data.title, description: data.description } : r,
+                  ),
+                );
+                setEditDialogOpen(false);
+                setEditingListing(null);
+              } catch (err: any) {
+                const msg =
+                  err?.response?.data?.message ||
+                  err?.message ||
+                  'Failed to update listing text';
+                setDataError(msg);
+              } finally {
+                setEditSaving(false);
+              }
+            }}
+            disabled={editSaving}
+          >
+            {editSaving ? <CircularProgress size={20} color="inherit" /> : 'Save'}
           </Button>
         </DialogActions>
       </Dialog>
