@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import * as authRepo from './authRepository';
 import * as authService from './authService';
+import * as ordersRepository from '../orders/ordersRepository';
 import { signToken } from './jwt';
 import { badRequest, unauthorized } from '../../middleware/errorHandler';
 import { sendVerificationEmail, sendPasswordResetEmail } from '../../services/mailService';
@@ -36,6 +37,7 @@ export async function register(req: Request, res: Response, next: NextFunction):
       emailVerificationCode: code,
       emailVerificationExpiresAt: expiresAt,
     });
+    await ordersRepository.linkGuestOrdersToUser(user.id, user.email);
     await sendVerificationEmail({ to: user.email, name: user.name, code });
     const token = signToken({ sub: user.id, email: user.email, role: user.role });
     res.status(201).json({
@@ -70,6 +72,7 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
       next(unauthorized('Invalid email or password'));
       return;
     }
+    await ordersRepository.linkGuestOrdersToUser(user.id, user.email);
     const token = signToken({ sub: user.id, email: user.email, role: user.role });
     res.json({
       user: toAuthResponse(user),
@@ -98,6 +101,7 @@ export async function google(req: Request, res: Response, next: NextFunction): P
 
     let user = await authRepo.findByGoogleId(payload.sub);
     if (user) {
+      await ordersRepository.linkGuestOrdersToUser(user.id, user.email);
       const token = signToken({ sub: user.id, email: user.email, role: user.role });
       res.json({ user: toAuthResponse(user), token, isNewUser: false });
       return;
@@ -109,6 +113,7 @@ export async function google(req: Request, res: Response, next: NextFunction): P
         await authRepo.setGoogleId(user.id, payload.sub);
         const updated = await authRepo.findById(user.id);
         user = updated ?? user;
+        await ordersRepository.linkGuestOrdersToUser(user.id, user.email);
         const token = signToken({ sub: user.id, email: user.email, role: user.role });
         res.json({ user: toAuthResponse(user), token, isNewUser: false });
         return;
@@ -123,6 +128,7 @@ export async function google(req: Request, res: Response, next: NextFunction): P
       name: payload.name,
       avatarUrl: payload.picture ?? null,
     });
+    await ordersRepository.linkGuestOrdersToUser(newUser.id, newUser.email);
     const token = signToken({ sub: newUser.id, email: newUser.email, role: newUser.role });
     res.status(201).json({ user: toAuthResponse(newUser), token, isNewUser: true });
   } catch (e) {
@@ -152,6 +158,7 @@ export async function meta(req: Request, res: Response, next: NextFunction): Pro
 
     let user = await authRepo.findByMetaId(payload.metaId);
     if (user) {
+      await ordersRepository.linkGuestOrdersToUser(user.id, user.email);
       const token = signToken({ sub: user.id, email: user.email, role: user.role });
       res.json({ user: toAuthResponse(user), token });
       return;
@@ -163,6 +170,7 @@ export async function meta(req: Request, res: Response, next: NextFunction): Pro
         await authRepo.setMetaId(user.id, payload.metaId);
         const updated = await authRepo.findById(user.id);
         user = updated ?? user;
+        await ordersRepository.linkGuestOrdersToUser(user.id, user.email);
         const token = signToken({ sub: user.id, email: user.email, role: user.role });
         res.json({ user: toAuthResponse(user), token });
         return;
@@ -177,6 +185,7 @@ export async function meta(req: Request, res: Response, next: NextFunction): Pro
       name: payload.name,
       avatarUrl: payload.picture ?? null,
     });
+    await ordersRepository.linkGuestOrdersToUser(newUser.id, newUser.email);
     const token = signToken({ sub: newUser.id, email: newUser.email, role: newUser.role });
     res.status(201).json({ user: toAuthResponse(newUser), token });
   } catch (e) {
@@ -228,6 +237,7 @@ export async function me(req: Request, res: Response, next: NextFunction): Promi
       next(unauthorized('User not found'));
       return;
     }
+    await ordersRepository.linkGuestOrdersToUser(user.id, user.email);
     res.json({
       user: {
         id: user.id,
@@ -359,6 +369,7 @@ export async function verifyEmail(req: Request, res: Response, next: NextFunctio
       return;
     }
     const updated = await authRepo.setEmailVerified(user.id);
+    await ordersRepository.linkGuestOrdersToUser(updated.id, updated.email);
     const token = signToken({
       sub: updated.id,
       email: updated.email,
@@ -411,6 +422,7 @@ export async function resetPassword(req: Request, res: Response, next: NextFunct
     }
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
     const updated = await authRepo.clearPasswordResetAndSetPassword(user.id, passwordHash);
+    await ordersRepository.linkGuestOrdersToUser(updated.id, updated.email);
     const jwt = signToken({ sub: updated.id, email: updated.email, role: updated.role });
     res.json({
       user: {

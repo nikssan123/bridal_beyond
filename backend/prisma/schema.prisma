@@ -157,13 +157,13 @@ model Payment {
   id                String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   payment_intent_id String   @unique @db.VarChar(255)
   listing_id        String   @db.Uuid
-  buyer_id          String   @db.Uuid
+  buyer_id          String?  @db.Uuid
   amount_cents      Int
   status            String   @db.VarChar(50)
   created_at        DateTime @default(now())
 
   listing Listing @relation(fields: [listing_id], references: [id], onDelete: Cascade)
-  buyer   User    @relation("paymentsAsBuyer", fields: [buyer_id], references: [id], onDelete: Cascade)
+  buyer   User?   @relation("paymentsAsBuyer", fields: [buyer_id], references: [id], onDelete: Cascade)
 
   @@map("payments")
 }
@@ -171,7 +171,7 @@ model Payment {
 model Order {
   id                 String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   listing_id         String   @db.Uuid
-  buyer_id           String   @db.Uuid
+  buyer_id           String?  @db.Uuid
   seller_id          String   @db.Uuid
   price_cents        Int
   platform_fee_cents Int
@@ -185,12 +185,15 @@ model Order {
   courier                String?  @db.VarChar(100)
   tracking_number        String?  @db.VarChar(100)
 
+  guest_email        String?  @db.VarChar(255)
+  guest_access_token String?  @unique @db.VarChar(64)
+
   created_at          DateTime @default(now())
   updated_at          DateTime @default(now())
   payout_released_at  DateTime?
 
   listing Listing @relation(fields: [listing_id], references: [id], onDelete: Cascade)
-  buyer   User    @relation("UserOrdersAsBuyer", fields: [buyer_id], references: [id], onDelete: Cascade)
+  buyer   User?   @relation("UserOrdersAsBuyer", fields: [buyer_id], references: [id], onDelete: Cascade)
   seller  User    @relation("UserOrdersAsSeller", fields: [seller_id], references: [id], onDelete: Cascade)
 
   disputes Dispute[]

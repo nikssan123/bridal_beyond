@@ -310,7 +310,7 @@ const ListingDetails: React.FC = () => {
                 >
                   {t('listing.contactSeller')}
                 </Button>
-                {isAuthenticated && listingActive && (
+                {listingActive && (
                   <>
                     {Number(listing.price) >= MIN_ORDER_EUR ? (
                       <Button
@@ -323,7 +323,9 @@ const ListingDetails: React.FC = () => {
                           navigate(`/checkout/${listing.id}`);
                         }}
                       >
-                        {t('listing.buyWithProtection', 'Buy with Protection')}
+                        {isAuthenticated
+                          ? t('listing.buyWithProtection', 'Buy with Protection')
+                          : t('listing.buyAnonymously', 'Buy with protection (no account)')}
                       </Button>
                     ) : (
                       <Typography variant="body2" color="text.secondary" sx={{ alignSelf: 'center' }}>

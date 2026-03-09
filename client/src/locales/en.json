@@ -172,6 +172,7 @@
     "cannotReviewOwnListing": "You cannot leave a review on your own listing.",
     "contactSeller": "Contact the seller",
     "buyWithProtection": "Buy with Protection",
+    "buyAnonymously": "Buy with protection (no account)",
     "minOrderForCheckout": "Minimum order for protected checkout is 10 €. Contact the seller to arrange the sale.",
     "minPrice": "Minimum price is 10 €.",
     "minPriceHelp": "Minimum 10 € for protected checkout",
@@ -282,6 +283,11 @@
     "phone": "Phone",
     "city": "City",
     "address": "Address line",
+    "emailRequired": "Email is required for guest checkout.",
+    "emailGuestHint": "Required for guest checkout. We'll send your order confirmation here.",
+    "invalidEmail": "Please enter a valid email address.",
+    "emailAlreadyRegistered": "This email is already registered. Please log in to continue.",
+    "logIn": "Log in",
     "payment": "Payment",
     "payAndProtect": "Pay with protection",
     "authorizePayment": "Authorize payment",
@@ -377,6 +383,8 @@
         "next": "You can start a new order by going back to the listing."
       }
     },
+    "guestDisputeHint": "To open a dispute, create an account using the same email you used for this order. Your order will be transferred to your account and you can then open a dispute from My orders.",
+    "createAccount": "Create account",
     "disputeWindowHint": "You can open a dispute while the payment is held in protection and up to 3 days after the payment is released to the seller."
   },
   "stripeErrors": {

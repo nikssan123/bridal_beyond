@@ -3,39 +3,45 @@ import { z } from 'zod';
 import { validateRequest } from '../../middleware/validateRequest';
 import { authMiddleware } from '../../middleware/authMiddleware';
 import { uploadAvatar as uploadAvatarMiddleware } from '../../middleware/uploadAvatar';
+import { EMAIL_REGEX, EMAIL_INVALID_MESSAGE, EMAIL_MAX_LENGTH } from '../../lib/validation';
 import * as authController from './authController';
+
+const emailSchema = z
+  .string()
+  .max(EMAIL_MAX_LENGTH, EMAIL_INVALID_MESSAGE)
+  .regex(EMAIL_REGEX, EMAIL_INVALID_MESSAGE);
 
 const registerSchema = {
   body: z.object({
     name: z.string().min(1, 'Name is required').max(255),
-    email: z.string().email('Invalid email'),
+    email: emailSchema,
     password: z.string().min(6, 'Password must be at least 6 characters'),
   }),
 };
 
 const loginSchema = {
   body: z.object({
-    email: z.string().email('Invalid email'),
+    email: emailSchema,
     password: z.string().min(1, 'Password is required'),
   }),
 };
 
 const verifyEmailSchema = {
   body: z.object({
-    email: z.string().email('Invalid email'),
+    email: emailSchema,
     code: z.string().min(1, 'Verification code is required').max(10),
   }),
 };
 
 const resendVerificationSchema = {
   body: z.object({
-    email: z.string().email('Invalid email'),
+    email: emailSchema,
   }),
 };
 
 const forgotPasswordSchema = {
   body: z.object({
-    email: z.string().email('Invalid email'),
+    email: emailSchema,
   }),
 };
 

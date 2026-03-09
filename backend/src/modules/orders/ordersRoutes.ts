@@ -1,21 +1,29 @@
 import { Router } from 'express';
 import { authMiddleware } from '../../middleware/authMiddleware';
+import { optionalAuthMiddleware } from '../../middleware/optionalAuthMiddleware';
+import rateLimit from 'express-rate-limit';
 import * as ordersController from './ordersController';
 import * as disputesController from '../disputes/disputesController';
 
 const router = Router();
 
-router.use(authMiddleware);
+const createOrderLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 10,
+  message: { message: 'Too many order attempts. Please try again later.' },
+  standardHeaders: true,
+});
 
-router.post('/', ordersController.createOrder);
-router.get('/buyer', ordersController.listBuyerOrders);
-router.get('/seller', ordersController.listSellerOrders);
-router.get('/:id', ordersController.getOrder);
-router.post('/:id/mark-shipped', ordersController.markShipped);
-router.post('/:id/confirm-received', ordersController.confirmReceived);
+router.post('/', createOrderLimiter, optionalAuthMiddleware, ordersController.createOrder);
 
-router.post('/:id/disputes', disputesController.createForOrder);
-router.get('/:id/disputes', disputesController.listForOrder);
+router.get('/buyer', authMiddleware, ordersController.listBuyerOrders);
+router.get('/seller', authMiddleware, ordersController.listSellerOrders);
+router.post('/:id/mark-shipped', authMiddleware, ordersController.markShipped);
+router.post('/:id/disputes', authMiddleware, disputesController.createForOrder);
+router.get('/:id/disputes', authMiddleware, disputesController.listForOrder);
+
+router.get('/:id', optionalAuthMiddleware, ordersController.getOrder);
+router.post('/:id/confirm-received', optionalAuthMiddleware, ordersController.confirmReceived);
 
 export default router;
 

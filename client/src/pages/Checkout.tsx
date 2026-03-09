@@ -22,7 +22,9 @@ import { createOrder } from '@/features/orders/ordersSlice';
 import { createOrGetConversation } from '@/features/conversations/conversationsSlice';
 import { getAvatarUrl } from '@/lib/avatarUrl';
 import { getStripeErrorKey } from '@/lib/stripeErrors';
+import { isValidEmail, EMAIL_REGEX } from '@/lib/validation';
 import { useTranslation } from 'react-i18next';
+import { Link as RouterLink } from 'react-router-dom';
 
 const cardElementOptions = { hidePostalCode: true,
   style: {
@@ -51,12 +53,14 @@ const Checkout: React.FC = () => {
   const { selectedListing: listing, status: listingStatus } = useAppSelector(
     (state) => state.listings
   );
+  const user = useAppSelector((state) => state.auth.user);
   const [shipping, setShipping] = useState({
     fullName: '',
     phone: '',
     city: '',
     addressLine: '',
   });
+  const [guestEmail, setGuestEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sellerNoPayment, setSellerNoPayment] = useState<{
@@ -64,6 +68,7 @@ const Checkout: React.FC = () => {
     sellerId: string;
     listingId: string;
   } | null>(null);
+  const [emailAlreadyRegistered, setEmailAlreadyRegistered] = useState(false);
 
   useEffect(() => {
     if (listingId) {
@@ -107,14 +112,28 @@ const Checkout: React.FC = () => {
     setError(null);
 
     try {
-      const orderResult = await dispatch(
-        createOrder({
-          listingId,
-          shippingAddress: trimmed,
-        })
-      ).unwrap();
+      const orderPayload: {
+        listingId: string;
+        shippingAddress: { fullName: string; phone: string; city: string; addressLine: string };
+        guestEmail?: string;
+      } = { listingId, shippingAddress: trimmed };
+      if (!user) {
+        const email = guestEmail.trim();
+        if (!email) {
+          setError(t('checkout.emailRequired', 'Email is required for guest checkout.'));
+          setSubmitting(false);
+          return;
+        }
+        if (!isValidEmail(email)) {
+          setError(t('checkout.invalidEmail', 'Please enter a valid email address.'));
+          setSubmitting(false);
+          return;
+        }
+        orderPayload.guestEmail = email;
+      }
+      const orderResult = await dispatch(createOrder(orderPayload)).unwrap();
 
-      const { orderId, clientSecret } = orderResult;
+      const { orderId, clientSecret, guestAccessToken } = orderResult;
 
       const { error: confirmError } = await stripe.confirmCardPayment(
         clientSecret,
@@ -131,13 +150,24 @@ const Checkout: React.FC = () => {
         return;
       }
 
-      navigate(`/orders/${orderId}`);
+      navigate(guestAccessToken ? `/orders/${orderId}?token=${guestAccessToken}` : `/orders/${orderId}`);
     } catch (err: any) {
       setSubmitting(false);
       const payload = err && typeof err === 'object' ? err : undefined;
       const code = payload?.code;
       const sellerId = payload?.sellerId;
       const listingId = payload?.listingId;
+      if (code === 'EMAIL_ALREADY_REGISTERED') {
+        setEmailAlreadyRegistered(true);
+        setError(
+          t(
+            'checkout.emailAlreadyRegistered',
+            'This email is already registered. Please log in first.'
+          )
+        );
+        return;
+      }
+      setEmailAlreadyRegistered(false);
       if (code === 'SELLER_PAYMENT_NOT_SET_UP' && sellerId && listingId) {
         setSellerNoPayment({
           message: t(
@@ -304,6 +334,23 @@ const Checkout: React.FC = () => {
                 {t('checkout.shipping', 'Shipping details')}
               </Typography>
               <Grid container spacing={2} sx={{ mt: 0.5 }}>
+                {!user && (
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      type="email"
+                      label={t('checkout.email', 'Email')}
+                      value={guestEmail}
+                      onChange={(e) => setGuestEmail(e.target.value)}
+                      required
+                      inputProps={{
+                        maxLength: 255,
+                        pattern: EMAIL_REGEX.source,
+                      }}
+                      helperText={t('checkout.emailGuestHint', 'Required for guest checkout. We’ll send your order confirmation here.')}
+                    />
+                  </Grid>
+                )}
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
@@ -398,7 +445,27 @@ const Checkout: React.FC = () => {
               )}
 
               {error && (
-                <Alert severity="error" sx={{ mt: 2 }} onClose={() => setError(null)}>
+                <Alert
+                  severity="error"
+                  sx={{ mt: 2 }}
+                  onClose={() => {
+                    setError(null);
+                    setEmailAlreadyRegistered(false);
+                  }}
+                  action={
+                    emailAlreadyRegistered ? (
+                      <Button
+                        component={RouterLink}
+                        to={`/login?returnTo=${encodeURIComponent(`/checkout/${listingId}`)}`}
+                        color="inherit"
+                        size="small"
+                        variant="outlined"
+                      >
+                        {t('checkout.logIn', 'Log in')}
+                      </Button>
+                    ) : undefined
+                  }
+                >
                   {error}
                 </Alert>
               )}

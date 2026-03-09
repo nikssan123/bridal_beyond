@@ -51,29 +51,33 @@ export async function handleStripeWebhook(req: Request, res: Response): Promise<
               data: { status: 'payment_secured' },
             });
 
-            if (order.buyer && order.seller && order.listing) {
-              const orderUrl = `${env.clientUrl}/orders/${order.id}`;
-              const totalPrice = `${(Number(order.price_cents) / 100).toFixed(2)} €`;
+            const buyerEmail = order.buyer?.email ?? order.guest_email ?? null;
+            const buyerName = order.buyer?.name ?? order.shipping_full_name ?? null;
+            const orderUrl =
+              order.buyer_id != null
+                ? `${env.clientUrl}/orders/${order.id}`
+                : order.guest_access_token != null
+                  ? `${env.clientUrl}/orders/${order.id}?token=${order.guest_access_token}`
+                  : `${env.clientUrl}/orders/${order.id}`;
 
-              // Fire-and-forget buyer email
+            if (order.seller && order.listing && buyerEmail && buyerName) {
               sendOrderConfirmationEmail({
-                to: order.buyer.email,
-                name: order.buyer.name,
+                to: buyerEmail,
+                name: buyerName,
                 orderUrl,
                 listingTitle: order.listing.title,
-                totalPrice,
+                totalPrice: `${(Number(order.price_cents) / 100).toFixed(2)} €`,
               }).catch((err) =>
                 console.error('Order confirmation email error (webhook):', err)
               );
 
-              // Fire-and-forget seller email
               sendSellerNewOrderEmail({
                 to: order.seller.email,
                 sellerName: order.seller.name,
                 orderUrl,
                 listingTitle: order.listing.title,
-                totalPrice,
-                buyerName: order.buyer.name,
+                totalPrice: `${(Number(order.price_cents) / 100).toFixed(2)} €`,
+                buyerName,
               }).catch((err) =>
                 console.error('Seller new order email error (webhook):', err)
               );

@@ -13,7 +13,7 @@ export type OrderStatus =
 export interface Order {
   id: string;
   listingId: string;
-  buyerId: string;
+  buyerId: string | null;
   sellerId: string;
   priceCents: number;
   platformFeeCents: number;
@@ -38,6 +38,7 @@ interface CreateOrderResponse {
   subtotalCents?: number;
   buyerFeeCents?: number;
   buyerFeePercent?: number;
+  guestAccessToken?: string;
 }
 
 export const createOrder = createAsyncThunk(
@@ -51,6 +52,7 @@ export const createOrder = createAsyncThunk(
         city: string;
         addressLine: string;
       };
+      guestEmail?: string;
     },
     { rejectWithValue }
   ) => {
@@ -125,14 +127,20 @@ function mapOrderListing(raw: any | null | undefined): Listing | undefined {
 
 export const fetchOrderById = createAsyncThunk(
   'orders/fetchOrderById',
-  async (orderId: string, { rejectWithValue }) => {
+  async (
+    payload: { orderId: string; token?: string },
+    { rejectWithValue }
+  ) => {
+    const orderId = typeof payload === 'string' ? payload : payload.orderId;
+    const token = typeof payload === 'string' ? undefined : payload.token;
     try {
-      const { data } = await api.get<any>(`/orders/${orderId}`);
+      const url = token ? `/orders/${orderId}?token=${encodeURIComponent(token)}` : `/orders/${orderId}`;
+      const { data } = await api.get<any>(url);
       const listing = mapOrderListing(data.listing);
       const order: Order = {
         id: data.id,
         listingId: data.listing_id,
-        buyerId: data.buyer_id,
+        buyerId: data.buyer_id ?? null,
         sellerId: data.seller_id,
         priceCents: data.price_cents,
         platformFeeCents: data.platform_fee_cents,
@@ -166,7 +174,7 @@ export const fetchMySellerOrders = createAsyncThunk(
       const orders: Order[] = data.map((o) => ({
         id: o.id,
         listingId: o.listing_id,
-        buyerId: o.buyer_id,
+        buyerId: o.buyer_id ?? null,
         sellerId: o.seller_id,
         priceCents: o.price_cents,
         platformFeeCents: o.platform_fee_cents,
@@ -200,7 +208,7 @@ export const fetchMyBuyerOrders = createAsyncThunk(
       const orders: Order[] = data.map((o) => ({
         id: o.id,
         listingId: o.listing_id,
-        buyerId: o.buyer_id,
+        buyerId: o.buyer_id ?? null,
         sellerId: o.seller_id,
         priceCents: o.price_cents,
         platformFeeCents: o.platform_fee_cents,
@@ -253,9 +261,15 @@ export const markAsShipped = createAsyncThunk(
 
 export const confirmReceived = createAsyncThunk(
   'orders/confirmReceived',
-  async (orderId: string, { rejectWithValue }) => {
+  async (
+    payload: { orderId: string; token?: string },
+    { rejectWithValue }
+  ) => {
+    const orderId = typeof payload === 'string' ? payload : payload.orderId;
+    const token = typeof payload === 'string' ? undefined : payload.token;
     try {
-      const { data } = await api.post<any>(`/orders/${orderId}/confirm-received`);
+      const body = token ? { token } : {};
+      const { data } = await api.post<any>(`/orders/${orderId}/confirm-received`, body);
       return data;
     } catch (err: any) {
       const message =

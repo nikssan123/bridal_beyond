@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
+import crypto from 'crypto';
 import { env } from '../../config/env';
 import { prisma } from '../../prisma';
 import * as stripeService from '../../services/stripe.service';
@@ -8,6 +9,7 @@ import * as paymentsRepository from '../payments/paymentsRepository';
 import * as disputesRepository from '../disputes/disputesRepository';
 import { sendOrderConfirmationEmail, sendSellerNewOrderEmail, sendBuyerOrderShippedEmail, sendSellerBuyerWantsToBuyEmail } from '../../services/mailService';
 import * as authRepository from '../auth/authRepository';
+import { EMAIL_REGEX, EMAIL_INVALID_MESSAGE, EMAIL_MAX_LENGTH } from '../../lib/validation';
 
 const createOrderBody = z.object({
   listingId: z.string().uuid('Invalid listing'),
@@ -17,6 +19,11 @@ const createOrderBody = z.object({
     city: z.string().trim().min(1, 'City is required'),
     addressLine: z.string().trim().min(1, 'Address is required'),
   }),
+  guestEmail: z
+    .string()
+    .max(EMAIL_MAX_LENGTH, EMAIL_INVALID_MESSAGE)
+    .regex(EMAIL_REGEX, EMAIL_INVALID_MESSAGE)
+    .optional(),
 });
 
 function formatZodMessage(flatten: { formErrors?: string[]; fieldErrors?: Record<string, unknown> }): string {
@@ -43,8 +50,24 @@ export async function createOrder(req: Request, res: Response): Promise<void> {
       res.status(400).json({ message: friendlyMessage, code: 'VALIDATION_ERROR', errors: parsed.error.flatten() });
       return;
     }
-    const { listingId, shippingAddress } = parsed.data;
-    if (!userId) {
+    const { listingId, shippingAddress, guestEmail } = parsed.data;
+
+    const isGuest = !userId;
+    if (isGuest) {
+      if (!guestEmail || !guestEmail.trim()) {
+        res.status(400).json({ message: 'Email is required for guest checkout', code: 'VALIDATION_ERROR' });
+        return;
+      }
+      const normalizedGuestEmail = guestEmail.trim().toLowerCase();
+      const existingUser = await authRepository.findByEmail(normalizedGuestEmail);
+      if (existingUser) {
+        res.status(400).json({
+          code: 'EMAIL_ALREADY_REGISTERED',
+          message: 'This email is already registered. Please log in to place your order.',
+        });
+        return;
+      }
+    } else if (!userId) {
       res.status(401).json({ message: 'Unauthorized' });
       return;
     }
@@ -57,7 +80,7 @@ export async function createOrder(req: Request, res: Response): Promise<void> {
       res.status(404).json({ message: 'Listing not found' });
       return;
     }
-    if (listing.seller_id === userId) {
+    if (!isGuest && listing.seller_id === userId) {
       res.status(400).json({ message: 'Cannot purchase own listing' });
       return;
     }
@@ -74,14 +97,14 @@ export async function createOrder(req: Request, res: Response): Promise<void> {
     const seller = listing.seller;
     if (!seller?.stripe_account_id) {
       const profileUrl = `${env.clientUrl}/profile`;
-      const buyer = await authRepository.findById(userId);
+      const buyer = isGuest ? null : await authRepository.findById(userId!);
       if (seller.email) {
         await sendSellerBuyerWantsToBuyEmail({
           to: seller.email,
           sellerName: seller.name,
           listingTitle: listing.title,
           profileUrl,
-          buyerName: buyer?.name ?? null,
+          buyerName: buyer?.name ?? (isGuest ? shippingAddress.fullName : null) ?? null,
         });
       }
       res.status(400).json({
@@ -103,7 +126,7 @@ export async function createOrder(req: Request, res: Response): Promise<void> {
           sellerName: seller.name,
           listingTitle: listing.title,
           profileUrl,
-          buyerName: (await authRepository.findById(userId))?.name ?? null,
+          buyerName: isGuest ? shippingAddress.fullName : (await authRepository.findById(userId!))?.name ?? null,
         });
       }
       res.status(400).json({
@@ -124,7 +147,7 @@ export async function createOrder(req: Request, res: Response): Promise<void> {
           sellerName: seller.name,
           listingTitle: listing.title,
           profileUrl,
-          buyerName: (await authRepository.findById(userId))?.name ?? null,
+          buyerName: isGuest ? shippingAddress.fullName : (await authRepository.findById(userId!))?.name ?? null,
         });
       }
       res.status(400).json({
@@ -160,11 +183,15 @@ export async function createOrder(req: Request, res: Response): Promise<void> {
 
     const platformFeeCents = sellerCommissionCents + buyerFeeCents;
 
+    const guestAccessToken = isGuest ? crypto.randomBytes(32).toString('hex') : undefined;
+    const normalizedGuestEmail = isGuest && guestEmail ? guestEmail.trim().toLowerCase() : undefined;
+
     const { id: paymentIntentId, client_secret } = await stripeService.createPaymentIntent({
       amountCents,
       currency: env.stripeCurrency,
       sellerStripeAccountId: seller.stripe_account_id,
       applicationFeeAmount: platformFeeCents,
+      ...(normalizedGuestEmail ? { receipt_email: normalizedGuestEmail } : {}),
     });
     if (!client_secret) {
       res.status(500).json({ message: 'Failed to create payment intent' });
@@ -174,14 +201,14 @@ export async function createOrder(req: Request, res: Response): Promise<void> {
     await paymentsRepository.create({
       payment_intent_id: paymentIntentId,
       listing_id: listingId,
-      buyer_id: userId,
+      buyer_id: isGuest ? null : userId!,
       amount_cents: amountCents,
       status: 'requires_capture',
     });
 
     const order = await ordersRepository.createOrder({
       listingId,
-      buyerId: userId,
+      buyerId: isGuest ? null : userId!,
       sellerId: listing.seller_id,
       priceCents: amountCents,
       platformFeeCents,
@@ -190,6 +217,8 @@ export async function createOrder(req: Request, res: Response): Promise<void> {
       shippingPhone: shippingAddress.phone,
       shippingCity: shippingAddress.city,
       shippingAddressLine: shippingAddress.addressLine,
+      guestEmail: normalizedGuestEmail ?? null,
+      guestAccessToken: guestAccessToken ?? null,
     });
 
     res.status(201).json({
@@ -199,6 +228,7 @@ export async function createOrder(req: Request, res: Response): Promise<void> {
       subtotalCents: listingPriceCents,
       buyerFeeCents,
       buyerFeePercent: env.stripeBuyerFeePercent,
+      ...(guestAccessToken ? { guestAccessToken } : {}),
     });
   } catch (err: any) {
     console.error('Create order error:', err);
@@ -217,12 +247,13 @@ export async function createOrder(req: Request, res: Response): Promise<void> {
       if (sellerForEmail?.email) {
         const profileUrl = `${env.clientUrl}/profile`;
         const buyer = userId ? await authRepository.findById(userId) : null;
+        const buyerName = buyer?.name ?? (parsed.data.shippingAddress?.fullName ?? null);
         await sendSellerBuyerWantsToBuyEmail({
           to: sellerForEmail.email,
           sellerName: sellerForEmail.name,
           listingTitle: listingForEmail?.title ?? '',
           profileUrl,
-          buyerName: buyer?.name ?? null,
+          buyerName: buyerName ?? null,
         });
       }
       res.status(400).json({
@@ -238,21 +269,40 @@ export async function createOrder(req: Request, res: Response): Promise<void> {
   }
 }
 
+function serializeOrder(order: any) {
+  const { guest_access_token, ...rest } = order;
+  return rest;
+}
+
 export async function getOrder(req: Request, res: Response): Promise<void> {
   try {
     const orderId = req.params.id;
     const userId = (req as any).user?.id as string | undefined;
-    if (!userId) {
-      res.status(401).json({ message: 'Unauthorized' });
+    const token = (req.query.token as string) || (req.body?.token as string);
+
+    if (userId) {
+      const order = await ordersRepository.findByIdForUser(orderId, userId);
+      if (!order) {
+        res.status(404).json({ message: 'Order not found' });
+        return;
+      }
+      const hasOpenDispute = !!(await disputesRepository.findOpenByOrderId(orderId));
+      res.json({ ...serializeOrder(order), has_open_dispute: hasOpenDispute });
       return;
     }
-    const order = await ordersRepository.findByIdForUser(orderId, userId);
-    if (!order) {
-      res.status(404).json({ message: 'Order not found' });
+
+    if (token && typeof token === 'string') {
+      const order = await ordersRepository.findByIdForGuestToken(orderId, token);
+      if (!order) {
+        res.status(404).json({ message: 'Order not found' });
+        return;
+      }
+      const hasOpenDispute = !!(await disputesRepository.findOpenByOrderId(orderId));
+      res.json({ ...serializeOrder(order), has_open_dispute: hasOpenDispute });
       return;
     }
-    const hasOpenDispute = !!(await disputesRepository.findOpenByOrderId(orderId));
-    res.json({ ...order, has_open_dispute: hasOpenDispute });
+
+    res.status(401).json({ message: 'Unauthorized' });
   } catch (err) {
     console.error('Get order error:', err);
     res.status(500).json({ message: 'Failed to load order' });
@@ -301,11 +351,16 @@ export async function markShipped(req: Request, res: Response): Promise<void> {
       where: { id: orderId },
       include: { buyer: true, listing: true },
     });
-    if (orderWithDetails?.buyer?.email && orderWithDetails.listing) {
-      const orderUrl = `${env.clientUrl}/orders/${orderId}`;
+    const toEmail = orderWithDetails?.buyer?.email ?? orderWithDetails?.guest_email ?? null;
+    const buyerName = orderWithDetails?.buyer?.name ?? orderWithDetails?.shipping_full_name ?? null;
+    const orderUrl =
+      orderWithDetails?.guest_access_token != null
+        ? `${env.clientUrl}/orders/${orderId}?token=${orderWithDetails.guest_access_token}`
+        : `${env.clientUrl}/orders/${orderId}`;
+    if (toEmail && orderWithDetails?.listing && buyerName) {
       await sendBuyerOrderShippedEmail({
-        to: orderWithDetails.buyer.email,
-        name: orderWithDetails.buyer.name,
+        to: toEmail,
+        name: buyerName,
         orderUrl,
         listingTitle: orderWithDetails.listing.title,
         courier: parsed.data.courier,
@@ -323,19 +378,23 @@ export async function confirmReceived(req: Request, res: Response): Promise<void
   try {
     const orderId = req.params.id;
     const userId = (req as any).user?.id as string | undefined;
-    if (!userId) {
-      res.status(401).json({ message: 'Unauthorized' });
-      return;
-    }
+    const token = (req.query.token as string) || (req.body?.token as string);
+
     const order = await prisma.order.findUnique({ where: { id: orderId } });
     if (!order) {
       res.status(404).json({ message: 'Order not found' });
       return;
     }
-    if (order.buyer_id !== userId) {
+
+    const isGuestAuth =
+      !userId && token && typeof token === 'string' && order.buyer_id === null && order.guest_access_token === token;
+    const isBuyerAuth = userId && order.buyer_id === userId;
+
+    if (!isBuyerAuth && !isGuestAuth) {
       res.status(403).json({ message: 'Forbidden' });
       return;
     }
+
     if (order.status !== 'shipped') {
       res.status(400).json({ message: 'Order is not shipped yet' });
       return;

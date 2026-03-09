@@ -9,7 +9,7 @@ export type OrderStatus =
 
 export async function createOrder(params: {
   listingId: string;
-  buyerId: string;
+  buyerId: string | null;
   sellerId: string;
   priceCents: number;
   platformFeeCents: number;
@@ -18,6 +18,8 @@ export async function createOrder(params: {
   shippingPhone: string;
   shippingCity: string;
   shippingAddressLine: string;
+  guestEmail?: string | null;
+  guestAccessToken?: string | null;
 }) {
   return prisma.order.create({
     data: {
@@ -32,6 +34,8 @@ export async function createOrder(params: {
       shipping_phone: params.shippingPhone,
       shipping_city: params.shippingCity,
       shipping_address_line: params.shippingAddressLine,
+      guest_email: params.guestEmail ?? null,
+      guest_access_token: params.guestAccessToken ?? null,
     },
   });
 }
@@ -45,6 +49,24 @@ export async function findByIdForUser(orderId: string, userId: string) {
     where: {
       id: orderId,
       OR: [{ buyer_id: userId }, { seller_id: userId }],
+    },
+    include: {
+      listing: {
+        include: {
+          images: { orderBy: { position: 'asc' } },
+          seller: true,
+        },
+      },
+    },
+  });
+}
+
+export async function findByIdForGuestToken(orderId: string, token: string) {
+  return prisma.order.findFirst({
+    where: {
+      id: orderId,
+      buyer_id: null,
+      guest_access_token: token,
     },
     include: {
       listing: {
@@ -118,5 +140,32 @@ export async function setShipmentInfo(orderId: string, data: { courier: string; 
       status: 'shipped',
     },
   });
+}
+
+/**
+ * Link all guest orders (buyer_id null, guest_email = userEmail) to the given user.
+ * Used when a user registers or logs in with an email that was used for guest checkout.
+ */
+export async function linkGuestOrdersToUser(userId: string, userEmail: string): Promise<number> {
+  const normalizedEmail = userEmail.trim().toLowerCase();
+  const orders = await prisma.order.findMany({
+    where: {
+      buyer_id: null,
+      guest_email: normalizedEmail,
+    },
+    select: { id: true, payment_intent_id: true },
+  });
+  if (orders.length === 0) return 0;
+  await prisma.$transaction([
+    prisma.order.updateMany({
+      where: { id: { in: orders.map((o) => o.id) } },
+      data: { buyer_id: userId, guest_email: null, guest_access_token: null },
+    }),
+    prisma.payment.updateMany({
+      where: { payment_intent_id: { in: orders.map((o) => o.payment_intent_id) } },
+      data: { buyer_id: userId },
+    }),
+  ]);
+  return orders.length;
 }
 

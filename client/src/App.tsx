@@ -75,8 +75,8 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
-            <Route path="/checkout/:listingId" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
-            <Route path="/orders/:orderId" element={<ProtectedRoute><OrderDetails /></ProtectedRoute>} />
+            <Route path="/checkout/:listingId" element={<Checkout />} />
+            <Route path="/orders/:orderId" element={<OrderDetails />} />
             <Route path="/admin" element={<AdminPortal />} />
             <Route path="/admin/disputes" element={<AdminRoute><AdminDisputes /></AdminRoute>} />
             <Route path="/admin/disputes/:id" element={<AdminRoute><AdminDisputeDetails /></AdminRoute>} />

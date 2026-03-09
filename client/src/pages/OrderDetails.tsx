@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link as RouterLink } from 'react-router-dom';
+import { useParams, useSearchParams, Link as RouterLink } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -52,6 +52,8 @@ function getActiveStep(status: OrderStatus): number {
 
 const OrderDetails: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
+  const [searchParams] = useSearchParams();
+  const guestToken = searchParams.get('token') ?? undefined;
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const { currentOrder, status, error } = useAppSelector((state) => state.orders);
@@ -69,18 +71,27 @@ const OrderDetails: React.FC = () => {
 
   useEffect(() => {
     if (orderId) {
-      dispatch(fetchOrderById(orderId));
+      dispatch(
+        guestToken
+          ? fetchOrderById({ orderId, token: guestToken })
+          : fetchOrderById({ orderId })
+      );
     }
-  }, [dispatch, orderId]);
+  }, [dispatch, orderId, guestToken]);
 
-  const isBuyer = currentUser && currentOrder && currentOrder.buyerId === currentUser.id;
+  const isBuyer =
+    (currentUser && currentOrder && currentOrder.buyerId === currentUser.id) ||
+    (!currentUser && guestToken && currentOrder && currentOrder.buyerId === null);
+  const isGuestBuyer = !currentUser && !!guestToken && currentOrder && currentOrder.buyerId === null;
   const isSeller = currentUser && currentOrder && currentOrder.sellerId === currentUser.id;
 
   const handleConfirmReceived = async () => {
     if (!orderId) return;
     setConfirmLoading(true);
     try {
-      await dispatch(confirmReceived(orderId)).unwrap();
+      await dispatch(
+        guestToken ? confirmReceived({ orderId, token: guestToken }) : confirmReceived({ orderId })
+      ).unwrap();
     } catch {
       // error handled via slice
     } finally {
@@ -140,6 +151,7 @@ const OrderDetails: React.FC = () => {
 
   const canOpenDispute =
     isBuyer &&
+    !isGuestBuyer &&
     currentOrder &&
     (currentOrder.status === 'shipped' || currentOrder.status === 'completed') &&
     !currentOrder.hasOpenDispute;
@@ -586,6 +598,26 @@ const OrderDetails: React.FC = () => {
                 </Button>
               </Box>
             )}
+            {isGuestBuyer &&
+              (currentOrder?.status === 'shipped' || currentOrder?.status === 'completed') &&
+              !currentOrder?.hasOpenDispute && (
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    {t(
+                      'order.guestDisputeHint',
+                      'To open a dispute, create an account using the same email you used for this order. Your order will be transferred to your account and you can then open a dispute from My orders.'
+                    )}
+                  </Typography>
+                  <Button
+                    component={RouterLink}
+                    to="/register"
+                    variant="outlined"
+                    size="small"
+                  >
+                    {t('order.createAccount', 'Create account')}
+                  </Button>
+                </Box>
+              )}
             {isSeller && currentOrder.status === 'payment_secured' && (
               <Box sx={{ mt: 2 }}>
                 <Button

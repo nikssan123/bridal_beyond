@@ -90,6 +90,7 @@ export interface CreatePaymentIntentParams {
   currency: string;
   sellerStripeAccountId: string;
   applicationFeeAmount: number;
+  receipt_email?: string;
 }
 
 export async function createPaymentIntent(params: CreatePaymentIntentParams): Promise<{
@@ -104,6 +105,7 @@ export async function createPaymentIntent(params: CreatePaymentIntentParams): Pr
       destination: params.sellerStripeAccountId,
     },
     application_fee_amount: params.applicationFeeAmount,
+    ...(params.receipt_email ? { receipt_email: params.receipt_email } : {}),
   });
   return {
     id: intent.id,

@@ -30,6 +30,14 @@ export async function createForOrder(req: Request, res: Response): Promise<void>
       res.status(404).json({ message: 'Order not found' });
       return;
     }
+    if (order.buyer_id === null) {
+      res.status(403).json({
+        code: 'GUEST_CANNOT_DISPUTE',
+        message:
+          'To open a dispute, please create an account using the same email you used for this order. Your order will be linked to your account and you can then open a dispute from My orders.',
+      });
+      return;
+    }
     if (order.buyer_id !== userId) {
       res.status(403).json({ message: 'Forbidden' });
       return;
@@ -88,6 +96,14 @@ export async function listForOrder(req: Request, res: Response): Promise<void> {
     });
     if (!order) {
       res.status(404).json({ message: 'Order not found' });
+      return;
+    }
+    if (order.buyer_id === null) {
+      res.status(403).json({
+        code: 'GUEST_CANNOT_DISPUTE',
+        message:
+          'To open a dispute, please create an account using the same email you used for this order. Your order will be linked to your account and you can then open a dispute from My orders.',
+      });
       return;
     }
     if (order.buyer_id !== userId) {
