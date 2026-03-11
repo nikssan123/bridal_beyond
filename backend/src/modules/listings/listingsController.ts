@@ -18,6 +18,11 @@ export async function list(req: Request, res: Response, next: NextFunction): Pro
     const sellerId = (req.query.sellerId as string) || undefined;
     let status = (req.query.status as string) || undefined;
     const featuredParam = (req.query.featured as string) || undefined;
+    const includeMaxPriceParam = (req.query.includeMaxPrice as string) || undefined;
+    const includeMaxPrice =
+      includeMaxPriceParam == null
+        ? true
+        : includeMaxPriceParam === 'true';
     const featured =
       featuredParam === 'true' ? true : featuredParam === 'false' ? false : undefined;
     // By default, hide non-active (e.g. sold) listings from public browse endpoints.
@@ -40,6 +45,7 @@ export async function list(req: Request, res: Response, next: NextFunction): Pro
       limit,
       offset,
       featured,
+      includeMaxPrice,
     });
     res.json(result);
   } catch (e) {

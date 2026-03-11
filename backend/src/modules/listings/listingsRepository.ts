@@ -70,6 +70,7 @@ export interface ListFilters {
   limit?: number;
   offset?: number;
   featured?: boolean;
+  includeMaxPrice?: boolean;
 }
 
 async function getOrInitListingStats() {
@@ -186,10 +187,12 @@ export async function list(filters: ListFilters): Promise<ListResult> {
         return orderBy;
       })(),
     }),
-    prisma.listing.aggregate({
-      where,
-      _max: { price: true },
-    }),
+    filters.includeMaxPrice === false
+      ? Promise.resolve({ _max: { price: null as number | null } })
+      : prisma.listing.aggregate({
+          where,
+          _max: { price: true },
+        }),
   ]);
 
   const listings = rows.map((l: any) => {

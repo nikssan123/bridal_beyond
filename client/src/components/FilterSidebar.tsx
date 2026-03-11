@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box, Typography, FormControl, InputLabel, Select, MenuItem, Slider, Button, Drawer,
   useMediaQuery, useTheme, Divider,
@@ -22,6 +22,11 @@ const FilterContent: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
     Math.max(0, Math.min(filters.priceRange[0], sliderMax)),
     Math.max(0, Math.min(filters.priceRange[1], sliderMax)),
   ];
+  const [localPriceRange, setLocalPriceRange] = useState<[number, number]>(sliderValue);
+
+  useEffect(() => {
+    setLocalPriceRange(sliderValue);
+  }, [sliderMax, filters.priceRange[0], filters.priceRange[1]]);
 
   return (
     <Box sx={{ p: 3, width: { xs: 300, md: 'auto' } }}>
@@ -65,8 +70,9 @@ const FilterContent: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
 
       <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>Цена (€)</Typography>
       <Slider
-        value={sliderValue}
-        onChange={(_, val) => dispatch(setPriceRange(val as [number, number]))}
+        value={localPriceRange}
+        onChange={(_, val) => setLocalPriceRange(val as [number, number])}
+        onChangeCommitted={(_, val) => dispatch(setPriceRange(val as [number, number]))}
         min={0}
         max={sliderMax}
         step={50}

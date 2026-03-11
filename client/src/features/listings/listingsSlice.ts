@@ -60,6 +60,7 @@ export const fetchListings = createAsyncThunk(
         sortBy: f.sortBy || 'newest',
         limit: PAGE_SIZE,
         offset,
+        includeMaxPrice: !append && state.listings.maxPrice === 0 ? 'true' : 'false',
       },
     });
     return { ...data, append };

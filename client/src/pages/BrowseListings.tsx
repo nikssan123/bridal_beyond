@@ -36,8 +36,20 @@ const BrowseListings: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    dispatch(fetchListings({}));
-  }, [dispatch, filters.category, filters.size, filters.condition, filters.priceRange[0], filters.priceRange[1], filters.searchQuery, filters.sortBy]);
+    const timeout = setTimeout(() => {
+      dispatch(fetchListings({}));
+    }, 250);
+    return () => clearTimeout(timeout);
+  }, [
+    dispatch,
+    filters.category,
+    filters.size,
+    filters.condition,
+    filters.priceRange[0],
+    filters.priceRange[1],
+    filters.searchQuery,
+    filters.sortBy,
+  ]);
 
   const loadMore = useCallback(() => {
     if (hasMore && !loadingMore && status !== 'loading') {
