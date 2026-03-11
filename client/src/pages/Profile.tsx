@@ -158,6 +158,7 @@ const Profile: React.FC = () => {
 
   const avgRating = reviews.length > 0 ? reviews.reduce((a, r) => a + r.rating, 0) / reviews.length : 0;
   const hasStripeAccount = !!user.hasStripeAccount;
+  const hasStripeRequirementsDue = !!(hasStripeAccount && stripeAccountStatus?.hasRequirementsDue);
 
   return (
     <PageContainer>
@@ -247,11 +248,19 @@ const Profile: React.FC = () => {
             <Box sx={{ mt: 1 }}>
               <Chip
                 size="small"
-                color={hasStripeAccount ? 'success' : 'warning'}
+                color={
+                  !hasStripeAccount
+                    ? 'warning'
+                    : hasStripeRequirementsDue
+                      ? 'warning'
+                      : 'success'
+                }
                 label={
-                  hasStripeAccount
-                    ? t('profile.payoutsActive', 'Payouts active')
-                    : t('profile.payoutsNotSetup', 'Payouts not set up')
+                  !hasStripeAccount
+                    ? t('profile.payoutsNotSetup', 'Payouts not set up')
+                    : hasStripeRequirementsDue
+                      ? t('profile.payoutsNeedsVerification', 'Payouts need verification')
+                      : t('profile.payoutsActive', 'Payouts active')
                 }
               />
             </Box>
@@ -312,10 +321,15 @@ const Profile: React.FC = () => {
                 {t('profile.verifyIdentity', 'Verify identity')}
               </Button>
               <Typography variant="caption" color="text.secondary" sx={{ maxWidth: 260, textAlign: 'right' }}>
-                {t(
-                  'profile.payoutsDescriptionActive',
-                  'Your payouts are active. You can update your bank details or complete verification in your payment settings at any time.'
-                )}
+                {hasStripeRequirementsDue
+                  ? t(
+                      'profile.payoutsDescriptionPending',
+                      'Your payouts are not fully set up yet. Complete verification in your payment settings to start receiving money for your sales.'
+                    )
+                  : t(
+                      'profile.payoutsDescriptionActive',
+                      'Your payouts are active. You can update your bank details or complete verification in your payment settings at any time.'
+                    )}
               </Typography>
             </Box>
           )}

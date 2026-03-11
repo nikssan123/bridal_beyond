@@ -147,12 +147,24 @@ const SellerProfile: React.FC = () => {
                   sx={{ fontWeight: 500 }}
                 />
               )}
-              {currentSeller.hasPaymentSetup && (
+              {currentSeller.hasPaymentSetup ? (
                 <Chip
                   size="small"
                   icon={<AccountBalanceWalletIcon sx={{ fontSize: 16 }} />}
                   label={t('profile.acceptsProtectedPayments', 'Accepts protected payments')}
                   color="success"
+                  variant="outlined"
+                  sx={{ fontWeight: 500 }}
+                />
+              ) : (
+                <Chip
+                  size="small"
+                  icon={<AccountBalanceWalletIcon sx={{ fontSize: 16 }} />}
+                  label={t(
+                    'profile.doesNotAcceptProtectedPayments',
+                    "Doesn't accept protected payments yet"
+                  )}
+                  color="warning"
                   variant="outlined"
                   sx={{ fontWeight: 500 }}
                 />
