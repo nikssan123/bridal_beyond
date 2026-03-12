@@ -72,6 +72,10 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
       next(unauthorized('Invalid email or password'));
       return;
     }
+    if (!user.email_verified_at) {
+      next(unauthorized('Email not verified'));
+      return;
+    }
     await ordersRepository.linkGuestOrdersToUser(user.id, user.email);
     const token = signToken({ sub: user.id, email: user.email, role: user.role });
     res.json({

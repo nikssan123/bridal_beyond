@@ -17,6 +17,8 @@ const VerifyEmail: React.FC = () => {
   const location = useLocation();
   const { status, error } = useAppSelector((state) => state.auth);
   const emailFromState = (location.state as { email?: string } | null)?.email ?? '';
+  const fromLoginUnverified = !!(location.state as { email?: string; fromLoginUnverified?: boolean } | null)
+    ?.fromLoginUnverified;
   const [email, setEmail] = useState(emailFromState);
   const [code, setCode] = useState('');
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -89,6 +91,14 @@ const VerifyEmail: React.FC = () => {
         <Typography variant="body1" sx={{ textAlign: 'center', color: 'text.secondary', mb: 4 }}>
           {t('auth.verifyEmailSent')}
         </Typography>
+        {fromLoginUnverified && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            {t(
+              'auth.verifyEmailFromLogin',
+              'You tried to sign in, but your email is not verified yet. Enter the 6-digit code we emailed you. If you have problems, contact our support at lovereworn@gmail.com.'
+            )}
+          </Alert>
+        )}
         {error && (
           <Alert severity="error" sx={{ mb: 2 }} onClose={() => dispatch(clearAuthError())}>
             {t(`authErrors.${getAuthErrorKey(error)}`)}

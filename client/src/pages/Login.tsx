@@ -33,10 +33,21 @@ const Login: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    dispatch(loginUser({ email, password }))
-      .then((result) => {
-        if (loginUser.fulfilled.match(result)) navigate(redirectTo || '/profile');
-      });
+    dispatch(loginUser({ email, password })).then((result) => {
+      if (loginUser.fulfilled.match(result)) {
+        navigate(redirectTo || '/profile');
+        return;
+      }
+      if (loginUser.rejected.match(result)) {
+        const message =
+          (result.payload as string | undefined) ?? result.error?.message ?? null;
+        if (message === 'Email not verified') {
+          navigate('/verify-email', {
+            state: { email },
+          });
+        }
+      }
+    });
   };
 
   const handleGoogleSuccess = (response: { accessToken: string }) => {

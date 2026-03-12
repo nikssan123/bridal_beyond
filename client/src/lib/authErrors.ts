@@ -6,6 +6,7 @@ const MESSAGE_TO_KEY: Record<string, string> = {
   'Login failed': 'login_failed',
   'Registration failed': 'registration_failed',
   'Email already registered': 'email_already_registered',
+  'Email not verified': 'email_not_verified',
   'Invalid or expired verification code': 'invalid_verification_code',
   'Verification failed': 'verification_failed',
   'Invalid or expired reset token': 'invalid_reset_token',
