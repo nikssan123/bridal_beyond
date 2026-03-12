@@ -28,6 +28,7 @@ import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import RadioButtonUncheckedRoundedIcon from '@mui/icons-material/RadioButtonUncheckedRounded';
 import PageContainer from '@/components/PageContainer';
 import SectionHeader from '@/components/SectionHeader';
+import SeoHelmet from '@/components/SeoHelmet';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { fetchOrderById, confirmReceived, createDispute, markAsShipped } from '@/features/orders/ordersSlice';
 import { getAvatarUrl } from '@/lib/avatarUrl';
@@ -320,6 +321,13 @@ const OrderDetails: React.FC = () => {
 
   return (
     <PageContainer maxWidth="md">
+      <SeoHelmet
+        title={t('order.metaTitle', 'Order details – LoveReWorn')}
+        description={t(
+          'order.metaDescription',
+          'Track the status of your protected order, shipping and payouts on LoveReWorn.'
+        )}
+      />
       <SectionHeader
         title={t('order.title', 'Order details')}
         subtitle={t('order.subtitle', 'Track the status of your protected purchase.')}

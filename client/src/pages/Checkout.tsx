@@ -23,6 +23,8 @@ import { createOrGetConversation } from '@/features/conversations/conversationsS
 import { getAvatarUrl } from '@/lib/avatarUrl';
 import { getStripeErrorKey } from '@/lib/stripeErrors';
 import { isValidEmail, EMAIL_REGEX } from '@/lib/validation';
+import { trackPurchase } from '@/lib/metaPixel';
+import SeoHelmet from '@/components/SeoHelmet';
 import { useTranslation } from 'react-i18next';
 import { Link as RouterLink } from 'react-router-dom';
 
@@ -150,6 +152,18 @@ const Checkout: React.FC = () => {
         return;
       }
 
+      if (listing) {
+        const paidPrice = Number(listing.price);
+        if (Number.isFinite(paidPrice)) {
+          trackPurchase({
+            value: paidPrice,
+            currency: 'EUR',
+            orderId,
+            listingId: listing.id,
+          });
+        }
+      }
+
       navigate(guestAccessToken ? `/orders/${orderId}?token=${guestAccessToken}` : `/orders/${orderId}`);
     } catch (err: any) {
       setSubmitting(false);
@@ -194,6 +208,13 @@ const Checkout: React.FC = () => {
   if (!listingId || listingStatus === 'loading' || !listing) {
     return (
       <PageContainer>
+      <SeoHelmet
+        title={t('checkout.metaTitle', 'Protected checkout – LoveReWorn')}
+        description={t(
+          'checkout.metaDescription',
+          'Pay securely with buyer protection. Your money is held safely until you confirm you received the dress.'
+        )}
+      />
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
           <CircularProgress />
         </Box>

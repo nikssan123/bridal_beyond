@@ -24,3 +24,29 @@ export function trackCompleteRegistration(): void {
   window.fbq('track', 'CompleteRegistration');
 }
 
+export interface PurchaseEventParams {
+  value?: number;
+  currency?: string;
+  orderId?: string;
+  listingId?: string;
+}
+
+export function trackPurchase(params: PurchaseEventParams): void {
+  if (!window.fbq || !window.META_PIXEL_INITIALIZED) return;
+  const payload: Record<string, unknown> = {};
+  if (typeof params.value === 'number') {
+    payload.value = params.value;
+  }
+  if (params.currency) {
+    payload.currency = params.currency;
+  }
+  if (params.listingId) {
+    payload.content_ids = [params.listingId];
+    payload.content_type = 'product';
+  }
+  if (params.orderId) {
+    payload.order_id = params.orderId;
+  }
+  window.fbq('track', 'Purchase', payload);
+}
+

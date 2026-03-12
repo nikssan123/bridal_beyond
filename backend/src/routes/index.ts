@@ -10,6 +10,7 @@ import ordersRoutes from '../modules/orders/ordersRoutes';
 import adminDisputesRoutes from '../modules/disputes/adminDisputesRoutes';
 import adminRoutes from '../modules/admin/adminRoutes';
 import { authMiddleware } from '../middleware/authMiddleware';
+import sitemapRoutes from '../modules/sitemap/sitemapRoutes';
 
 const router = Router();
 
@@ -23,5 +24,6 @@ router.use('/payments', paymentsRoutes);
 router.use('/orders', ordersRoutes);
 router.use('/admin/disputes', adminDisputesRoutes);
 router.use('/admin', adminRoutes);
+router.use('/sitemap.xml', sitemapRoutes);
 
 export default router;

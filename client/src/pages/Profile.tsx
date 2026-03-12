@@ -37,6 +37,7 @@ import { getAvatarUrl } from '@/lib/avatarUrl';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import SafetyInfoCard from '@/components/SafetyInfoCard';
+import SeoHelmet from '@/components/SeoHelmet';
 
 /** Avatar URL is internal if it is a path like /uploads/avatars/... (uploaded via app). */
 function isInternalAvatarUrl(url: string | undefined | null): boolean {
@@ -162,6 +163,13 @@ const Profile: React.FC = () => {
 
   return (
     <PageContainer>
+      <SeoHelmet
+        title={t('profile.metaTitle', 'My profile – LoveReWorn')}
+        description={t(
+          'profile.metaDescription',
+          'Manage your listings, payouts and protected orders on LoveReWorn.'
+        )}
+      />
       {!hasStripeAccount && stripeRequiredForListing && (
         <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
           {t('profile.paymentRequiredForPayouts', 'To receive payments from buyers you must connect a payment method. Click the red button below to set up payouts.')}

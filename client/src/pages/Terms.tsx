@@ -3,12 +3,20 @@ import { Box, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import PageContainer from '../components/PageContainer';
 import SectionHeader from '../components/SectionHeader';
+import SeoHelmet from '@/components/SeoHelmet';
 
 const Terms: React.FC = () => {
   const { t } = useTranslation();
 
   return (
     <PageContainer maxWidth="md">
+      <SeoHelmet
+        title={t('legal.termsMetaTitle', 'Terms of service – LoveReWorn')}
+        description={t(
+          'legal.termsMetaDescription',
+          'Read the terms and conditions for using LoveReWorn, the marketplace for pre-owned wedding and graduation dresses in Bulgaria.'
+        )}
+      />
       <SectionHeader
         title={t('legal.termsTitle')}
         subtitle={t('legal.termsSubtitle')}

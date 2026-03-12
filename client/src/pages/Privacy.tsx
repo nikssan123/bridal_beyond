@@ -3,12 +3,20 @@ import { Box, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import PageContainer from '../components/PageContainer';
 import SectionHeader from '../components/SectionHeader';
+import SeoHelmet from '@/components/SeoHelmet';
 
 const Privacy: React.FC = () => {
   const { t } = useTranslation();
 
   return (
     <PageContainer maxWidth="md">
+      <SeoHelmet
+        title={t('legal.privacyMetaTitle', 'Privacy policy – LoveReWorn')}
+        description={t(
+          'legal.privacyMetaDescription',
+          'Learn how LoveReWorn collects, uses and protects your personal data when buying and selling dresses.'
+        )}
+      />
       <SectionHeader
         title={t('legal.privacyTitle')}
         subtitle={t('legal.privacySubtitle')}

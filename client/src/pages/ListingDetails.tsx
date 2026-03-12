@@ -35,6 +35,7 @@ import { toggleFavorite, fetchFavorites } from '@/features/favorites/favoritesSl
 import { createOrGetConversation } from '@/features/conversations/conversationsSlice';
 import { createPaymentIntent, clearCurrentPayment } from '@/features/payments/paymentsSlice';
 import PaymentDialog from '@/components/PaymentDialog';
+import SeoHelmet from '@/components/SeoHelmet';
 
 const conditionLabels: Record<string, string> = {
   new: 'Нова', 'like-new': 'Като нова', good: 'Добро', fair: 'Задоволително',
@@ -155,6 +156,45 @@ const ListingDetails: React.FC = () => {
 
   return (
     <PageContainer>
+      <SeoHelmet
+        title={`${listing.title} – ${
+          listing.category === 'wedding'
+            ? t('home.weddingDresses', 'Wedding dresses')
+            : listing.category === 'graduation'
+              ? t('home.graduationDresses', 'Graduation dresses')
+              : t('home.eveningDresses', 'Evening dresses')
+        } | LoveReWorn`}
+        description={
+          listing.description?.slice(0, 150) ||
+          t(
+            'home.metaDescription',
+            'Buy and sell pre-owned wedding and graduation dresses with buyer protection in Bulgaria.'
+          )
+        }
+      />
+      {listing && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'Product',
+              name: listing.title,
+              description: listing.description,
+              image: listing.images?.[0],
+              brand: listing.brand || undefined,
+              sku: listing.id,
+              offers: {
+                '@type': 'Offer',
+                price: listing.price,
+                priceCurrency: 'EUR',
+                availability:
+                  listing.status === 'sold' ? 'https://schema.org/SoldOut' : 'https://schema.org/InStock',
+              },
+            }),
+          }}
+        />
+      )}
       <Grid container spacing={4}>
         {/* Images */}
         <Grid item xs={12} md={7}>

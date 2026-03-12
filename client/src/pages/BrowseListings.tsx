@@ -10,6 +10,7 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { fetchListings } from '@/features/listings/listingsSlice';
 import { setCategory } from '@/features/filters/filtersSlice';
 import { useTranslation } from 'react-i18next';
+import SeoHelmet from '@/components/SeoHelmet';
 
 const ALLOWED_CATEGORIES = ['wedding', 'graduation', 'evening'] as const;
 
@@ -72,6 +73,33 @@ const BrowseListings: React.FC = () => {
 
   return (
     <PageContainer>
+      <SeoHelmet
+        title={t('listings.metaTitle', 'Browse dresses – LoveReWorn')}
+        description={t(
+          'listings.metaDescription',
+          'Browse pre-owned wedding, graduation and evening dresses with buyer protection and secure payments.'
+        )}
+      />
+      {listings.length > 0 && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'ItemList',
+              itemListElement: listings.slice(0, 20).map((listing, index) => ({
+                '@type': 'ListItem',
+                position: index + 1,
+                url:
+                  typeof window !== 'undefined'
+                    ? `${window.location.origin}/listings/${listing.id}`
+                    : undefined,
+                name: listing.title,
+              })),
+            }),
+          }}
+        />
+      )}
       <SectionHeader title={t('listings.title')} subtitle={t('listings.foundCount', { count: total })} />
       {isMobile && (
         <Button startIcon={<TuneIcon />} onClick={() => setFilterOpen(true)} sx={{ mb: 2, color: 'text.primary' }}>

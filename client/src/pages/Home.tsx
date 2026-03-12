@@ -15,6 +15,7 @@ import { useNavigate } from 'react-router-dom';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import heroImg from '@/assets/test.png';
+import SeoHelmet from '@/components/SeoHelmet';
 import ListingCard from '@/components/ListingCard';
 import SectionHeader from '@/components/SectionHeader';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
@@ -39,6 +40,13 @@ const Home: React.FC = () => {
 
   return (
     <>
+      <SeoHelmet
+        title={t('home.metaTitle', 'LoveReWorn – Marketplace for pre-owned wedding and graduation dresses')}
+        description={t(
+          'home.metaDescription',
+          'Buy and sell pre-owned wedding, graduation and evening dresses in Bulgaria with protected checkout, verified sellers and secure payouts.'
+        )}
+      />
       {/* Hero */}
       <Box
         sx={{

@@ -27,6 +27,7 @@ import { fetchListingsBySeller } from '@/features/listings/listingsSlice';
 import { fetchReviewsBySellerId } from '@/features/reviews/reviewsSlice';
 import { getAvatarUrl } from '@/lib/avatarUrl';
 import { useTranslation } from 'react-i18next';
+import SeoHelmet from '@/components/SeoHelmet';
 
 const SellerProfile: React.FC = () => {
   const { id: sellerId } = useParams<{ id: string }>();
@@ -85,6 +86,33 @@ const SellerProfile: React.FC = () => {
 
   return (
     <PageContainer>
+      <SeoHelmet
+        title={`${currentSeller.name} – ${t('profile.sellerProfileMetaTitle', 'Seller profile on LoveReWorn')}`}
+        description={t(
+          'profile.sellerProfileMetaDescription',
+          'View this seller’s verified profile, reviews and active dress listings on LoveReWorn.'
+        )}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'Person',
+            name: currentSeller.name,
+            url: typeof window !== 'undefined' ? window.location.href : undefined,
+            address: currentSeller.location || undefined,
+            aggregateRating:
+              reviews.length > 0
+                ? {
+                    '@type': 'AggregateRating',
+                    ratingValue: avgRating.toFixed(1),
+                    reviewCount: reviews.length,
+                  }
+                : undefined,
+          }),
+        }}
+      />
       <Button
         startIcon={<ArrowBackIcon />}
         onClick={() => navigate(-1)}
