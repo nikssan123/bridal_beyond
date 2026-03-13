@@ -10,6 +10,7 @@ import ordersRoutes from '../modules/orders/ordersRoutes';
 import adminDisputesRoutes from '../modules/disputes/adminDisputesRoutes';
 import adminRoutes from '../modules/admin/adminRoutes';
 import messagesRoutes from '../modules/messages/messagesRoutes';
+import notificationsRoutes from '../modules/notifications/notificationsRoutes';
 import { authMiddleware } from '../middleware/authMiddleware';
 import sitemapRoutes from '../modules/sitemap/sitemapRoutes';
 
@@ -24,6 +25,7 @@ router.use('/messages', messagesRoutes);
 router.use('/stripe', authMiddleware, stripeRoutes);
 router.use('/payments', paymentsRoutes);
 router.use('/orders', ordersRoutes);
+router.use('/notifications', notificationsRoutes);
 router.use('/admin/disputes', adminDisputesRoutes);
 router.use('/admin', adminRoutes);
 router.use('/sitemap.xml', sitemapRoutes);

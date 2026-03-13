@@ -43,6 +43,8 @@ model User {
   ordersAsBuyer  Order[] @relation("UserOrdersAsBuyer")
   ordersAsSeller Order[] @relation("UserOrdersAsSeller")
 
+  notifications Notification[]
+
   @@map("users")
 }
 
@@ -231,4 +233,20 @@ model ListingStats {
   max_active_price Decimal @db.Decimal(10, 2)
 
   @@map("listing_stats")
+}
+
+model Notification {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id    String   @db.Uuid
+  type       String   @db.VarChar(50)
+  title      String   @db.VarChar(255)
+  body       String?  @db.Text
+  href       String?  @db.VarChar(255)
+  read       Boolean  @default(false)
+  created_at DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, created_at])
+  @@map("notifications")
 }

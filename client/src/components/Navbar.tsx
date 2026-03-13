@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   AppBar,
@@ -30,7 +30,12 @@ import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import LoginIcon from '@mui/icons-material/Login';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { selectNotifications, selectUnreadCount, markAllAsRead } from '@/features/notifications/notificationsSlice';
+import {
+  selectNotifications,
+  selectUnreadCount,
+  markAllNotificationsRead,
+  fetchNotifications,
+} from '@/features/notifications/notificationsSlice';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { logout } from '@/features/auth/authSlice';
@@ -47,6 +52,12 @@ const Navbar: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [notificationsAnchorEl, setNotificationsAnchorEl] = useState<null | HTMLElement>(null);
 
+  useEffect(() => {
+    if (isAuthenticated) {
+      dispatch(fetchNotifications());
+    }
+  }, [isAuthenticated, dispatch]);
+
   const navLinks = [
     { label: t('nav.listings', 'Listings'), path: '/listings', icon: <ViewListIcon /> },
   ];
@@ -62,7 +73,7 @@ const Navbar: React.FC = () => {
   const handleOpenNotifications = (event: React.MouseEvent<HTMLElement>) => {
     setNotificationsAnchorEl(event.currentTarget);
     if (unreadCount > 0) {
-      dispatch(markAllAsRead());
+      dispatch(markAllNotificationsRead());
     }
   };
 
