@@ -23,7 +23,6 @@ import { createOrGetConversation } from '@/features/conversations/conversationsS
 import { getAvatarUrl } from '@/lib/avatarUrl';
 import { getStripeErrorKey } from '@/lib/stripeErrors';
 import { isValidEmail, EMAIL_REGEX } from '@/lib/validation';
-import { trackPurchase } from '@/lib/metaPixel';
 import SeoHelmet from '@/components/SeoHelmet';
 import { useTranslation } from 'react-i18next';
 import { Link as RouterLink } from 'react-router-dom';
@@ -150,18 +149,6 @@ const Checkout: React.FC = () => {
         setError(t(`stripeErrors.${key}`));
         setSubmitting(false);
         return;
-      }
-
-      if (listing) {
-        const paidPrice = Number(listing.price);
-        if (Number.isFinite(paidPrice)) {
-          trackPurchase({
-            value: paidPrice,
-            currency: 'EUR',
-            orderId,
-            listingId: listing.id,
-          });
-        }
       }
 
       navigate(guestAccessToken ? `/orders/${orderId}?token=${guestAccessToken}` : `/orders/${orderId}`);
@@ -379,6 +366,10 @@ const Checkout: React.FC = () => {
                     value={shipping.fullName}
                     onChange={handleChange('fullName')}
                     required
+                    helperText={t(
+                      'checkout.fullNameHint',
+                      'Use your legal name as written on your ID – couriers may require it for delivery.'
+                    )}
                   />
                 </Grid>
                 <Grid item xs={12}>
@@ -388,6 +379,10 @@ const Checkout: React.FC = () => {
                     value={shipping.phone}
                     onChange={handleChange('phone')}
                     required
+                    helperText={t(
+                      'checkout.phoneHint',
+                      'Enter an active mobile number where the courier can reach you if needed.'
+                    )}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>

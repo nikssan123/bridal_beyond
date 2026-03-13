@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useSearchParams, Link as RouterLink } from 'react-router-dom';
 import {
   Box,
@@ -30,9 +30,15 @@ import PageContainer from '@/components/PageContainer';
 import SectionHeader from '@/components/SectionHeader';
 import SeoHelmet from '@/components/SeoHelmet';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { fetchOrderById, confirmReceived, createDispute, markAsShipped } from '@/features/orders/ordersSlice';
+import {
+  fetchOrderById,
+  confirmReceived,
+  createDispute,
+  markAsShipped,
+} from '@/features/orders/ordersSlice';
 import { getAvatarUrl } from '@/lib/avatarUrl';
 import { useTranslation } from 'react-i18next';
+import { trackPurchase } from '@/lib/metaPixel';
 import type { OrderStatus } from '@/features/orders/ordersSlice';
 
 const DISPUTE_REASONS = [
@@ -69,6 +75,7 @@ const OrderDetails: React.FC = () => {
   const [shipTrackingNumber, setShipTrackingNumber] = useState('');
   const [shipSubmitting, setShipSubmitting] = useState(false);
   const [shipError, setShipError] = useState<string | null>(null);
+  const purchaseTrackedRef = useRef(false);
 
   useEffect(() => {
     if (orderId) {
@@ -79,6 +86,22 @@ const OrderDetails: React.FC = () => {
       );
     }
   }, [dispatch, orderId, guestToken]);
+
+  useEffect(() => {
+    if (!currentOrder || purchaseTrackedRef.current) return;
+    if (currentOrder.status !== 'completed') return;
+    if (!currentOrder.listing) return;
+    const totalEur = currentOrder.priceCents / 100;
+    if (!Number.isFinite(totalEur)) return;
+
+    purchaseTrackedRef.current = true;
+    trackPurchase({
+      value: totalEur,
+      currency: 'EUR',
+      orderId: currentOrder.id,
+      listingId: currentOrder.listing.id,
+    });
+  }, [currentOrder]);
 
   const isBuyer =
     (currentUser && currentOrder && currentOrder.buyerId === currentUser.id) ||
@@ -165,11 +188,16 @@ const OrderDetails: React.FC = () => {
     if (!currentOrder) return null;
     switch (currentOrder.status) {
       case 'payment_pending':
-        return t('order.paymentPending', 'Awaiting payment confirmation');
+        return t(
+          'order.paymentPending',
+          'Awaiting payment confirmation'
+        );
       case 'payment_secured':
         return t('order.paymentSecured', 'Payment secured – seller will ship your dress');
       case 'shipped':
-        return t('order.shipped', 'Shipped – awaiting your confirmation');
+        return isSeller
+          ? t('order.shippedSeller', 'Shipped – awaiting buyer confirmation')
+          : t('order.shipped', 'Shipped – awaiting your confirmation');
       case 'completed':
         return t('order.completed', 'Completed');
       case 'cancelled':
@@ -248,10 +276,15 @@ const OrderDetails: React.FC = () => {
           'order.explain.completed.current',
           'This order is completed and the payout has been released.'
         );
-        nextMessage = t(
-          'order.explain.completed.next',
-          'There are no further steps for this order.'
-        );
+        nextMessage = isSeller
+          ? t(
+              'order.explain.completed.next.seller',
+              'Your payout has been released and should arrive in your bank account (IBAN) within up to 7 days, depending on Stripe and your bank.'
+            )
+          : t(
+              'order.explain.completed.next.buyer',
+              'There are no further steps for this order.'
+            );
         break;
       case 'cancelled':
         currentMessage = t(

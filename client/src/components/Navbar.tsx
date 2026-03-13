@@ -16,6 +16,9 @@ import {
   Divider,
   useMediaQuery,
   useTheme,
+  Badge,
+  Menu,
+  MenuItem,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
@@ -23,9 +26,11 @@ import AddIcon from '@mui/icons-material/Add';
 import ViewListIcon from '@mui/icons-material/ViewList';
 import PersonIcon from '@mui/icons-material/Person';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
+import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import LoginIcon from '@mui/icons-material/Login';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { selectNotifications, selectUnreadCount, markAllAsRead } from '@/features/notifications/notificationsSlice';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { logout } from '@/features/auth/authSlice';
@@ -36,10 +41,15 @@ const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+  const notifications = useAppSelector(selectNotifications);
+  const unreadCount = useAppSelector(selectUnreadCount);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const [notificationsAnchorEl, setNotificationsAnchorEl] = useState<null | HTMLElement>(null);
 
-  const navLinks = [{ label: t('nav.listings'), path: '/listings', icon: <ViewListIcon /> }];
+  const navLinks = [
+    { label: t('nav.listings', 'Listings'), path: '/listings', icon: <ViewListIcon /> },
+  ];
 
   const handleAddListingClick = () => {
     if (!isAuthenticated || !user) {
@@ -47,6 +57,17 @@ const Navbar: React.FC = () => {
       return;
     }
     navigate('/create');
+  };
+
+  const handleOpenNotifications = (event: React.MouseEvent<HTMLElement>) => {
+    setNotificationsAnchorEl(event.currentTarget);
+    if (unreadCount > 0) {
+      dispatch(markAllAsRead());
+    }
+  };
+
+  const handleCloseNotifications = () => {
+    setNotificationsAnchorEl(null);
   };
 
   return (
@@ -125,6 +146,63 @@ const Navbar: React.FC = () => {
                 >
                   <FavoriteBorderIcon />
                 </IconButton>
+              )}
+              {isAuthenticated && (
+                <>
+                  <IconButton
+                    sx={{ color: 'inherit' }}
+                    aria-label={t('nav.notifications', 'Notifications')}
+                    onClick={handleOpenNotifications}
+                  >
+                    <Badge
+                      color="secondary"
+                      variant={unreadCount > 0 ? 'dot' : 'standard'}
+                      badgeContent={unreadCount > 0 ? unreadCount : undefined}
+                    >
+                      <NotificationsNoneIcon />
+                    </Badge>
+                  </IconButton>
+                  <Menu
+                    anchorEl={notificationsAnchorEl}
+                    open={Boolean(notificationsAnchorEl)}
+                    onClose={handleCloseNotifications}
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                    transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                    PaperProps={{ sx: { minWidth: 260 } }}
+                  >
+                    {notifications.length === 0 ? (
+                      <MenuItem disabled>
+                        <Typography variant="body2" color="text.secondary">
+                          {t('nav.noNotifications', 'No notifications')}
+                        </Typography>
+                      </MenuItem>
+                    ) : (
+                      notifications.slice(0, 6).map((n) => (
+                        <MenuItem
+                          key={n.id}
+                          onClick={() => {
+                            if (n.href) {
+                              navigate(n.href);
+                              handleCloseNotifications();
+                            }
+                          }}
+                          sx={{ whiteSpace: 'normal', alignItems: 'flex-start', py: 1 }}
+                        >
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: n.read ? 400 : 600 }}>
+                              {n.title}
+                            </Typography>
+                            {n.body && (
+                              <Typography variant="caption" color="text.secondary">
+                                {n.body}
+                              </Typography>
+                            )}
+                          </Box>
+                        </MenuItem>
+                      ))
+                    )}
+                  </Menu>
+                </>
               )}
               <Box component="span" sx={{ color: 'common.black' }}>
                 <LanguageSwitcher />
@@ -209,7 +287,7 @@ const Navbar: React.FC = () => {
                   <ListItemIcon sx={{ minWidth: 40, color: 'common.black' }}>
                     <PersonIcon />
                   </ListItemIcon>
-                  <ListItemText primary={t('nav.profile')} />
+                  <ListItemText primary={t('nav.profile', 'Profile')} />
                 </ListItem>
                 <ListItem
                   component={Link}
@@ -220,7 +298,7 @@ const Navbar: React.FC = () => {
                   <ListItemIcon sx={{ minWidth: 40, color: 'common.black' }}>
                     <ChatBubbleOutlineIcon />
                   </ListItemIcon>
-                  <ListItemText primary={t('nav.messages')} />
+                  <ListItemText primary={t('nav.messages', 'Messages')} />
                 </ListItem>
               </>
             ) : (
@@ -233,7 +311,7 @@ const Navbar: React.FC = () => {
                 <ListItemIcon sx={{ minWidth: 40, color: 'common.black' }}>
                   <LoginIcon />
                 </ListItemIcon>
-                <ListItemText primary={t('nav.loginOrRegister')} />
+                <ListItemText primary={t('nav.loginOrRegister', 'Sign in / Register')} />
               </ListItem>
             )}
           </List>

@@ -64,12 +64,16 @@ export function attachSocketIO(httpServer: HttpServer): Server {
     socket.on(
       'send_message',
       async (
-        payload: { conversationId: string; body: string },
+        payload: { conversationId: string; body?: string; imageUrl?: string },
         cb?: (err: string | null, message?: unknown) => void
       ) => {
-        const { conversationId, body } = payload || {};
-        if (!conversationId || typeof body !== 'string' || !body.trim()) {
+        const { conversationId, body = '', imageUrl } = payload || {};
+        if (!conversationId || typeof conversationId !== 'string') {
           cb?.('Invalid payload');
+          return;
+        }
+        if ((!body || !body.trim()) && !imageUrl) {
+          cb?.('Message must contain text or an image');
           return;
         }
         try {
@@ -81,7 +85,8 @@ export function attachSocketIO(httpServer: HttpServer): Server {
           const message = await conversationsRepo.createMessage(
             conversationId,
             socket.userId,
-            body.trim()
+            body,
+            imageUrl
           );
           if (!message) {
             cb?.('Failed to create message');

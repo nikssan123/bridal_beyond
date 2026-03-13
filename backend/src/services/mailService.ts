@@ -19,12 +19,21 @@ import {
   getBuyerOrderShippedSubject,
   getBuyerOrderShippedHtml,
   getBuyerOrderShippedText,
+  getSellerOrderCompletedSubject,
+  getSellerOrderCompletedHtml,
+  getSellerOrderCompletedText,
   getListingCreatedNoPaymentSubject,
   getListingCreatedNoPaymentHtml,
   getListingCreatedNoPaymentText,
   getSellerBuyerWantsToBuySubject,
   getSellerBuyerWantsToBuyHtml,
   getSellerBuyerWantsToBuyText,
+  getSellerConfirmOrderSubject,
+  getSellerConfirmOrderHtml,
+  getSellerConfirmOrderText,
+  getBuyerOrderCancelledSubject,
+  getBuyerOrderCancelledHtml,
+  getBuyerOrderCancelledText,
 } from '../emails/templates';
 
 let transport: nodemailer.Transporter | null = null;
@@ -218,6 +227,51 @@ export async function sendBuyerOrderShippedEmail(
   });
 }
 
+export interface SendSellerOrderCompletedEmailParams {
+  to: string;
+  sellerName: string;
+  orderUrl: string;
+  listingTitle: string;
+  totalPrice: string;
+}
+
+/**
+ * Sends an email to the seller when the buyer confirms receipt and the order is completed.
+ * Explains that payout will arrive to their IBAN within ~7 days. No-ops if SMTP is not configured.
+ */
+export async function sendSellerOrderCompletedEmail(
+  params: SendSellerOrderCompletedEmailParams
+): Promise<void> {
+  const t = getTransport();
+  if (!t) {
+    console.warn(
+      '[mail] SMTP not configured; skipping seller order-completed email to',
+      params.to
+    );
+    return;
+  }
+  const subject = getSellerOrderCompletedSubject();
+  const html = getSellerOrderCompletedHtml({
+    sellerName: params.sellerName,
+    orderUrl: params.orderUrl,
+    listingTitle: params.listingTitle,
+    totalPrice: params.totalPrice,
+  });
+  const text = getSellerOrderCompletedText({
+    sellerName: params.sellerName,
+    orderUrl: params.orderUrl,
+    listingTitle: params.listingTitle,
+    totalPrice: params.totalPrice,
+  });
+  await t.sendMail({
+    from: mailConfig.smtpUser,
+    to: params.to,
+    subject,
+    text,
+    html,
+  });
+}
+
 export interface SendListingCreatedNoPaymentEmailParams {
   to: string;
   sellerName: string;
@@ -289,6 +343,98 @@ export async function sendSellerBuyerWantsToBuyEmail(
     listingTitle: params.listingTitle,
     profileUrl: params.profileUrl,
     buyerName: params.buyerName,
+  });
+  await t.sendMail({
+    from: mailConfig.smtpUser,
+    to: params.to,
+    subject,
+    text,
+    html,
+  });
+}
+
+export interface SendSellerConfirmOrderEmailParams {
+  to: string;
+  sellerName: string;
+  orderUrl: string;
+  listingTitle: string;
+  totalPrice: string;
+  deadlineHours?: number;
+  buyerName?: string | null;
+}
+
+/**
+ * Sends an email to the seller when a protected order is created and is waiting for their confirmation.
+ * Explains that the buyer's card is authorized and the seller must confirm or cancel within a time window.
+ * No-ops if SMTP is not configured.
+ */
+export async function sendSellerConfirmOrderEmail(
+  params: SendSellerConfirmOrderEmailParams
+): Promise<void> {
+  const t = getTransport();
+  if (!t) {
+    console.warn(
+      '[mail] SMTP not configured; skipping seller confirm-order email to',
+      params.to
+    );
+    return;
+  }
+  const subject = getSellerConfirmOrderSubject();
+  const html = getSellerConfirmOrderHtml({
+    sellerName: params.sellerName,
+    orderUrl: params.orderUrl,
+    listingTitle: params.listingTitle,
+    totalPrice: params.totalPrice,
+    deadlineHours: params.deadlineHours,
+    buyerName: params.buyerName,
+  });
+  const text = getSellerConfirmOrderText({
+    sellerName: params.sellerName,
+    orderUrl: params.orderUrl,
+    listingTitle: params.listingTitle,
+    totalPrice: params.totalPrice,
+    deadlineHours: params.deadlineHours,
+    buyerName: params.buyerName,
+  });
+  await t.sendMail({
+    from: mailConfig.smtpUser,
+    to: params.to,
+    subject,
+    text,
+    html,
+  });
+}
+
+export interface SendBuyerOrderCancelledEmailParams {
+  to: string;
+  name: string;
+  orderUrl: string;
+  listingTitle: string;
+}
+
+/**
+ * Sends an email to the buyer when their protected order is cancelled.
+ * Explains that their card will not be charged and the authorization will be released.
+ * No-ops if SMTP is not configured.
+ */
+export async function sendBuyerOrderCancelledEmail(
+  params: SendBuyerOrderCancelledEmailParams
+): Promise<void> {
+  const t = getTransport();
+  if (!t) {
+    console.warn('[mail] SMTP not configured; skipping buyer order-cancelled email to', params.to);
+    return;
+  }
+  const subject = getBuyerOrderCancelledSubject();
+  const html = getBuyerOrderCancelledHtml({
+    name: params.name,
+    orderUrl: params.orderUrl,
+    listingTitle: params.listingTitle,
+  });
+  const text = getBuyerOrderCancelledText({
+    name: params.name,
+    orderUrl: params.orderUrl,
+    listingTitle: params.listingTitle,
   });
   await t.sendMail({
     from: mailConfig.smtpUser,

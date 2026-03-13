@@ -9,7 +9,10 @@
     "loginOrRegister": "Sign in / Register",
     "profile": "Profile",
     "messages": "Messages",
-    "favorites": "Favorites"
+    "favorites": "Favorites",
+    "notifications": "Notifications",
+    "noNotifications": "No notifications",
+    "newMessageNotificationTitle": "New message"
   },
   "auth": {
     "welcome": "Welcome",
@@ -146,7 +149,24 @@
     "typeMessage": "Type a message...",
     "send": "Send",
     "unknown": "Unknown",
-    "conversationNotFound": "Conversation not found."
+    "conversationNotFound": "Conversation not found.",
+    "attachImage": "Attach image",
+    "removeImage": "Remove image",
+    "imageTooLarge": "File is too large. Maximum size is 10MB.",
+    "imageInvalidType": "File must be an image (JPEG, PNG or WebP).",
+    "imageUploadFailed": "Image upload failed. Please try again.",
+    "sharedPhotoAlt": "Shared photo",
+    "imageSelected": "Image attached",
+    "suggestBuyerStillAvailableWithTitle": "Hi, is \"{{title}}\" still available?",
+    "suggestBuyerStillAvailableGeneric": "Hi, is this item still available?",
+    "suggestBuyerMorePhotos": "Can you share a few more photos or details?",
+    "suggestBuyerNegotiable": "Is the price negotiable at all?",
+    "suggestBuyerDeliveryOptions": "What are the pickup or delivery options?",
+    "suggestSellerThanksWithTitle": "Hi! Thanks for your interest in \"{{title}}\".",
+    "suggestSellerThanksGeneric": "Hi! Thanks for your interest in my listing.",
+    "suggestSellerAvailableTryOn": "Yes, it’s available. When would you like to try it on?",
+    "suggestSellerDiscount": "If you confirm soon, I can offer a small discount.",
+    "suggestSellerCourier": "Where are you based so I can suggest the best courier?"
   },
   "listing": {
     "condition_new": "New",
@@ -257,7 +277,19 @@
     "stripeRequiredForListing": "To publish a listing you need to set up a payout account so we can transfer your earnings to your bank once a sale is completed.",
     "payoutsDescriptionActive": "Your payouts are active. You can update your bank details or verification information at any time through our payment partner.",
     "payoutsDescriptionPending": "Your payouts are not fully set up yet. Complete verification in your payment settings to start receiving money for your sales.",
+    "payoutsNotificationBody": "Connect your payout account to start receiving money from your sales.",
+    "payoutsNotificationVerify": "Your payment provider needs additional verification to keep payouts active.",
     "paymentRequiredForPayouts": "To receive payments from buyers you must connect a payment method. Click the red button below to set up payouts.",
+    "mySales": "My sales",
+    "mySalesSubtitle": "Orders where you are the seller.",
+    "noSales": "You have no sales yet.",
+    "myPurchases": "My purchases",
+    "myPurchasesSubtitle": "Your active and past protected orders.",
+    "noPurchases": "You have no purchases yet.",
+    "viewOrder": "View",
+    "orderAwaitingConfirmation": "Awaiting your confirmation",
+    "orderUpdateError": "Failed to update order. Please try again.",
+    "rejectOrderNoStock": "Reject – no stock",
     "verificationRequired": "Our payment provider needs to verify your identity. Complete verification to avoid disruptions to payouts.",
     "connectPayment": "Connect payment",
     "payoutInfoTitle": "How payouts work",
@@ -304,6 +336,8 @@
     "authorizePayment": "Authorize payment",
     "genericError": "Something went wrong while processing your payment. Please try again or use a different card.",
     "shippingRequired": "Please fill in all shipping fields.",
+    "fullNameHint": "Use your legal name as written on your ID – couriers may require it for delivery.",
+    "phoneHint": "Enter an active mobile number where the courier can reach you if needed.",
     "phoneTooShort": "Phone number must be at least 3 characters.",
     "minOrder": "Minimum order amount is 10 €.",
     "minOrderContact": "You can contact the seller to arrange the sale.",
@@ -344,6 +378,7 @@
     "paymentSecured": "Payment secured – seller will ship your dress",
     "nextStepsBuyerSecured": "Next: the seller will ship the dress. When it arrives, mark it as received to release payment.",
     "shipped": "Shipped – awaiting your confirmation",
+    "shippedSeller": "Shipped – awaiting buyer confirmation",
     "completed": "Completed",
     "cancelled": "Payment failed or cancelled",
     "disputeReasonDelayed": "Delivery is delayed",
@@ -355,11 +390,11 @@
       "payment": "We are confirming the buyer’s card payment for this order.",
       "secured": "The payment is secured in escrow. The seller should now ship the dress.",
       "shipped": "The dress is in transit. The buyer will confirm delivery once it arrives.",
-      "completed": "The buyer confirmed delivery and the payout has been released."
+      "completed": "The buyer confirmed delivery. The payout has been released and should reach the seller’s bank account within up to 7 days."
     },
     "explain": {
       "paymentPending": {
-        "current": "We are confirming your payment for this order.",
+        "current": "We are confirming the buyer’s card payment for this order.",
         "next": {
           "seller": "Once the payment is secured, you will be able to ship the dress.",
           "buyer": "Once the payment is secured, the seller will ship the dress to you."
@@ -387,7 +422,10 @@
       },
       "completed": {
         "current": "This order is completed and the payout has been released.",
-        "next": "There are no further steps for this order."
+        "next": {
+          "seller": "Your payout has been released and should arrive in your bank account (IBAN) within up to 7 days, depending on Stripe and your bank.",
+          "buyer": "There are no further steps for this order."
+        }
       },
       "cancelled": {
         "current": "This order was cancelled or the payment failed.",

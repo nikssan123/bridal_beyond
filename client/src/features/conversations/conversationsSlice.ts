@@ -22,6 +22,29 @@ const initialState: ConversationsState = {
   error: null,
 };
 
+export const uploadConversationImage = createAsyncThunk(
+  'conversations/uploadImage',
+  async (
+    payload: { file: File; conversationId: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      const formData = new FormData();
+      formData.append('image', payload.file);
+      formData.append('conversationId', payload.conversationId);
+      const { data } = await api.post<{ url: string }>('/messages/upload-image', formData, {
+        timeout: 120000,
+      });
+      return data.url;
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } }; message?: string };
+      const message =
+        err?.response?.data?.message || err?.message || 'Failed to upload image';
+      return rejectWithValue(message);
+    }
+  }
+);
+
 export const createOrGetConversation = createAsyncThunk(
   'conversations/createOrGet',
   async (

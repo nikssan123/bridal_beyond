@@ -10,6 +10,7 @@ export interface MessageDTO {
   senderId: string;
   body: string;
   createdAt: string;
+  imageUrl?: string;
 }
 
 export interface ConversationDTO {

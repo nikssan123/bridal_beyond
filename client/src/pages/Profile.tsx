@@ -32,7 +32,13 @@ import { fetchMe, updateProfile, uploadAvatar, deleteAccount, logout } from '@/f
 import { connectStripe, openStripeAccount, fetchStripeAccountStatus } from '@/features/stripe/stripeSlice';
 import { fetchReviewsBySellerId } from '@/features/reviews/reviewsSlice';
 import { fetchListingsBySeller } from '@/features/listings/listingsSlice';
-import { fetchMyBuyerOrders, fetchMySellerOrders } from '@/features/orders/ordersSlice';
+import {
+  fetchMyBuyerOrders,
+  fetchMySellerOrders,
+  sellerConfirmOrder,
+  sellerRejectOrder,
+} from '@/features/orders/ordersSlice';
+import { pushNotification } from '@/features/notifications/notificationsSlice';
 import { getAvatarUrl } from '@/lib/avatarUrl';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
@@ -76,6 +82,8 @@ const Profile: React.FC = () => {
   const { buyerOrders, buyerOrdersStatus, myOrders, sellerOrdersStatus } = useAppSelector(
     (state) => state.orders
   );
+  const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
+  const [orderUpdateError, setOrderUpdateError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -106,6 +114,41 @@ const Profile: React.FC = () => {
       dispatch(fetchStripeAccountStatus());
     }
   }, [dispatch, user?.hasStripeAccount]);
+
+  useEffect(() => {
+    if (!user) return;
+    if (!user.hasStripeAccount) {
+      dispatch(
+        pushNotification({
+          id: 'stripe-setup',
+          type: 'stripe',
+          title: t('profile.payoutsNotSetup', 'Payouts not set up'),
+          body: t(
+            'profile.payoutsNotificationBody',
+            'Connect your payout account to start receiving money for your sales.'
+          ),
+          href: '/profile',
+          createdAt: new Date().toISOString(),
+          read: false,
+        })
+      );
+    } else if (stripeAccountStatus?.hasRequirementsDue) {
+      dispatch(
+        pushNotification({
+          id: 'stripe-verification',
+          type: 'stripe',
+          title: t('profile.payoutsNeedsVerification', 'Payouts need verification'),
+          body: t(
+            'profile.payoutsNotificationVerify',
+            'Your payment provider needs additional verification to keep payouts active.'
+          ),
+          href: '/profile',
+          createdAt: new Date().toISOString(),
+          read: false,
+        })
+      );
+    }
+  }, [dispatch, stripeAccountStatus, t, user]);
 
   const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -481,6 +524,11 @@ const Profile: React.FC = () => {
           title={t('profile.mySales', 'My sales')}
           subtitle={t('profile.mySalesSubtitle', 'Orders where you are the seller.')}
         />
+        {orderUpdateError && (
+          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setOrderUpdateError(null)}>
+            {orderUpdateError}
+          </Alert>
+        )}
         {sellerOrdersStatus === 'loading' ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
             <CircularProgress sx={{ color: 'primary.dark' }} />
@@ -529,16 +577,100 @@ const Profile: React.FC = () => {
                       {order.priceCents / 100} €
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                      {order.status}
+                      {order.status === 'payment_pending'
+                        ? t(
+                            'order.paymentPending',
+                            'Waiting for seller confirmation – your card is authorized but not yet charged'
+                          )
+                        : order.status === 'payment_secured'
+                          ? t(
+                              'order.paymentSecured',
+                              'Payment secured – seller will ship your dress'
+                            )
+                          : order.status === 'shipped'
+                            ? t('order.shippedSeller', 'Shipped – awaiting buyer confirmation')
+                            : order.status === 'completed'
+                              ? t('order.completed', 'Completed')
+                              : t('order.cancelled', 'Payment failed or cancelled')}
                     </Typography>
                   </Box>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    href={`/orders/${order.id}`}
-                  >
-                    {t('profile.viewOrder', 'View')}
-                  </Button>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
+                    {order.status === 'payment_pending' ? (
+                      <>
+                        <Chip
+                          size="small"
+                          color="warning"
+                          label={t(
+                            'profile.orderAwaitingConfirmation',
+                            'Awaiting your confirmation'
+                          )}
+                        />
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            disabled={updatingOrderId === order.id}
+                            onClick={async () => {
+                              setOrderUpdateError(null);
+                              setUpdatingOrderId(order.id);
+                              try {
+                                await dispatch(
+                                  sellerConfirmOrder({ orderId: order.id })
+                                ).unwrap();
+                              } catch (e: any) {
+                                setOrderUpdateError(
+                                  e?.message ??
+                                    t(
+                                      'profile.orderUpdateError',
+                                      'Failed to update order. Please try again.'
+                                    )
+                                );
+                              } finally {
+                                setUpdatingOrderId(null);
+                              }
+                            }}
+                          >
+                            {t('profile.confirmOrder', 'Confirm order')}
+                          </Button>
+                          <Button
+                            variant="text"
+                            size="small"
+                            color="inherit"
+                            disabled={updatingOrderId === order.id}
+                            onClick={async () => {
+                              setOrderUpdateError(null);
+                              setUpdatingOrderId(order.id);
+                              try {
+                                await dispatch(
+                                  sellerRejectOrder({ orderId: order.id })
+                                ).unwrap();
+                              } catch (e: any) {
+                                setOrderUpdateError(
+                                  e?.message ??
+                                    t(
+                                      'profile.orderUpdateError',
+                                      'Failed to update order. Please try again.'
+                                    )
+                                );
+                              } finally {
+                                setUpdatingOrderId(null);
+                              }
+                            }}
+                          >
+                            {t('profile.rejectOrderNoStock', 'Reject – no stock')}
+                          </Button>
+                        </Box>
+                      </>
+                    ) : (
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        href={`/orders/${order.id}`}
+                      >
+                        {t('profile.viewOrder', 'View')}
+                      </Button>
+                    )}
+                  </Box>
                 </Box>
               </Grid>
             ))}

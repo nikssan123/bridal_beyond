@@ -21,6 +21,8 @@ export async function createOrder(params: {
   guestEmail?: string | null;
   guestAccessToken?: string | null;
 }) {
+  const now = new Date();
+  const sellerConfirmBy = new Date(now.getTime() + 24 * 60 * 60 * 1000);
   return prisma.order.create({
     data: {
       listing_id: params.listingId,
@@ -30,6 +32,7 @@ export async function createOrder(params: {
       platform_fee_cents: params.platformFeeCents,
       payment_intent_id: params.paymentIntentId,
       status: 'payment_pending',
+      seller_confirm_by: sellerConfirmBy,
       shipping_full_name: params.shippingFullName,
       shipping_phone: params.shippingPhone,
       shipping_city: params.shippingCity,

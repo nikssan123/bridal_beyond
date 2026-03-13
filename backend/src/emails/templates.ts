@@ -411,6 +411,196 @@ export function getSellerNewOrderText(params: {
     .join('\n');
 }
 
+// --- Seller needs to confirm order (authorization pending) ---
+
+const SELLER_CONFIRM_ORDER_SUBJECT =
+  'Нова заявка за покупка – потвърдете или отменете поръчката в LoveReWorn';
+
+export function getSellerConfirmOrderSubject(): string {
+  return SELLER_CONFIRM_ORDER_SUBJECT;
+}
+
+export function getSellerConfirmOrderHtml(params: {
+  sellerName: string;
+  orderUrl: string;
+  listingTitle: string;
+  totalPrice: string;
+  deadlineHours?: number;
+  buyerName?: string | null;
+}): string {
+  const { sellerName, orderUrl, listingTitle, totalPrice, deadlineHours = 24, buyerName } = params;
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${SELLER_CONFIRM_ORDER_SUBJECT}</title>
+</head>
+<body style="margin:0; padding:0; background-color:#FAF7F5; font-family:'Work Sans',sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#FAF7F5; padding:24px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" style="max-width:520px; border-radius:16px; border:1px solid #E8E0DC; background:#fff;">
+          <tr>
+            <td style="padding:32px 24px;">
+              <h1 style="margin:0 0 12px; font-family:'Playfair Display',serif; font-size:24px; font-weight:600; color:#D4A99A;">
+                Нова заявка за покупка
+              </h1>
+              <p style="margin:0 0 16px; font-size:16px; line-height:1.5; color:#2D2D2D;">
+                Здравейте${sellerName ? `, ${sellerName}` : ''}! Купувач е направил заявка за <strong>защитена покупка</strong> на ваша рокля.
+              </p>
+              <div style="margin:20px 0; padding:14px 18px; border-radius:12px; background-color:#FAF7F5; border:1px solid #E8E0DC;">
+                <p style="margin:0 0 6px; font-size:15px; color:#6B6B6B;">Артикул</p>
+                <p style="margin:0 0 6px; font-size:16px; font-weight:600; color:#2D2D2D;">${listingTitle}</p>
+                <p style="margin:4px 0 0; font-size:16px; font-weight:600; color:#D4897E;">Обща сума за купувача: ${totalPrice}</p>
+                ${
+                  buyerName
+                    ? `<p style="margin:8px 0 0; font-size:14px; color:#6B6B6B;">Купувач: ${buyerName}</p>`
+                    : ''
+                }
+              </div>
+              <p style="margin:0 0 12px; font-size:15px; line-height:1.6; color:#2D2D2D;">
+                Картата на купувача е <strong>авторизирана</strong>, но сумата все още не е събрана. 
+              </p>
+              <p style="margin:0 0 12px; font-size:15px; line-height:1.6; color:#2D2D2D;">
+                В рамките на около <strong>${deadlineHours} часа</strong> трябва да влезете в профила си и да:
+              </p>
+              <ol style="margin:0 0 18px 20px; padding:0; font-size:15px; line-height:1.7; color:#2D2D2D;">
+                <li><strong>Потвърдите поръчката</strong>, ако роклята е налична – тогава плащането ще бъде събрано и ще можете да изпратите пратката.</li>
+                <li><strong>Откажете поръчката</strong>, ако роклята вече не е налична – тогава авторизацията ще бъде отменена и купувачът няма да бъде таксуван.</li>
+              </ol>
+              <p style="margin:0 0 18px; font-size:14px; line-height:1.6; color:#6B6B6B;">
+                Ако не предприемете действие навреме, заявката може да бъде отменена автоматично и купувачът няма да бъде таксуван.
+              </p>
+              <p style="margin:22px 0 0; text-align:center;">
+                <a href="${orderUrl}" style="display:inline-block; padding:14px 28px; border-radius:12px; background:linear-gradient(135deg,#D4A99A 0%,#C4918A 100%); color:#2D2D2D; font-size:16px; font-weight:600; text-decoration:none;">
+                  Отвори поръчката
+                </a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`.trim();
+}
+
+export function getSellerConfirmOrderText(params: {
+  sellerName: string;
+  orderUrl: string;
+  listingTitle: string;
+  totalPrice: string;
+  deadlineHours?: number;
+  buyerName?: string | null;
+}): string {
+  const { sellerName, orderUrl, listingTitle, totalPrice, deadlineHours = 24, buyerName } = params;
+  return [
+    SELLER_CONFIRM_ORDER_SUBJECT,
+    '',
+    sellerName ? `Здравейте, ${sellerName}!` : 'Здравейте!',
+    '',
+    'Купувач е направил заявка за защитена покупка на ваша рокля.',
+    '',
+    `Артикул: ${listingTitle}`,
+    `Обща сума за купувача: ${totalPrice}`,
+    buyerName ? `Купувач: ${buyerName}` : '',
+    '',
+    'Картата на купувача е авторизирана, но плащането все още не е събрано.',
+    `В рамките на около ${deadlineHours} часа трябва да потвърдите поръчката, ако роклята е налична, или да я откажете, ако не е.`,
+    '',
+    '1. Потвърдете поръчката, ако роклята е налична – тогава плащането ще бъде събрано и ще можете да изпратите пратката.',
+    '2. Откажете поръчката, ако роклята вече не е налична – тогава авторизацията ще бъде отменена и купувачът няма да бъде таксуван.',
+    '',
+    'Отворете поръчката тук:',
+    orderUrl,
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
+// --- Order cancelled notification for buyer ---
+
+const BUYER_ORDER_CANCELLED_SUBJECT = 'Вашата поръчка беше отменена – LoveReWorn';
+
+export function getBuyerOrderCancelledSubject(): string {
+  return BUYER_ORDER_CANCELLED_SUBJECT;
+}
+
+export function getBuyerOrderCancelledHtml(params: {
+  name: string;
+  orderUrl: string;
+  listingTitle: string;
+}): string {
+  const { name, orderUrl, listingTitle } = params;
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${BUYER_ORDER_CANCELLED_SUBJECT}</title>
+</head>
+<body style="margin:0; padding:0; background-color:#FAF7F5; font-family:'Work Sans',sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#FAF7F5; padding:24px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" style="max-width:520px; border-radius:16px; border:1px solid #E8E0DC; background:#fff;">
+          <tr>
+            <td style="padding:32px 24px;">
+              <h1 style="margin:0 0 12px; font-family:'Playfair Display',serif; font-size:24px; font-weight:600; color:#D4A99A;">
+                Поръчката ви беше отменена
+              </h1>
+              <p style="margin:0 0 16px; font-size:16px; line-height:1.5; color:#2D2D2D;">
+                Здравейте${name ? `, ${name}` : ''}! Поръчката ви за роклята <strong>${listingTitle}</strong> беше отменена.
+              </p>
+              <p style="margin:0 0 16px; font-size:15px; line-height:1.6; color:#2D2D2D;">
+                Плащането ви <strong>няма да бъде таксувано</strong>. Ако банката ви е задържала сумата като временна авторизация, тя ще бъде освободена автоматично след кратък период.
+              </p>
+              <p style="margin:0 0 18px; font-size:14px; line-height:1.6; color:#6B6B6B;">
+                Можете да разгледате други рокли в LoveReWorn и да направите нова защитена поръчка по всяко време.
+              </p>
+              <p style="margin:22px 0 0; text-align:center;">
+                <a href="${orderUrl}" style="display:inline-block; padding:14px 28px; border-radius:12px; background:linear-gradient(135deg,#D4A99A 0%,#C4918A 100%); color:#2D2D2D; font-size:16px; font-weight:600; text-decoration:none;">
+                  Виж поръчката
+                </a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`.trim();
+}
+
+export function getBuyerOrderCancelledText(params: {
+  name: string;
+  orderUrl: string;
+  listingTitle: string;
+}): string {
+  const { name, orderUrl, listingTitle } = params;
+  return [
+    BUYER_ORDER_CANCELLED_SUBJECT,
+    '',
+    name ? `Здравейте, ${name}!` : 'Здравейте!',
+    '',
+    `Поръчката ви за роклята "${listingTitle}" беше отменена.`,
+    '',
+    'Плащането ви няма да бъде таксувано. Ако банката ви е задържала сумата като временна авторизация, тя ще бъде освободена автоматично след кратък период.',
+    '',
+    'Можете да разгледате други рокли и да направите нова защитена поръчка по всяко време.',
+    '',
+    'Вижте подробности за поръчката тук (по избор):',
+    orderUrl,
+  ].join('\n');
+}
+
 // --- Order shipped notification for buyer ---
 
 const BUYER_ORDER_SHIPPED_SUBJECT = 'Вашата поръчка е изпратена – LoveReWorn';
@@ -493,6 +683,95 @@ export function getBuyerOrderShippedText(params: {
     `Номер за проследяване: ${trackingNumber}`,
     '',
     'След получаване проверете роклята и от страницата на поръчката потвърдете получаването.',
+    '',
+    'Вижте поръчката тук:',
+    orderUrl,
+  ].join('\n');
+}
+
+// --- Seller: buyer confirmed receipt ---
+
+const SELLER_ORDER_COMPLETED_SUBJECT =
+  'Купувачът потвърди получаването – очаквайте изплащане по IBAN в рамките на 7 дни';
+
+export function getSellerOrderCompletedSubject(): string {
+  return SELLER_ORDER_COMPLETED_SUBJECT;
+}
+
+export function getSellerOrderCompletedHtml(params: {
+  sellerName: string;
+  orderUrl: string;
+  listingTitle: string;
+  totalPrice: string;
+}): string {
+  const { sellerName, orderUrl, listingTitle, totalPrice } = params;
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${SELLER_ORDER_COMPLETED_SUBJECT}</title>
+</head>
+<body style="margin:0; padding:0; background-color:#FAF7F5; font-family:'Work Sans',sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#FAF7F5; padding:24px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" style="max-width:520px; border-radius:16px; border:1px solid #E8E0DC; background:#fff;">
+          <tr>
+            <td style="padding:32px 24px;">
+              <h1 style="margin:0 0 12px; font-family:'Playfair Display',serif; font-size:24px; font-weight:600; color:#D4A99A;">
+                Купувачът потвърди получаването
+              </h1>
+              <p style="margin:0 0 16px; font-size:16px; line-height:1.5; color:#2D2D2D;">
+                Здравейте${sellerName ? `, ${sellerName}` : ''}! Купувачът потвърди, че е получил роклята и поръчката е завършена успешно.
+              </p>
+              <div style="margin:20px 0; padding:14px 18px; border-radius:12px; background-color:#FAF7F5; border:1px solid #E8E0DC;">
+                <p style="margin:0 0 6px; font-size:15px; color:#6B6B6B;">Артикул</p>
+                <p style="margin:0 0 6px; font-size:16px; font-weight:600; color:#2D2D2D;">${listingTitle}</p>
+                <p style="margin:4px 0 0; font-size:16px; font-weight:600; color:#D4897E;">Сума за изплащане: ${totalPrice}</p>
+              </div>
+              <p style="margin:0 0 16px; font-size:15px; line-height:1.6; color:#2D2D2D;">
+                Средствата по тази поръчка са освободени. Вашето изплащане ще бъде изпратено по посочения от вас IBAN чрез Stripe. 
+                Обичайно преводът към банковата сметка отнема до около <strong>7 дни</strong>, в зависимост от графика за изплащания на банката и Stripe.
+              </p>
+              <p style="margin:0 0 18px; font-size:14px; line-height:1.6; color:#6B6B6B;">
+                Можете да следите статуса на поръчката и да виждате детайли за плащането от вашето табло в LoveReWorn.
+              </p>
+              <p style="margin:22px 0 0; text-align:center;">
+                <a href="${orderUrl}" style="display:inline-block; padding:14px 28px; border-radius:12px; background:linear-gradient(135deg,#D4A99A 0%,#C4918A 100%); color:#2D2D2D; font-size:16px; font-weight:600; text-decoration:none;">
+                  Виж поръчката
+                </a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`.trim();
+}
+
+export function getSellerOrderCompletedText(params: {
+  sellerName: string;
+  orderUrl: string;
+  listingTitle: string;
+  totalPrice: string;
+}): string {
+  const { sellerName, orderUrl, listingTitle, totalPrice } = params;
+  return [
+    SELLER_ORDER_COMPLETED_SUBJECT,
+    '',
+    sellerName ? `Здравейте, ${sellerName}!` : 'Здравейте!',
+    '',
+    'Купувачът потвърди, че е получил роклята и поръчката е завършена успешно.',
+    '',
+    `Артикул: ${listingTitle}`,
+    `Сума за изплащане: ${totalPrice}`,
+    '',
+    'Средствата по тази поръчка са освободени. Изплащането ще бъде изпратено по посочения от вас IBAN чрез Stripe и обичайно отнема до около 7 дни, в зависимост от банката и графика за изплащания.',
     '',
     'Вижте поръчката тук:',
     orderUrl,

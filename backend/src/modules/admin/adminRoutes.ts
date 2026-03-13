@@ -6,6 +6,7 @@ const router = Router();
 router.post('/login', adminController.login);
 router.get('/tables', adminController.listTables);
 router.get('/tables/:name', adminController.getTable);
+router.post('/orders/:id/capture', adminController.captureOrderPayment);
 router.delete('/listings/:id', adminController.deleteListing);
 router.get('/listings/:id/images/order', adminController.getListingImagesOrder);
 router.patch('/listings/:id/images/order', adminController.updateListingImagesOrder);

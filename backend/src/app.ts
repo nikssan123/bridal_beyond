@@ -9,6 +9,7 @@ import { env } from './config/env';
 import { errorHandler } from './middleware/errorHandler';
 import { openApiDocument } from './swagger/openapi';
 import webhooksStripeRoutes from './modules/webhooks/webhooksStripeRoutes';
+import { startCancelStalePendingOrdersJob } from './jobs/cancelStalePendingOrders';
 
 const app = express();
 
@@ -87,5 +88,7 @@ import apiRoutes from './routes';
 app.use('/api', apiRoutes);
 
 app.use(errorHandler);
+
+startCancelStalePendingOrdersJob();
 
 export default app;

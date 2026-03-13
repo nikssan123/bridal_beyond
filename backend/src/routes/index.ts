@@ -9,6 +9,7 @@ import paymentsRoutes from '../modules/payments/paymentsRoutes';
 import ordersRoutes from '../modules/orders/ordersRoutes';
 import adminDisputesRoutes from '../modules/disputes/adminDisputesRoutes';
 import adminRoutes from '../modules/admin/adminRoutes';
+import messagesRoutes from '../modules/messages/messagesRoutes';
 import { authMiddleware } from '../middleware/authMiddleware';
 import sitemapRoutes from '../modules/sitemap/sitemapRoutes';
 
@@ -19,6 +20,7 @@ router.use('/listings', listingsRoutes);
 router.use('/sellers', sellersRoutes);
 router.use('/favorites', authMiddleware, favoritesRoutes);
 router.use('/conversations', conversationsRoutes);
+router.use('/messages', messagesRoutes);
 router.use('/stripe', authMiddleware, stripeRoutes);
 router.use('/payments', paymentsRoutes);
 router.use('/orders', ordersRoutes);

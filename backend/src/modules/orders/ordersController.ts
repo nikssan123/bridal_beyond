@@ -7,7 +7,15 @@ import * as stripeService from '../../services/stripe.service';
 import * as ordersRepository from './ordersRepository';
 import * as paymentsRepository from '../payments/paymentsRepository';
 import * as disputesRepository from '../disputes/disputesRepository';
-import { sendOrderConfirmationEmail, sendSellerNewOrderEmail, sendBuyerOrderShippedEmail, sendSellerBuyerWantsToBuyEmail } from '../../services/mailService';
+import {
+  sendOrderConfirmationEmail,
+  sendSellerNewOrderEmail,
+  sendBuyerOrderShippedEmail,
+  sendSellerBuyerWantsToBuyEmail,
+  sendSellerConfirmOrderEmail,
+  sendBuyerOrderCancelledEmail,
+  sendSellerOrderCompletedEmail,
+} from '../../services/mailService';
 import * as authRepository from '../auth/authRepository';
 import { EMAIL_REGEX, EMAIL_INVALID_MESSAGE, EMAIL_MAX_LENGTH } from '../../lib/validation';
 
@@ -221,6 +229,31 @@ export async function createOrder(req: Request, res: Response): Promise<void> {
       guestAccessToken: guestAccessToken ?? null,
     });
 
+    if (seller.email) {
+      const orderUrl =
+        order.buyer_id != null
+          ? `${env.clientUrl}/orders/${order.id}`
+          : order.guest_access_token != null
+            ? `${env.clientUrl}/orders/${order.id}?token=${order.guest_access_token}`
+            : `${env.clientUrl}/orders/${order.id}`;
+      const buyer =
+        isGuest || !userId ? null : await authRepository.findById(userId);
+      const buyerName =
+        buyer?.name ?? (isGuest ? shippingAddress.fullName : null) ?? null;
+      const totalEur = (amountCents / 100).toFixed(2);
+      sendSellerConfirmOrderEmail({
+        to: seller.email,
+        sellerName: seller.name,
+        orderUrl,
+        listingTitle: listing.title,
+        totalPrice: `${totalEur} €`,
+        deadlineHours: 24,
+        buyerName,
+      }).catch((err) =>
+        console.error('Seller confirm-order email error (createOrder):', err)
+      );
+    }
+
     res.status(201).json({
       orderId: order.id,
       clientSecret: client_secret,
@@ -406,22 +439,184 @@ export async function confirmReceived(req: Request, res: Response): Promise<void
       return;
     }
 
-    await stripeService.capturePaymentIntent(order.payment_intent_id);
+    try {
+      await stripeService.capturePaymentIntent(order.payment_intent_id);
+    } catch (err: any) {
+      console.error('Stripe capture payment intent error (confirmReceived):', err);
+      const code = err?.code ?? err?.statusCode;
+      if (code === 'payment_intent_unexpected_state' || err?.message?.includes('capture')) {
+        res.status(400).json({ message: err?.message ?? 'Cannot capture this payment' });
+        return;
+      }
+      res.status(502).json({ message: 'Failed to confirm receipt' });
+      return;
+    }
 
     const updated = await prisma.order.update({
       where: { id: orderId },
       data: { status: 'completed', payout_released_at: new Date() },
+      include: { listing: true, seller: true },
     });
 
-    res.json(updated);
+    if (updated.seller?.email && updated.listing) {
+      const orderUrl = `${env.clientUrl}/orders/${orderId}`;
+      const totalEur = (updated.price_cents / 100).toFixed(2);
+      sendSellerOrderCompletedEmail({
+        to: updated.seller.email,
+        sellerName: updated.seller.name,
+        orderUrl,
+        listingTitle: updated.listing.title,
+        totalPrice: `${totalEur} €`,
+      }).catch((err) =>
+        console.error('Seller order-completed email error (confirmReceived):', err)
+      );
+    }
+
+    res.json(serializeOrder(updated));
   } catch (err: any) {
-    console.error('Confirm received / capture error:', err);
-    const code = err?.code ?? err?.statusCode;
-    if (code === 'payment_intent_unexpected_state' || err?.message?.includes('capture')) {
-      res.status(400).json({ message: err?.message ?? 'Cannot capture this payment' });
+    console.error('Confirm received error:', err);
+    res.status(502).json({ message: 'Failed to confirm receipt' });
+  }
+}
+
+export async function sellerConfirm(req: Request, res: Response): Promise<void> {
+  try {
+    const orderId = req.params.id;
+    const userId = (req as any).user?.id as string | undefined;
+    if (!userId) {
+      res.status(401).json({ message: 'Unauthorized' });
       return;
     }
-    res.status(502).json({ message: 'Failed to confirm receipt' });
+
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { listing: true, buyer: true, seller: true },
+    });
+    if (!order) {
+      res.status(404).json({ message: 'Order not found' });
+      return;
+    }
+    if (order.seller_id !== userId) {
+      res.status(403).json({ message: 'Forbidden' });
+      return;
+    }
+    if (order.status !== 'payment_pending') {
+      res.status(400).json({ message: 'Order is not awaiting seller confirmation' });
+      return;
+    }
+    if (order.seller_confirm_by && order.seller_confirm_by < new Date()) {
+      res.status(400).json({ message: 'Confirmation window has expired' });
+      return;
+    }
+
+    const updated = await prisma.order.update({
+      where: { id: orderId },
+      data: { status: 'payment_secured' },
+    });
+
+    const buyerEmail = order.buyer?.email ?? order.guest_email ?? null;
+    const buyerName = order.buyer?.name ?? order.shipping_full_name ?? null;
+    const orderUrl =
+      order.buyer_id != null
+        ? `${env.clientUrl}/orders/${order.id}`
+        : order.guest_access_token != null
+          ? `${env.clientUrl}/orders/${order.id}?token=${order.guest_access_token}`
+          : `${env.clientUrl}/orders/${order.id}`;
+
+    if (order.seller && order.listing && buyerEmail && buyerName) {
+      sendOrderConfirmationEmail({
+        to: buyerEmail,
+        name: buyerName,
+        orderUrl,
+        listingTitle: order.listing.title,
+        totalPrice: `${(Number(order.price_cents) / 100).toFixed(2)} €`,
+      }).catch((err) =>
+        console.error('Order confirmation email error (sellerConfirm):', err)
+      );
+
+      sendSellerNewOrderEmail({
+        to: order.seller.email,
+        sellerName: order.seller.name,
+        orderUrl,
+        listingTitle: order.listing.title,
+        totalPrice: `${(Number(order.price_cents) / 100).toFixed(2)} €`,
+        buyerName,
+      }).catch((err) =>
+        console.error('Seller new order email error (sellerConfirm):', err)
+      );
+    }
+
+    res.json(updated);
+  } catch (err) {
+    console.error('Seller confirm error:', err);
+    res.status(500).json({ message: 'Failed to confirm order' });
+  }
+}
+
+export async function sellerReject(req: Request, res: Response): Promise<void> {
+  try {
+    const orderId = req.params.id;
+    const userId = (req as any).user?.id as string | undefined;
+    if (!userId) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { buyer: true, listing: true },
+    });
+    if (!order) {
+      res.status(404).json({ message: 'Order not found' });
+      return;
+    }
+    if (order.seller_id !== userId) {
+      res.status(403).json({ message: 'Forbidden' });
+      return;
+    }
+    if (order.status !== 'payment_pending') {
+      res.status(400).json({ message: 'Order cannot be rejected in its current state' });
+      return;
+    }
+
+    try {
+      await stripeService.cancelPaymentIntent(order.payment_intent_id);
+    } catch (err: any) {
+      console.error('Stripe cancel payment intent error (sellerReject):', err);
+      const code = err?.code ?? err?.statusCode;
+      if (code === 'payment_intent_unexpected_state') {
+        res.status(400).json({ message: err?.message ?? 'Cannot cancel this payment' });
+        return;
+      }
+    }
+
+    const updated = await prisma.order.update({
+      where: { id: orderId },
+      data: { status: 'cancelled', cancellation_reason: 'seller_rejected' },
+    });
+
+    const toEmail = order.buyer?.email ?? order.guest_email ?? null;
+    const buyerName = order.buyer?.name ?? order.shipping_full_name ?? null;
+    const orderUrl =
+      order.guest_access_token != null
+        ? `${env.clientUrl}/orders/${orderId}?token=${order.guest_access_token}`
+        : `${env.clientUrl}/orders/${orderId}`;
+
+    if (toEmail && order.listing && buyerName) {
+      sendBuyerOrderCancelledEmail({
+        to: toEmail,
+        name: buyerName,
+        orderUrl,
+        listingTitle: order.listing.title,
+      }).catch((err) =>
+        console.error('Buyer order-cancelled email error (sellerReject):', err)
+      );
+    }
+
+    res.json(updated);
+  } catch (err) {
+    console.error('Seller reject error:', err);
+    res.status(500).json({ message: 'Failed to reject order' });
   }
 }
 

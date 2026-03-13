@@ -13,7 +13,14 @@ const WS_URL = API_ORIGIN;
 let socket: Socket | null = null;
 
 export interface NewMessagePayload {
-  message: { id: string; conversationId: string; senderId: string; body: string; createdAt: string };
+  message: {
+    id: string;
+    conversationId: string;
+    senderId: string;
+    body: string;
+    createdAt: string;
+    imageUrl?: string;
+  };
   conversationId: string;
 }
 
@@ -52,14 +59,14 @@ export function leaveConversation(conversationId: string): void {
 
 export function sendMessage(
   conversationId: string,
-  body: string,
+  payload: { body?: string; imageUrl?: string },
   cb: (err: string | null, message?: NewMessagePayload['message']) => void
 ): void {
   if (!socket) {
     cb('Not connected');
     return;
   }
-  socket.emit('send_message', { conversationId, body }, cb);
+  socket.emit('send_message', { conversationId, ...payload }, cb);
 }
 
 export function onNewMessage(callback: (payload: NewMessagePayload) => void): () => void {

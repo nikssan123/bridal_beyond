@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { env } from '../../config/env';
 import { prisma } from '../../prisma';
 import * as listingsRepo from '../listings/listingsRepository';
+import * as stripeService from '../../services/stripe.service';
 
 const loginBody = z.object({
   username: z.string().min(1),
@@ -77,6 +78,57 @@ export async function getTable(req: Request, res: Response): Promise<void> {
   res.json({ rows });
 }
 
+export async function captureOrderPayment(req: Request, res: Response): Promise<void> {
+  const token = req.header('x-admin-token');
+  if (!verifyAdminToken(token)) {
+    res.status(401).json({ message: 'Unauthorized' });
+    return;
+  }
+
+  const parsed = captureOrderParams.safeParse(req.params);
+  if (!parsed.success) {
+    res.status(400).json({ message: 'Invalid order ID' });
+    return;
+  }
+  const { id } = parsed.data;
+
+  const order = await prisma.order.findUnique({ where: { id } });
+  if (!order) {
+    res.status(404).json({ message: 'Order not found' });
+    return;
+  }
+
+  if (!order.payment_intent_id) {
+    res.status(400).json({ message: 'Order has no payment intent' });
+    return;
+  }
+
+  if (order.status !== 'shipped') {
+    res.status(400).json({ message: 'Order must be shipped before manual capture' });
+    return;
+  }
+
+  try {
+    await stripeService.capturePaymentIntent(order.payment_intent_id);
+  } catch (err: any) {
+    console.error('Admin capture payment error:', err);
+    const code = err?.code ?? err?.statusCode;
+    if (code === 'payment_intent_unexpected_state' || err?.message?.includes('capture')) {
+      res.status(400).json({ message: err?.message ?? 'Cannot capture this payment' });
+      return;
+    }
+    res.status(502).json({ message: 'Failed to capture payment' });
+    return;
+  }
+
+  const updated = await prisma.order.update({
+    where: { id },
+    data: { status: 'completed', payout_released_at: new Date() },
+  });
+
+  res.json(updated);
+}
+
 const deleteListingParams = z.object({ id: z.string().uuid() });
 
 const listingImagesOrderParams = z.object({ id: z.string().uuid() });
@@ -110,6 +162,8 @@ const listingTextBody = z.object({
   (data) => data.title !== undefined || data.description !== undefined,
   { message: 'At least one of title or description must be provided' },
 );
+
+const captureOrderParams = z.object({ id: z.string().uuid() });
 
 export async function deleteListing(req: Request, res: Response): Promise<void> {
   const token = req.header('x-admin-token');

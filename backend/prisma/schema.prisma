@@ -146,6 +146,7 @@ model Message {
   sender_id       String   @db.Uuid
   body            String   @db.Text
   created_at      DateTime @default(now())
+  image_url       String?  @db.VarChar(512)
 
   conversation Conversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
   sender       User         @relation(fields: [sender_id], references: [id], onDelete: Cascade)
@@ -177,6 +178,7 @@ model Order {
   platform_fee_cents Int
   payment_intent_id  String   @unique @db.VarChar(255)
   status             String   @db.VarChar(50)
+  seller_confirm_by  DateTime?
 
   shipping_full_name     String   @db.VarChar(255)
   shipping_phone         String   @db.VarChar(50)
@@ -187,6 +189,8 @@ model Order {
 
   guest_email        String?  @db.VarChar(255)
   guest_access_token String?  @unique @db.VarChar(64)
+
+  cancellation_reason String? @db.VarChar(50)
 
   created_at          DateTime @default(now())
   updated_at          DateTime @default(now())

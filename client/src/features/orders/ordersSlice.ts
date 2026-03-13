@@ -299,6 +299,34 @@ export const createDispute = createAsyncThunk(
   }
 );
 
+export const sellerConfirmOrder = createAsyncThunk(
+  'orders/sellerConfirmOrder',
+  async (payload: { orderId: string }, { rejectWithValue }) => {
+    try {
+      const { data } = await api.post<any>(`/orders/${payload.orderId}/seller-confirm`);
+      return data;
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message || err?.message || 'Failed to confirm order';
+      return rejectWithValue(message);
+    }
+  }
+);
+
+export const sellerRejectOrder = createAsyncThunk(
+  'orders/sellerRejectOrder',
+  async (payload: { orderId: string }, { rejectWithValue }) => {
+    try {
+      const { data } = await api.post<any>(`/orders/${payload.orderId}/seller-reject`);
+      return data;
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message || err?.message || 'Failed to reject order';
+      return rejectWithValue(message);
+    }
+  }
+);
+
 interface OrdersState {
   currentOrder: Order | null;
   myOrders: Order[]; // seller orders
@@ -423,6 +451,50 @@ const ordersSlice = createSlice({
         if (orderId && state.currentOrder?.id === orderId) {
           state.currentOrder = { ...state.currentOrder, hasOpenDispute: true };
         }
+      })
+      .addCase(sellerConfirmOrder.fulfilled, (state, action) => {
+        const updatedRaw = action.payload;
+        const updatedId = updatedRaw.id as string;
+        const updatedStatus = updatedRaw.status as OrderStatus;
+        state.currentOrder =
+          state.currentOrder && state.currentOrder.id === updatedId
+            ? {
+                ...state.currentOrder,
+                status: updatedStatus,
+                updatedAt: updatedRaw.updated_at,
+              }
+            : state.currentOrder;
+        state.myOrders = state.myOrders.map((o) =>
+          o.id === updatedId
+            ? {
+                ...o,
+                status: updatedStatus,
+                updatedAt: updatedRaw.updated_at,
+              }
+            : o
+        );
+      })
+      .addCase(sellerRejectOrder.fulfilled, (state, action) => {
+        const updatedRaw = action.payload;
+        const updatedId = updatedRaw.id as string;
+        const updatedStatus = updatedRaw.status as OrderStatus;
+        state.currentOrder =
+          state.currentOrder && state.currentOrder.id === updatedId
+            ? {
+                ...state.currentOrder,
+                status: updatedStatus,
+                updatedAt: updatedRaw.updated_at,
+              }
+            : state.currentOrder;
+        state.myOrders = state.myOrders.map((o) =>
+          o.id === updatedId
+            ? {
+                ...o,
+                status: updatedStatus,
+                updatedAt: updatedRaw.updated_at,
+              }
+            : o
+        );
       });
   },
 });

@@ -16,6 +16,7 @@ function toMessageDTO(m: {
   sender_id: string;
   body: string;
   created_at: Date;
+  image_url: string | null;
 }): MessageDTO {
   return {
     id: m.id,
@@ -23,6 +24,7 @@ function toMessageDTO(m: {
     senderId: m.sender_id,
     body: m.body,
     createdAt: m.created_at.toISOString(),
+    imageUrl: m.image_url ?? undefined,
   };
 }
 
@@ -158,14 +160,25 @@ export async function isParticipant(conversationId: string, userId: string): Pro
 export async function createMessage(
   conversationId: string,
   senderId: string,
-  body: string
+  body: string,
+  imageUrl?: string | null
 ): Promise<MessageDTO | null> {
   const isPart = await isParticipant(conversationId, senderId);
   if (!isPart) return null;
 
+  const trimmedBody = body.trim();
+  if (!trimmedBody && !imageUrl) {
+    return null;
+  }
+
   const [message] = await prisma.$transaction([
     prisma.message.create({
-      data: { conversation_id: conversationId, sender_id: senderId, body },
+      data: {
+        conversation_id: conversationId,
+        sender_id: senderId,
+        body: trimmedBody || '',
+        image_url: imageUrl ?? null,
+      },
     }),
     prisma.conversation.update({
       where: { id: conversationId },
@@ -198,4 +211,33 @@ export async function getConversationListingTitle(conversationId: string): Promi
     select: { listing: { select: { title: true } } },
   });
   return c?.listing?.title ?? null;
+}
+
+export async function hasMessagesBetweenUsersForListing(
+  userAId: string,
+  userBId: string,
+  listingId: string
+): Promise<boolean> {
+  const convo = await prisma.conversation.findFirst({
+    where: {
+      listing_id: listingId,
+      participants: {
+        some: { user_id: userAId },
+      },
+      AND: [
+        {
+          participants: {
+            some: { user_id: userBId },
+          },
+        },
+        {
+          messages: {
+            some: {},
+          },
+        },
+      ],
+    },
+    select: { id: true },
+  });
+  return !!convo;
 }

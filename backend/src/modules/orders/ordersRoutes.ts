@@ -19,6 +19,8 @@ router.post('/', createOrderLimiter, optionalAuthMiddleware, ordersController.cr
 router.get('/buyer', authMiddleware, ordersController.listBuyerOrders);
 router.get('/seller', authMiddleware, ordersController.listSellerOrders);
 router.post('/:id/mark-shipped', authMiddleware, ordersController.markShipped);
+router.post('/:id/seller-confirm', authMiddleware, ordersController.sellerConfirm);
+router.post('/:id/seller-reject', authMiddleware, ordersController.sellerReject);
 router.post('/:id/disputes', authMiddleware, disputesController.createForOrder);
 router.get('/:id/disputes', authMiddleware, disputesController.listForOrder);
 

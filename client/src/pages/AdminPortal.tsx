@@ -126,6 +126,10 @@ const AdminPortal: React.FC = () => {
   const [editDescription, setEditDescription] = useState('');
   const [editSaving, setEditSaving] = useState(false);
 
+  const [captureOrderId, setCaptureOrderId] = useState('');
+  const [captureLoading, setCaptureLoading] = useState(false);
+  const [captureMessage, setCaptureMessage] = useState<string | null>(null);
+
   const isLoggedIn = !!token;
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -626,6 +630,65 @@ const AdminPortal: React.FC = () => {
                 <Typography variant="body2" color="text.secondary">
                   {selectedTable ? 'Up to 50 rows. Listings table supports delete.' : 'Choose a table from the sidebar.'}
                 </Typography>
+              </Box>
+              <Box sx={{ px: 3, py: 2, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'background.default' }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                  Manual capture (orders)
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  Enter an order ID to capture the buyer payment manually after shipment.
+                </Typography>
+                <Box
+                  component="form"
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (!token || !captureOrderId.trim()) return;
+                    setCaptureLoading(true);
+                    setCaptureMessage(null);
+                    try {
+                      const { data } = await api.post(
+                        `/admin/orders/${encodeURIComponent(captureOrderId.trim())}/capture`,
+                        {},
+                        { headers: adminHeaders(token) },
+                      );
+                      setCaptureMessage(`Captured successfully. New status: ${data.status}`);
+                    } catch (err: any) {
+                      const msg =
+                        err?.response?.data?.message || err?.message || 'Failed to capture payment';
+                      setCaptureMessage(msg);
+                    } finally {
+                      setCaptureLoading(false);
+                    }
+                  }}
+                >
+                  <Grid container spacing={1} alignItems="center">
+                    <Grid item xs={12} sm={8}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Order ID"
+                        value={captureOrderId}
+                        onChange={(e) => setCaptureOrderId(e.target.value)}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <Button
+                        type="submit"
+                        fullWidth
+                        variant="contained"
+                        size="small"
+                        disabled={captureLoading || !captureOrderId.trim()}
+                      >
+                        {captureLoading ? 'Capturing…' : 'Capture payment'}
+                      </Button>
+                    </Grid>
+                  </Grid>
+                  {captureMessage && (
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                      {captureMessage}
+                    </Typography>
+                  )}
+                </Box>
               </Box>
               {loadingRows ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
