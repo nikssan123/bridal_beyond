@@ -4,8 +4,11 @@ import * as adminController from './adminController';
 const router = Router();
 
 router.post('/login', adminController.login);
+router.get('/discounts', adminController.getDiscounts);
 router.get('/tables', adminController.listTables);
 router.get('/tables/:name', adminController.getTable);
+router.get('/conversations', adminController.listConversations);
+router.get('/conversations/:id/messages', adminController.getConversationMessages);
 router.post('/orders/:id/capture', adminController.captureOrderPayment);
 router.delete('/listings/:id', adminController.deleteListing);
 router.get('/listings/:id/images/order', adminController.getListingImagesOrder);

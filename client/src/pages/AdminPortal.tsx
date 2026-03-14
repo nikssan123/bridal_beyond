@@ -29,6 +29,7 @@ import {
   DialogContentText,
   DialogActions,
   Chip,
+  LinearProgress,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
@@ -36,6 +37,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined';
 import GavelOutlinedIcon from '@mui/icons-material/GavelOutlined';
 import PhotoLibraryOutlinedIcon from '@mui/icons-material/PhotoLibraryOutlined';
+import ChatOutlinedIcon from '@mui/icons-material/ChatOutlined';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import PageContainer from '@/components/PageContainer';
@@ -82,6 +84,31 @@ interface AdminListingImage {
   position: number;
 }
 
+interface AdminConversationParticipant {
+  id: string;
+  name: string;
+  email: string;
+}
+
+interface AdminConversation {
+  id: string;
+  listing_id: string | null;
+  created_at: string;
+  updated_at: string;
+  participants: AdminConversationParticipant[];
+  listing: { id: string; title: string } | null;
+}
+
+interface AdminMessage {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  body: string;
+  image_url: string | null;
+  created_at: string;
+  sender: { id: string; name: string; email: string };
+}
+
 const adminHeaders = (token: string) => ({ 'X-Admin-Token': token });
 
 const AdminPortal: React.FC = () => {
@@ -98,7 +125,7 @@ const AdminPortal: React.FC = () => {
   const [loadingRows, setLoadingRows] = useState(false);
   const [dataError, setDataError] = useState<string | null>(null);
 
-  const [section, setSection] = useState<'tables' | 'disputes' | 'photos'>('tables');
+  const [section, setSection] = useState<'tables' | 'disputes' | 'photos' | 'chat'>('tables');
   const [disputes, setDisputes] = useState<AdminDispute[]>([]);
   const [disputeStatusFilter, setDisputeStatusFilter] = useState<string>('open');
   const [disputesLoading, setDisputesLoading] = useState(false);
@@ -130,6 +157,20 @@ const AdminPortal: React.FC = () => {
   const [captureLoading, setCaptureLoading] = useState(false);
   const [captureMessage, setCaptureMessage] = useState<string | null>(null);
 
+  const [tableLimit, setTableLimit] = useState(50);
+  const [chatConversations, setChatConversations] = useState<AdminConversation[]>([]);
+  const [chatConversationsLoading, setChatConversationsLoading] = useState(false);
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+  const [chatMessages, setChatMessages] = useState<AdminMessage[]>([]);
+  const [chatMessagesLoading, setChatMessagesLoading] = useState(false);
+
+  const [discounts, setDiscounts] = useState<{
+    limit: number;
+    used: number;
+    discountsLeft: number;
+    totalOrders: number;
+  } | null>(null);
+
   const isLoggedIn = !!token;
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -153,12 +194,13 @@ const AdminPortal: React.FC = () => {
     }
   };
 
-  const loadRows = async (table: string, currentToken: string) => {
+  const loadRows = async (table: string, currentToken: string, limit: number = tableLimit) => {
     setLoadingRows(true);
     setDataError(null);
     try {
       const { data } = await api.get<{ rows: TableRowData[] }>(`/admin/tables/${table}`, {
         headers: adminHeaders(currentToken),
+        params: { limit },
       });
       setRows(data.rows);
     } catch (err: any) {
@@ -212,11 +254,31 @@ const AdminPortal: React.FC = () => {
     }
   }, [token]);
 
+  const loadDiscounts = async (currentToken: string) => {
+    try {
+      const { data } = await api.get<{ limit: number; used: number; discountsLeft: number; totalOrders: number }>(
+        '/admin/discounts',
+        { headers: adminHeaders(currentToken) }
+      );
+      setDiscounts(data);
+    } catch {
+      setDiscounts(null);
+    }
+  };
+
+  useEffect(() => {
+    if (token) {
+      loadDiscounts(token);
+    } else {
+      setDiscounts(null);
+    }
+  }, [token]);
+
   useEffect(() => {
     if (token && selectedTable && section === 'tables') {
-      loadRows(selectedTable, token);
+      loadRows(selectedTable, token, tableLimit);
     }
-  }, [token, selectedTable, section]);
+  }, [token, selectedTable, section, tableLimit]);
 
   useEffect(() => {
     if (token && section === 'disputes') {
@@ -231,6 +293,55 @@ const AdminPortal: React.FC = () => {
       setCurrentDispute(null);
     }
   }, [token, selectedDisputeId]);
+
+  const loadChatConversations = async (currentToken: string) => {
+    setChatConversationsLoading(true);
+    try {
+      const { data } = await api.get<{ conversations: AdminConversation[] }>('/admin/conversations', {
+        headers: adminHeaders(currentToken),
+        params: { limit: 100 },
+      });
+      setChatConversations(data.conversations || []);
+    } catch (err: any) {
+      setDataError(err?.response?.data?.message || err?.message || 'Failed to load conversations');
+      setChatConversations([]);
+    } finally {
+      setChatConversationsLoading(false);
+    }
+  };
+
+  const loadChatMessages = async (conversationId: string, currentToken: string) => {
+    setChatMessagesLoading(true);
+    setChatMessages([]);
+    try {
+      const { data } = await api.get<{ messages: AdminMessage[] }>(
+        `/admin/conversations/${conversationId}/messages`,
+        { headers: adminHeaders(currentToken) }
+      );
+      setChatMessages(data.messages || []);
+    } catch (err: any) {
+      setDataError(err?.response?.data?.message || err?.message || 'Failed to load messages');
+      setChatMessages([]);
+    } finally {
+      setChatMessagesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (token && section === 'chat') {
+      loadChatConversations(token);
+      setSelectedConversationId(null);
+      setChatMessages([]);
+    }
+  }, [token, section]);
+
+  useEffect(() => {
+    if (token && selectedConversationId && section === 'chat') {
+      loadChatMessages(selectedConversationId, token);
+    } else {
+      setChatMessages([]);
+    }
+  }, [token, selectedConversationId, section]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -259,6 +370,9 @@ const AdminPortal: React.FC = () => {
     setDisputes([]);
     setSelectedDisputeId(null);
     setCurrentDispute(null);
+    setChatConversations([]);
+    setSelectedConversationId(null);
+    setChatMessages([]);
   };
 
   const handleResolve = async (
@@ -450,7 +564,9 @@ const AdminPortal: React.FC = () => {
               ? 'Browse database tables. Listings can be deleted from here.'
               : section === 'disputes'
                 ? 'Review and resolve buyer disputes.'
-                : 'Inspect and reorder listing photos to choose the main image.'
+                : section === 'photos'
+                  ? 'Inspect and reorder listing photos to choose the main image.'
+                  : 'Inspect chat threads for moderation.'
           }
         />
         <Button variant="outlined" size="small" onClick={handleLogout}>
@@ -469,6 +585,24 @@ const AdminPortal: React.FC = () => {
         >
           {dataError || disputesError || resolveError}
         </Alert>
+      )}
+      {isLoggedIn && discounts !== null && discounts.limit > 0 && (
+        <Paper variant="outlined" sx={{ p: 2, mb: 2, borderRadius: 2 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+            Discounts left (free seller commission)
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            First {discounts.limit} orders on the platform have no seller commission. {discounts.discountsLeft} left.
+          </Typography>
+          <LinearProgress
+            variant="determinate"
+            value={discounts.limit > 0 ? (discounts.used / discounts.limit) * 100 : 0}
+            sx={{ height: 8, borderRadius: 1 }}
+          />
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+            {discounts.used} of {discounts.limit} used ({discounts.totalOrders} total orders)
+          </Typography>
+        </Paper>
       )}
       <Box
         sx={{
@@ -513,6 +647,14 @@ const AdminPortal: React.FC = () => {
               <PhotoLibraryOutlinedIcon sx={{ mr: 1.5, color: section === 'photos' ? 'primary.main' : 'text.secondary' }} />
               <ListItemText primary="Listing photos" secondary="Choose main image" />
             </ListItemButton>
+            <ListItemButton
+              selected={section === 'chat'}
+              onClick={() => setSection('chat')}
+              sx={{ borderRadius: 0 }}
+            >
+              <ChatOutlinedIcon sx={{ mr: 1.5, color: section === 'chat' ? 'primary.main' : 'text.secondary' }} />
+              <ListItemText primary="Chat" secondary="Inspect messages" />
+            </ListItemButton>
           </List>
           {section === 'tables' && (
             <>
@@ -542,6 +684,50 @@ const AdminPortal: React.FC = () => {
                     <Box sx={{ p: 2 }}>
                       <Typography variant="body2" color="text.secondary">
                         No tables available.
+                      </Typography>
+                    </Box>
+                  )}
+                </List>
+              )}
+            </>
+          )}
+          {section === 'chat' && (
+            <>
+              <Divider />
+              <Box sx={{ px: 2, py: 1.5, bgcolor: 'action.hover' }}>
+                <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 600 }}>
+                  Conversations
+                </Typography>
+              </Box>
+              {chatConversationsLoading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                  <CircularProgress size={24} />
+                </Box>
+              ) : (
+                <List dense>
+                  {chatConversations.map((c) => {
+                    const names = c.participants.map((p) => p.name).join(', ');
+                    const listingLabel = c.listing?.title ? ` – ${c.listing.title}` : '';
+                    return (
+                      <ListItemButton
+                        key={c.id}
+                        selected={c.id === selectedConversationId}
+                        onClick={() => setSelectedConversationId(c.id)}
+                        sx={{ py: 0.75 }}
+                      >
+                        <ListItemText
+                          primary={names + listingLabel}
+                          secondary={new Date(c.updated_at).toLocaleString()}
+                          primaryTypographyProps={{ variant: 'body2', noWrap: true }}
+                          secondaryTypographyProps={{ variant: 'caption' }}
+                        />
+                      </ListItemButton>
+                    );
+                  })}
+                  {chatConversations.length === 0 && !chatConversationsLoading && (
+                    <Box sx={{ p: 2 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        No conversations.
                       </Typography>
                     </Box>
                   )}
@@ -623,13 +809,30 @@ const AdminPortal: React.FC = () => {
         >
           {section === 'tables' && (
             <>
-              <Box sx={{ px: 3, py: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  {selectedTable || 'Select a table'}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {selectedTable ? 'Up to 50 rows. Listings table supports delete.' : 'Choose a table from the sidebar.'}
-                </Typography>
+              <Box sx={{ px: 3, py: 2, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2 }}>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    {selectedTable || 'Select a table'}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {selectedTable ? `Up to ${tableLimit} rows. Listings table supports delete.` : 'Choose a table from the sidebar.'}
+                  </Typography>
+                </Box>
+                {selectedTable && (
+                  <FormControl size="small" sx={{ minWidth: 120 }}>
+                    <InputLabel>Rows</InputLabel>
+                    <Select
+                      value={String(tableLimit)}
+                      label="Rows"
+                      onChange={(e) => setTableLimit(Number(e.target.value))}
+                    >
+                      <MenuItem value="25">25</MenuItem>
+                      <MenuItem value="50">50</MenuItem>
+                      <MenuItem value="100">100</MenuItem>
+                      <MenuItem value="200">200</MenuItem>
+                    </Select>
+                  </FormControl>
+                )}
               </Box>
               <Box sx={{ px: 3, py: 2, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'background.default' }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
@@ -712,7 +915,18 @@ const AdminPortal: React.FC = () => {
                     <TableHead>
                       <TableRow>
                         {allColumns.map((col) => (
-                          <TableCell key={col} sx={{ fontWeight: 600, bgcolor: 'background.default' }}>
+                          <TableCell
+                            key={col}
+                            sx={{
+                              fontWeight: 600,
+                              bgcolor: 'background.default',
+                              minWidth: col === 'id' ? 80 : col === 'email' ? 140 : 90,
+                              maxWidth: 200,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
                             {col}
                           </TableCell>
                         ))}
@@ -745,13 +959,27 @@ const AdminPortal: React.FC = () => {
                                 typeof val === 'string' &&
                                 /^\d{4}-\d{2}-\d{2}/.test(val) &&
                                 (col.includes('_at') || col.includes('_since') || col === 'created_at' || col === 'updated_at');
+                              const display =
+                                typeof val === 'object' && val !== null
+                                  ? JSON.stringify(val).slice(0, 80) + (JSON.stringify(val).length > 80 ? '…' : '')
+                                  : isDate
+                                    ? new Date(val as string).toLocaleString()
+                                    : String(val ?? '');
+                              const fullText =
+                                typeof val === 'object' && val !== null ? JSON.stringify(val) : String(val ?? '');
                               return (
-                                <TableCell key={col} sx={{ maxWidth: 200 }}>
-                                  {typeof val === 'object' && val !== null
-                                    ? JSON.stringify(val).slice(0, 80) + (JSON.stringify(val).length > 80 ? '…' : '')
-                                    : isDate
-                                      ? new Date(val as string).toLocaleString()
-                                      : String(val ?? '')}
+                                <TableCell
+                                  key={col}
+                                  sx={{
+                                    maxWidth: 200,
+                                    minWidth: col === 'id' ? 80 : col === 'email' ? 140 : 90,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                  title={fullText}
+                                >
+                                  {display}
                                 </TableCell>
                               );
                             })}
@@ -824,6 +1052,72 @@ const AdminPortal: React.FC = () => {
                     </TableBody>
                   </Table>
                 </TableContainer>
+              )}
+            </>
+          )}
+
+          {section === 'chat' && (
+            <>
+              {!selectedConversationId ? (
+                <Box sx={{ p: 4, textAlign: 'center' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Select a conversation from the list to view the message thread.
+                  </Typography>
+                </Box>
+              ) : chatMessagesLoading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+                  <CircularProgress />
+                </Box>
+              ) : (
+                <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                      Message thread
+                    </Typography>
+                    <Button variant="outlined" size="small" onClick={() => setSelectedConversationId(null)}>
+                      Back to list
+                    </Button>
+                  </Box>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Conversation ID: {selectedConversationId}
+                  </Typography>
+                  {chatMessages.length === 0 ? (
+                    <Typography variant="body2" color="text.secondary">
+                      No messages in this conversation.
+                    </Typography>
+                  ) : (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                      {chatMessages.map((msg) => (
+                        <Paper
+                          key={msg.id}
+                          variant="outlined"
+                          sx={{
+                            p: 2,
+                            borderRadius: 2,
+                            bgcolor: 'action.hover',
+                          }}
+                        >
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                            {msg.sender.name} ({msg.sender.email}) · {new Date(msg.created_at).toLocaleString()}
+                          </Typography>
+                          {msg.body && (
+                            <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                              {msg.body}
+                            </Typography>
+                          )}
+                          {msg.image_url && (
+                            <Box
+                              component="img"
+                              src={msg.image_url}
+                              alt=""
+                              sx={{ maxWidth: '100%', maxHeight: 200, borderRadius: 1, mt: 1 }}
+                            />
+                          )}
+                        </Paper>
+                      ))}
+                    </Box>
+                  )}
+                </Box>
               )}
             </>
           )}

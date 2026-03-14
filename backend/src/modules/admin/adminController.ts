@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { env } from '../../config/env';
 import { prisma } from '../../prisma';
 import * as listingsRepo from '../listings/listingsRepository';
+import * as ordersRepository from '../orders/ordersRepository';
 import * as stripeService from '../../services/stripe.service';
 
 const loginBody = z.object({
@@ -52,6 +53,24 @@ export async function login(req: Request, res: Response): Promise<void> {
   res.status(200).json({ token: env.adminUsername });
 }
 
+export async function getDiscounts(req: Request, res: Response): Promise<void> {
+  const token = req.header('x-admin-token');
+  if (!verifyAdminToken(token)) {
+    res.status(401).json({ message: 'Unauthorized' });
+    return;
+  }
+  const limit = env.stripeFreeSellerCommissionOrderLimit;
+  const totalOrders = await ordersRepository.countAll();
+  const used = Math.min(totalOrders, limit);
+  const discountsLeft = Math.max(0, limit - totalOrders);
+  res.json({
+    limit,
+    used,
+    discountsLeft,
+    totalOrders,
+  });
+}
+
 export async function listTables(req: Request, res: Response): Promise<void> {
   const token = req.header('x-admin-token');
   if (!verifyAdminToken(token)) {
@@ -76,6 +95,64 @@ export async function getTable(req: Request, res: Response): Promise<void> {
   }
   const rows = await fetcher(limit);
   res.json({ rows });
+}
+
+export async function listConversations(req: Request, res: Response): Promise<void> {
+  const token = req.header('x-admin-token');
+  if (!verifyAdminToken(token)) {
+    res.status(401).json({ message: 'Unauthorized' });
+    return;
+  }
+  const limit = Math.max(1, Math.min(200, Number(req.query.limit) || 50));
+  const conversations = await prisma.conversation.findMany({
+    take: limit,
+    orderBy: { updated_at: 'desc' },
+    include: {
+      participants: { include: { user: { select: { id: true, name: true, email: true } } } },
+      listing: { select: { id: true, title: true } },
+    },
+  });
+  res.json({
+    conversations: conversations.map((c) => ({
+      id: c.id,
+      listing_id: c.listing_id,
+      created_at: c.created_at,
+      updated_at: c.updated_at,
+      participants: c.participants.map((p) => p.user),
+      listing: c.listing,
+    })),
+  });
+}
+
+export async function getConversationMessages(req: Request, res: Response): Promise<void> {
+  const token = req.header('x-admin-token');
+  if (!verifyAdminToken(token)) {
+    res.status(401).json({ message: 'Unauthorized' });
+    return;
+  }
+  const conversationId = req.params.id;
+  if (!conversationId) {
+    res.status(400).json({ message: 'Conversation ID required' });
+    return;
+  }
+  const messages = await prisma.message.findMany({
+    where: { conversation_id: conversationId },
+    orderBy: { created_at: 'asc' },
+    include: {
+      sender: { select: { id: true, name: true, email: true } },
+    },
+  });
+  res.json({
+    messages: messages.map((m) => ({
+      id: m.id,
+      conversation_id: m.conversation_id,
+      sender_id: m.sender_id,
+      body: m.body,
+      image_url: m.image_url,
+      created_at: m.created_at,
+      sender: m.sender,
+    })),
+  });
 }
 
 export async function captureOrderPayment(req: Request, res: Response): Promise<void> {
