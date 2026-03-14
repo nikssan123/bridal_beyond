@@ -19,8 +19,20 @@ export function trackPageView(): void {
   window.fbq('track', 'PageView');
 }
 
+const COMPLETE_REGISTRATION_SENT_KEY = 'meta_complete_registration_sent';
+
+/**
+ * Send CompleteRegistration to Meta at most once per session so we don't
+ * double-count when multiple code paths fire (e.g. VerifyEmail + redirect, or double submit).
+ */
 export function trackCompleteRegistration(): void {
   if (!window.fbq || !window.META_PIXEL_INITIALIZED) return;
+  try {
+    if (sessionStorage.getItem(COMPLETE_REGISTRATION_SENT_KEY) === '1') return;
+    sessionStorage.setItem(COMPLETE_REGISTRATION_SENT_KEY, '1');
+  } catch {
+    // sessionStorage unavailable (e.g. private window)
+  }
   window.fbq('track', 'CompleteRegistration');
 }
 
