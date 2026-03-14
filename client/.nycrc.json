@@ -1,0 +1,13 @@
+{
+  "include": ["src/**/*.{js,ts,tsx,jsx}"],
+  "exclude": [
+    "node_modules",
+    "e2e",
+    "**/*.test.{ts,tsx}",
+    "**/*.spec.{ts,tsx}",
+    "**/vite-env.d.ts"
+  ],
+  "reporter": ["html", "text-summary"],
+  "report-dir": "coverage-e2e",
+  "temp-dir": ".nyc_output"
+}
