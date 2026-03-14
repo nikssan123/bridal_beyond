@@ -15,6 +15,11 @@ interface JwtPayload {
 const CONVERSATION_ROOM_PREFIX = 'conversation:';
 
 export function attachSocketIO(httpServer: HttpServer): Server {
+  /** Per conversation: userId -> count of sockets (multiple tabs/devices). */
+  const participantsInRoom = new Map<string, Map<string, number>>();
+  /** Per conversation: recipient userIds we have already emailed since they were last in the room. */
+  const sentEmailForRecipient = new Map<string, Set<string>>();
+
   const io = new Server(httpServer, {
     path: '/socket.io',
     cors: {
@@ -50,7 +55,19 @@ export function attachSocketIO(httpServer: HttpServer): Server {
           cb?.('Not a participant');
           return;
         }
-        socket.join(`${CONVERSATION_ROOM_PREFIX}${conversationId}`);
+        const room = `${CONVERSATION_ROOM_PREFIX}${conversationId}`;
+        socket.join(room);
+        let byUser = participantsInRoom.get(conversationId);
+        if (!byUser) {
+          byUser = new Map();
+          participantsInRoom.set(conversationId, byUser);
+        }
+        byUser.set(socket.userId, (byUser.get(socket.userId) ?? 0) + 1);
+        const sentSet = sentEmailForRecipient.get(conversationId);
+        if (sentSet) {
+          sentSet.delete(socket.userId);
+          if (sentSet.size === 0) sentEmailForRecipient.delete(conversationId);
+        }
         cb?.();
       });
     });
@@ -58,6 +75,29 @@ export function attachSocketIO(httpServer: HttpServer): Server {
     socket.on('leave_conversation', (conversationId: string) => {
       if (conversationId && typeof conversationId === 'string') {
         socket.leave(`${CONVERSATION_ROOM_PREFIX}${conversationId}`);
+        const byUser = participantsInRoom.get(conversationId);
+        if (byUser) {
+          const n = (byUser.get(socket.userId) ?? 0) - 1;
+          if (n <= 0) byUser.delete(socket.userId);
+          else byUser.set(socket.userId, n);
+          if (byUser.size === 0) participantsInRoom.delete(conversationId);
+        }
+      }
+    });
+
+    socket.on('disconnecting', () => {
+      const prefix = CONVERSATION_ROOM_PREFIX;
+      for (const room of socket.rooms) {
+        if (room.startsWith(prefix)) {
+          const conversationId = room.slice(prefix.length);
+          const byUser = participantsInRoom.get(conversationId);
+          if (byUser) {
+            const n = (byUser.get(socket.userId) ?? 0) - 1;
+            if (n <= 0) byUser.delete(socket.userId);
+            else byUser.set(socket.userId, n);
+            if (byUser.size === 0) participantsInRoom.delete(conversationId);
+          }
+        }
       }
     });
 
@@ -108,13 +148,23 @@ export function attachSocketIO(httpServer: HttpServer): Server {
             if (sender?.name) senderName = sender.name;
           } catch (_) {}
           if (recipient) {
-            sendNewMessageEmail({
-              to: recipient.email,
-              recipientName: recipient.name,
-              senderName,
-              listingTitle: listingTitle ?? undefined,
-              messagesUrl,
-            }).catch((err) => console.error('[mail] sendNewMessageEmail failed', err));
+            const recipientInRoom = (participantsInRoom.get(conversationId)?.get(recipient.id) ?? 0) > 0;
+            const alreadySent = sentEmailForRecipient.get(conversationId)?.has(recipient.id) ?? false;
+            if (!recipientInRoom && !alreadySent) {
+              sendNewMessageEmail({
+                to: recipient.email,
+                recipientName: recipient.name,
+                senderName,
+                listingTitle: listingTitle ?? undefined,
+                messagesUrl,
+              }).catch((err) => console.error('[mail] sendNewMessageEmail failed', err));
+              let sentSet = sentEmailForRecipient.get(conversationId);
+              if (!sentSet) {
+                sentSet = new Set();
+                sentEmailForRecipient.set(conversationId, sentSet);
+              }
+              sentSet.add(recipient.id);
+            }
           }
 
           const room = `${CONVERSATION_ROOM_PREFIX}${conversationId}`;
