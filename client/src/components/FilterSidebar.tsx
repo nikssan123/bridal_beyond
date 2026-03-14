@@ -80,8 +80,8 @@ const FilterContent: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
         sx={{ color: 'primary.dark', mb: 1 }}
       />
       <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-        <Typography variant="caption" color="text.secondary">{filters.priceRange[0]} €</Typography>
-        <Typography variant="caption" color="text.secondary">{filters.priceRange[1]} €</Typography>
+        <Typography variant="caption" color="text.secondary">{Math.min(filters.priceRange[0], sliderMax)} €</Typography>
+        <Typography variant="caption" color="text.secondary">{Math.min(filters.priceRange[1], sliderMax)} €</Typography>
       </Box>
 
       {onClose && (
