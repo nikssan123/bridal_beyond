@@ -14,6 +14,13 @@ export interface SellerSummary {
   isVerified?: boolean;
 }
 
+export interface ShopSummaryOnListing {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl?: string;
+}
+
 export interface ListingDTO {
   id: string;
   title: string;
@@ -28,6 +35,7 @@ export interface ListingDTO {
   measurements: { bust: string; waist: string; hips: string; length: string };
   images: string[];
   seller: SellerSummary;
+  shop?: ShopSummaryOnListing;
   status?: string;
   createdAt: string;
 }
@@ -44,4 +52,5 @@ export interface ListingCreateInput {
   brand: string;
   measurements: { bust: string; waist: string; hips: string; length: string };
   images: string[];
+  shopId?: string;
 }

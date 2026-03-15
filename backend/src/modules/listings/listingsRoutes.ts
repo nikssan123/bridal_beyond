@@ -22,6 +22,7 @@ const listingBodySchema = z.object({
     length: z.string(),
   }),
   images: z.array(z.string()).min(2, 'At least 2 images are required'),
+  shopId: z.string().uuid().optional(),
 });
 
 const createListingSchema = {
@@ -38,8 +39,11 @@ const listQuerySchema = {
     search: z.string().optional(),
     sortBy: z.enum(['newest', 'price-asc', 'price-desc']).optional(),
     sellerId: z.string().optional(),
+    shopId: z.string().optional(),
+    fromShop: z.enum(['true', 'false']).optional(),
     status: z.string().optional(),
     featured: z.enum(['true', 'false']).optional(),
+    includeMaxPrice: z.enum(['true', 'false']).optional(),
     limit: z.coerce.number().min(1).max(100).optional(),
     offset: z.coerce.number().min(0).optional(),
   }),

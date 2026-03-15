@@ -31,6 +31,9 @@ import Messages from './pages/Messages';
 import AdminDisputes from './pages/AdminDisputes';
 import AdminDisputeDetails from './pages/AdminDisputeDetails';
 import SellerProfile from './pages/SellerProfile';
+import BrowseShops from './pages/BrowseShops';
+import ShopProfile from './pages/ShopProfile';
+import EnlistShop from './pages/EnlistShop';
 import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
 import CookieConsentBanner, { getStoredConsent } from './components/CookieConsentBanner';
@@ -81,6 +84,9 @@ const App = () => {
             <Route path="/admin/disputes" element={<AdminRoute><AdminDisputes /></AdminRoute>} />
             <Route path="/admin/disputes/:id" element={<AdminRoute><AdminDisputeDetails /></AdminRoute>} />
             <Route path="/sellers/:id" element={<SellerProfile />} />
+            <Route path="/shops" element={<BrowseShops />} />
+            <Route path="/shops/enlist" element={<ProtectedRoute><EnlistShop /></ProtectedRoute>} />
+            <Route path="/shops/:idOrSlug" element={<ShopProfile />} />
             <Route path="/create" element={<CreateListing />} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />

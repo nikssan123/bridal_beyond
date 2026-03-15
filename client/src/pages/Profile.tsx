@@ -22,6 +22,7 @@ import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
 import EditIcon from '@mui/icons-material/Edit';
 import AddPhotoAlternateOutlinedIcon from '@mui/icons-material/AddPhotoAlternateOutlined';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import StorefrontOutlinedIcon from '@mui/icons-material/StorefrontOutlined';
 import PageContainer from '@/components/PageContainer';
 import SectionHeader from '@/components/SectionHeader';
 import ReviewList from '@/components/ReviewList';
@@ -32,6 +33,7 @@ import { fetchMe, updateProfile, uploadAvatar, deleteAccount, logout } from '@/f
 import { connectStripe, openStripeAccount, fetchStripeAccountStatus } from '@/features/stripe/stripeSlice';
 import { fetchReviewsBySellerId } from '@/features/reviews/reviewsSlice';
 import { fetchListingsBySeller } from '@/features/listings/listingsSlice';
+import { fetchMyShop } from '@/features/shops/shopsSlice';
 import {
   fetchMyBuyerOrders,
   fetchMySellerOrders,
@@ -41,7 +43,7 @@ import {
 import { pushNotification } from '@/features/notifications/notificationsSlice';
 import { getAvatarUrl } from '@/lib/avatarUrl';
 import { useTranslation } from 'react-i18next';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import SafetyInfoCard from '@/components/SafetyInfoCard';
 import SeoHelmet from '@/components/SeoHelmet';
 
@@ -82,8 +84,16 @@ const Profile: React.FC = () => {
   const { buyerOrders, buyerOrdersStatus, myOrders, sellerOrdersStatus } = useAppSelector(
     (state) => state.orders
   );
+  const { myShop, myShopStatus } = useAppSelector((state) => state.shops);
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
   const [orderUpdateError, setOrderUpdateError] = useState<string | null>(null);
+  const [ordersTab, setOrdersTab] = useState<'seller' | 'buyer'>('seller');
+  const [reviewsExpanded, setReviewsExpanded] = useState(false);
+  const REVIEWS_PREVIEW = 3;
+  const reviewsToShow = reviewsExpanded ? reviews : reviews.slice(0, REVIEWS_PREVIEW);
+  const hasMoreReviews = reviews.length > REVIEWS_PREVIEW;
+  const [stripeRedirectUrl, setStripeRedirectUrl] = useState<string | null>(null);
+  const [stripeCountdown, setStripeCountdown] = useState(15);
 
   useEffect(() => {
     if (!user) {
@@ -97,6 +107,7 @@ const Profile: React.FC = () => {
       dispatch(fetchListingsBySeller({ sellerId: user.id, status: tab === 'active' ? 'active' : 'sold' }));
       dispatch(fetchMyBuyerOrders());
       dispatch(fetchMySellerOrders());
+      dispatch(fetchMyShop());
     }
   }, [dispatch, user?.id, tab]);
 
@@ -149,6 +160,27 @@ const Profile: React.FC = () => {
       );
     }
   }, [dispatch, stripeAccountStatus, t, user]);
+
+  // Stripe redirect dialog: countdown then redirect
+  useEffect(() => {
+    if (!stripeRedirectUrl || stripeCountdown <= 0) return;
+    const id = setInterval(() => setStripeCountdown((c) => c - 1), 1000);
+    return () => clearInterval(id);
+  }, [stripeRedirectUrl, stripeCountdown]);
+  useEffect(() => {
+    if (stripeRedirectUrl && stripeCountdown === 0) {
+      window.location.href = stripeRedirectUrl;
+      setStripeRedirectUrl(null);
+    }
+  }, [stripeRedirectUrl, stripeCountdown]);
+
+  const handleStripeRedirect = (url: string) => {
+    setStripeRedirectUrl(url);
+    setStripeCountdown(20);
+  };
+  const closeStripeDialog = () => {
+    setStripeRedirectUrl(null);
+  };
 
   const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -222,21 +254,27 @@ const Profile: React.FC = () => {
         title={t('safety.keepCommunicationOnPlatformTitle')}
         body={t('safety.keepCommunicationOnPlatformBody')}
       />
-      {/* Profile header */}
+      {/* Profile header – compact */}
       <Box
         sx={{
           border: '1px solid',
           borderColor: 'divider',
           borderRadius: 3,
-          p: 4,
-          mb: 4,
+          p: { xs: 2, sm: 3 },
+          mb: 3,
           bgcolor: 'background.paper',
         }}
       >
         {hasStripeAccount && stripeAccountStatus?.hasRequirementsDue && (
           <Alert
             severity="warning"
-            sx={{ mb: 2 }}
+            sx={{
+              mb: 2,
+              flexDirection: { xs: 'column', sm: 'row' },
+              alignItems: { xs: 'stretch', sm: 'flex-start' },
+              '& .MuiAlert-message': { minWidth: 0, overflowWrap: 'break-word' },
+              '& .MuiAlert-action': { marginTop: { xs: 1.5, sm: 0 }, alignSelf: { xs: 'stretch', sm: 'center' } },
+            }}
             action={
               <Button
                 color="inherit"
@@ -245,9 +283,10 @@ const Profile: React.FC = () => {
                 onClick={async () => {
                   const result = await dispatch(openStripeAccount());
                   if (openStripeAccount.fulfilled.match(result) && result.payload) {
-                    window.location.href = result.payload as string;
+                    handleStripeRedirect(result.payload as string);
                   }
                 }}
+                sx={{ alignSelf: { xs: 'stretch', sm: 'center' } }}
               >
                 {stripeConnectStatus === 'loading'
                   ? t('common.loading', 'Loading...')
@@ -261,14 +300,14 @@ const Profile: React.FC = () => {
             )}
           </Alert>
         )}
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 3 }}>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2 }}>
           <Avatar
             src={getAvatarUrl(user.avatarUrl) || undefined}
             sx={{
-              width: 80,
-              height: 80,
+              width: 64,
+              height: 64,
               bgcolor: 'primary.main',
-              fontSize: '2rem',
+              fontSize: '1.75rem',
               fontFamily: "'Playfair Display', serif",
             }}
           >
@@ -276,27 +315,14 @@ const Profile: React.FC = () => {
           </Avatar>
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-              <Typography variant="h4" sx={{ fontWeight: 600 }}>
+              <Typography variant="h5" sx={{ fontWeight: 600 }}>
                 {user.name}
               </Typography>
               {user.isVerified && (
                 <Tooltip title={t('profile.verifiedAccount')}>
-                  <VerifiedUserIcon sx={{ fontSize: 28, color: 'primary.main' }} />
+                  <VerifiedUserIcon sx={{ fontSize: 22, color: 'primary.main' }} />
                 </Tooltip>
               )}
-            </Box>
-            {user.location && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'text.secondary', mt: 0.5 }}>
-                <LocationOnOutlinedIcon sx={{ fontSize: 18 }} />
-                <Typography variant="body2">{user.location}</Typography>
-              </Box>
-            )}
-            {user.memberSince && (
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                {t('profile.memberSince')} {user.memberSince}
-              </Typography>
-            )}
-            <Box sx={{ mt: 1 }}>
               <Chip
                 size="small"
                 color={
@@ -313,77 +339,57 @@ const Profile: React.FC = () => {
                       ? t('profile.payoutsNeedsVerification', 'Payouts need verification')
                       : t('profile.payoutsActive', 'Payouts active')
                 }
+                sx={{ ml: 0.5 }}
               />
             </Box>
+            {(user.location || user.memberSince) && (
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+                {[user.location, user.memberSince && t('profile.memberSince') + ' ' + user.memberSince]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </Typography>
+            )}
           </Box>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1, flexWrap: 'wrap' }}>
             <Button
               variant="outlined"
+              size="medium"
               startIcon={<EditIcon />}
               onClick={() => setEditOpen(true)}
               sx={{ borderColor: 'primary.main', color: 'primary.dark' }}
             >
               {t('profile.editProfile')}
             </Button>
-            {/* <Button
-              variant="text"
-              color="error"
-              onClick={() => setDeleteDialogOpen(true)}
-              sx={{ justifyContent: 'flex-start', p: 0, minWidth: 0 }}
-            >
-              {t('profile.deleteAccount', 'Delete account')}
-            </Button> */}
-          </Box>
-          {hasStripeAccount && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1, minWidth: 0 }}>
-              <Button
-                variant="outlined"
-                color="secondary"
-                startIcon={
-                  stripeConnectStatus === 'loading' ? (
-                    <CircularProgress size={20} sx={{ color: 'primary.dark' }} />
-                  ) : (
-                    <AccountBalanceWalletIcon />
-                  )
+            <Button
+              variant="outlined"
+              size="medium"
+              color="secondary"
+              startIcon={
+                stripeConnectStatus === 'loading' ? (
+                  <CircularProgress size={18} sx={{ color: 'primary.dark' }} />
+                ) : (
+                  <AccountBalanceWalletIcon />
+                )
+              }
+              disabled={stripeConnectStatus === 'loading'}
+              onClick={async () => {
+                if (hasStripeAccount) {
+                  const result = await dispatch(openStripeAccount());
+                  if (openStripeAccount.fulfilled.match(result) && result.payload) {
+                    handleStripeRedirect(result.payload as string);
+                  }
+                } else {
+                  const result = await dispatch(connectStripe());
+                  if (connectStripe.fulfilled.match(result) && result.payload) {
+                    handleStripeRedirect(result.payload as string);
+                  }
                 }
-                disabled={stripeConnectStatus === 'loading'}
-                onClick={async () => {
-                  const result = await dispatch(openStripeAccount());
-                  if (openStripeAccount.fulfilled.match(result) && result.payload) {
-                    window.location.href = result.payload as string;
-                  }
-                }}
-                sx={{ borderColor: 'secondary.main', color: 'secondary.dark', whiteSpace: 'nowrap' }}
-              >
-                {t('profile.editPaymentInfo', 'Edit payment info')}
-              </Button>
-              <Button
-                variant="text"
-                size="small"
-                disabled={stripeConnectStatus === 'loading'}
-                onClick={async () => {
-                  const result = await dispatch(openStripeAccount());
-                  if (openStripeAccount.fulfilled.match(result) && result.payload) {
-                    window.location.href = result.payload as string;
-                  }
-                }}
-                sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}
-              >
-                {t('profile.verifyIdentity', 'Verify identity')}
-              </Button>
-              <Typography variant="caption" color="text.secondary" sx={{ maxWidth: 260, textAlign: 'right' }}>
-                {hasStripeRequirementsDue
-                  ? t(
-                      'profile.payoutsDescriptionPending',
-                      'Your payouts are not fully set up yet. Complete verification in your payment settings to start receiving money for your sales.'
-                    )
-                  : t(
-                      'profile.payoutsDescriptionActive',
-                      'Your payouts are active. You can update your bank details or complete verification in your payment settings at any time.'
-                    )}
-              </Typography>
-            </Box>
-          )}
+              }}
+              sx={{ borderColor: 'secondary.main', color: 'secondary.dark', whiteSpace: 'nowrap' }}
+            >
+              {hasStripeAccount ? t('profile.editPaymentInfo', 'Edit payment info') : t('profile.connectPayment', 'Connect payment')}
+            </Button>
+          </Box>
         </Box>
         {stripeConnectError && (
           <Typography variant="body2" color="error" sx={{ mt: 2 }}>
@@ -392,109 +398,193 @@ const Profile: React.FC = () => {
         )}
       </Box>
 
-      {!hasStripeAccount && (
-        <Box
-          sx={{
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: 3,
-            p: { xs: 3, sm: 3.5 },
-            mb: 4,
-            bgcolor: 'background.paper',
-          }}
-        >
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {/* Shop + Payout in one row */}
+      <Grid container spacing={3} sx={{ mb: 3 }}>
+        {myShopStatus === 'succeeded' || myShopStatus === 'failed' ? (
+          <Grid item xs={12} md={6}>
+            <Box
+              sx={{
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 3,
+                p: 3,
+                height: '100%',
+                bgcolor: 'background.paper',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 1.5,
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <StorefrontOutlinedIcon sx={{ color: 'primary.main', fontSize: 24 }} />
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                  {t('shops.myShop', 'Your shop')}
+                </Typography>
+              </Box>
+              {myShop ? (
+                <>
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>{myShop.name}</Typography>
+                  <Chip
+                    size="small"
+                    label={
+                      myShop.status === 'approved'
+                        ? t('shops.statusApproved', 'Approved')
+                        : myShop.status === 'pending'
+                          ? t('shops.statusPending', 'Pending approval')
+                          : t('shops.statusRejected', 'Rejected')
+                    }
+                    color={myShop.status === 'approved' ? 'success' : myShop.status === 'pending' ? 'warning' : 'default'}
+                  />
+                  {myShop.status === 'approved' && (
+                    <Button
+                      component={Link}
+                      to={`/shops/${myShop.slug || myShop.id}`}
+                      variant="outlined"
+                      size="small"
+                      sx={{ alignSelf: 'flex-start', mt: 0.5 }}
+                    >
+                      {t('shops.viewMyShop', 'View my shop')}
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <>
+                  <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+                    {t('shops.enlistCta', 'List your boutique or shop on LoveReWorn. Apply to become a verified shop.')}
+                  </Typography>
+                  <Button component={Link} to="/shops/enlist" variant="outlined" size="small" startIcon={<StorefrontOutlinedIcon />} sx={{ alignSelf: 'flex-start', mt: 0.5 }}>
+                    {t('shops.enlistYourShop', 'Enlist your shop')}
+                  </Button>
+                </>
+              )}
+            </Box>
+          </Grid>
+        ) : null}
+        <Grid item xs={12} md={myShopStatus === 'succeeded' || myShopStatus === 'failed' ? 6 : 12}>
+          <Box
+            sx={{
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 3,
+              p: 3,
+              height: '100%',
+              bgcolor: 'background.paper',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1.5,
+            }}
+          >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <AccountBalanceWalletIcon sx={{ color: 'primary.main' }} />
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              <AccountBalanceWalletIcon sx={{ color: 'primary.main', fontSize: 24 }} />
+              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                 {t('profile.payoutInfoTitle')}
               </Typography>
             </Box>
-            <Typography variant="body2" color="text.secondary">
-              {t('profile.payoutInfoSubtitle')}
-            </Typography>
-            <Box
-              component="ul"
-              sx={{
-                m: 0,
-                pl: 2,
-                display: 'grid',
-                rowGap: 0.5,
-              }}
-            >
-              <Typography component="li" variant="body2" color="text.secondary">
-                {t('profile.payoutInfoPoint1')}
-              </Typography>
-              <Typography component="li" variant="body2" color="text.secondary">
-                {t('profile.payoutInfoPoint2')}
-              </Typography>
-              <Typography component="li" variant="body2" color="text.secondary">
-                {t('profile.payoutInfoPoint3')}
-              </Typography>
-            </Box>
-            <Box
-              sx={{
-                mt: 1,
-                display: 'flex',
-                justifyContent: { xs: 'stretch', sm: 'flex-start' },
-              }}
-            >
-              <Button
-                variant={stripeRequiredForListing ? 'contained' : 'outlined'}
-                color={stripeRequiredForListing ? 'error' : 'secondary'}
-                startIcon={
-                  stripeConnectStatus === 'loading' ? (
-                    <CircularProgress size={20} sx={{ color: stripeRequiredForListing ? 'inherit' : 'primary.dark' }} />
-                  ) : (
-                    <AccountBalanceWalletIcon />
-                  )
-                }
-                disabled={stripeConnectStatus === 'loading'}
-                onClick={async () => {
-                  const result = await dispatch(connectStripe());
-                  if (connectStripe.fulfilled.match(result) && result.payload) {
-                    window.location.href = result.payload as string;
+            {hasStripeAccount ? (
+              <>
+                <Chip
+                  size="small"
+                  color={hasStripeRequirementsDue ? 'warning' : 'success'}
+                  label={
+                    hasStripeRequirementsDue
+                      ? t('profile.payoutsNeedsVerification', 'Payouts need verification')
+                      : t('profile.payoutsActive', 'Payouts active')
                   }
-                }}
-                sx={{
-                  minWidth: { xs: '100%', sm: 'auto' },
-                  borderColor: 'secondary.main',
-                  color: stripeRequiredForListing ? undefined : 'secondary.dark',
-                  ...(stripeRequiredForListing && {
-                    boxShadow: 2,
-                    fontWeight: 600,
-                    px: 2.5,
-                    py: 1.25,
-                    '&:hover': { boxShadow: 4 },
-                  }),
-                }}
-              >
-                {t('profile.connectPayment', 'Connect payment')}
-              </Button>
-            </Box>
+                />
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ lineHeight: 1.6, mt: 0.5 }}
+                >
+                  {hasStripeRequirementsDue
+                    ? t('profile.payoutsDescriptionPending')
+                    : t('profile.payoutsDescriptionActive')}
+                </Typography>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  color="secondary"
+                  startIcon={<AccountBalanceWalletIcon />}
+                  disabled={stripeConnectStatus === 'loading'}
+                  onClick={async () => {
+                    const result = await dispatch(openStripeAccount());
+                    if (openStripeAccount.fulfilled.match(result) && result.payload) {
+                      handleStripeRedirect(result.payload as string);
+                    }
+                  }}
+                  sx={{ alignSelf: 'flex-start', mt: 0.5 }}
+                >
+                  {t('profile.editPaymentInfo', 'Edit payment info')}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+                  {t('profile.payoutInfoSubtitle')}
+                </Typography>
+                <Button
+                  variant={stripeRequiredForListing ? 'contained' : 'outlined'}
+                  color={stripeRequiredForListing ? 'error' : 'secondary'}
+                  size="small"
+                  startIcon={
+                    stripeConnectStatus === 'loading' ? (
+                      <CircularProgress size={16} sx={{ color: stripeRequiredForListing ? 'inherit' : 'primary.dark' }} />
+                    ) : (
+                      <AccountBalanceWalletIcon />
+                    )
+                  }
+                  disabled={stripeConnectStatus === 'loading'}
+                  onClick={async () => {
+                    const result = await dispatch(connectStripe());
+                    if (connectStripe.fulfilled.match(result) && result.payload) {
+                      handleStripeRedirect(result.payload as string);
+                    }
+                  }}
+                  sx={{ alignSelf: 'flex-start', mt: 0.5 }}
+                >
+                  {t('profile.connectPayment', 'Connect payment')}
+                </Button>
+              </>
+            )}
           </Box>
-        </Box>
-      )}
+        </Grid>
+      </Grid>
 
-      {/* Reviews – prominent */}
-      <Box sx={{ mb: 4 }}>
+      {/* Reviews */}
+      <Box sx={{ mb: 3 }}>
         <SectionHeader
           title={t('profile.reviews')}
           subtitle={reviews.length > 0 ? t('profile.reviewsCount', { count: reviews.length }) : undefined}
         />
         {reviews.length > 0 && <RatingDisplay rating={avgRating} count={reviews.length} />}
-        <Box sx={{ mt: 2, p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3, bgcolor: 'background.default' }}>
-          <ReviewList reviews={reviews} />
-        </Box>
+        {reviews.length > 0 && (
+          <>
+            <Box sx={{ mt: 1.5, p: 2.5, border: '1px solid', borderColor: 'divider', borderRadius: 3, bgcolor: 'background.default' }}>
+              <ReviewList reviews={reviewsToShow} />
+            </Box>
+            {hasMoreReviews && (
+              <Button
+                variant="text"
+                size="medium"
+                onClick={() => setReviewsExpanded((v) => !v)}
+                sx={{ mt: 1.5, color: 'primary.dark' }}
+              >
+                {reviewsExpanded
+                  ? t('profile.showLessReviews', 'Show less')
+                  : t('profile.viewAllReviews', 'View all reviews ({{count}})', { count: reviews.length })}
+              </Button>
+            )}
+          </>
+        )}
         {reviews.length === 0 && (
-          <Typography variant="body2" color="text.secondary" sx={{ py: 3 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
             {t('profile.noReviews')}
           </Typography>
         )}
       </Box>
 
       {/* Listings – Active / Past */}
-      <Box>
+      <Box sx={{ mb: 3 }}>
         <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
           <Tab label={t('profile.activeListings')} value="active" />
           <Tab label={t('profile.pastListings')} value="past" />
@@ -518,150 +608,225 @@ const Profile: React.FC = () => {
         )}
       </Box>
 
-      {/* Seller orders – My sales */}
-      <Box sx={{ mt: 6 }}>
+      {/* Orders – As seller / As buyer */}
+      <Box sx={{ mt: 4 }}>
         <SectionHeader
-          title={t('profile.mySales', 'My sales')}
-          subtitle={t('profile.mySalesSubtitle', 'Orders where you are the seller.')}
+          title={t('profile.orders', 'Orders')}
+          subtitle={t('profile.ordersSubtitle', 'Your sales and purchases.')}
         />
-        {orderUpdateError && (
+        <Tabs value={ordersTab} onChange={(_, v) => setOrdersTab(v)} sx={{ mb: 2, minHeight: 40 }}>
+          <Tab label={t('profile.mySales', 'My sales')} value="seller" />
+          <Tab label={t('profile.myPurchases', 'My purchases')} value="buyer" />
+        </Tabs>
+        {orderUpdateError && ordersTab === 'seller' && (
           <Alert severity="error" sx={{ mb: 2 }} onClose={() => setOrderUpdateError(null)}>
             {orderUpdateError}
           </Alert>
         )}
-        {sellerOrdersStatus === 'loading' ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-            <CircularProgress sx={{ color: 'primary.dark' }} />
-          </Box>
-        ) : myOrders.length === 0 ? (
-          <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
-            {t('profile.noSales', 'You have no sales yet.')}
-          </Typography>
-        ) : (
-          <Grid container spacing={2}>
-            {myOrders.map((order) => (
-              <Grid item xs={12} md={6} key={order.id}>
-                <Box
-                  sx={{
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    borderRadius: 3,
-                    p: 2,
-                    display: 'flex',
-                    gap: 2,
-                    alignItems: 'center',
-                  }}
-                >
-                  {order.listing && order.listing.images[0] && (
-                    <Avatar
-                      variant="rounded"
-                      src={getAvatarUrl(order.listing.images[0]) || undefined}
-                      sx={{ width: 72, height: 90, borderRadius: 2 }}
-                    />
-                  )}
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography
-                      variant="subtitle1"
-                      noWrap
-                      sx={{ fontWeight: 600, mb: 0.5 }}
+        {ordersTab === 'seller' && (
+          <>
+            {sellerOrdersStatus === 'loading' ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <CircularProgress sx={{ color: 'primary.dark' }} />
+              </Box>
+            ) : myOrders.length === 0 ? (
+              <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+                {t('profile.noSales', 'You have no sales yet.')}
+              </Typography>
+            ) : (
+              <Grid container spacing={2}>
+                {myOrders.map((order) => (
+                  <Grid item xs={12} md={6} key={order.id}>
+                    <Box
+                      sx={{
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        borderRadius: 3,
+                        p: 2,
+                        display: 'flex',
+                        gap: 2,
+                        alignItems: 'center',
+                      }}
                     >
-                      {order.listing?.title}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {new Date(order.createdAt).toLocaleDateString()}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{ mt: 0.5, fontWeight: 600, color: 'secondary.main' }}
-                    >
-                      {order.priceCents / 100} €
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                      {order.status === 'payment_pending'
-                        ? t(
-                            'order.paymentPending',
-                            'Waiting for seller confirmation – your card is authorized but not yet charged'
-                          )
-                        : order.status === 'payment_secured'
-                          ? t(
-                              'order.paymentSecured',
-                              'Payment secured – seller will ship your dress'
-                            )
-                          : order.status === 'shipped'
-                            ? t('order.shippedSeller', 'Shipped – awaiting buyer confirmation')
-                            : order.status === 'completed'
-                              ? t('order.completed', 'Completed')
-                              : t('order.cancelled', 'Payment failed or cancelled')}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
-                    {order.status === 'payment_pending' ? (
-                      <>
-                        <Chip
-                          size="small"
-                          color="warning"
-                          label={t(
-                            'profile.orderAwaitingConfirmation',
-                            'Awaiting your confirmation'
-                          )}
+                      {order.listing && order.listing.images[0] && (
+                        <Avatar
+                          variant="rounded"
+                          src={getAvatarUrl(order.listing.images[0]) || undefined}
+                          sx={{ width: 72, height: 90, borderRadius: 2 }}
                         />
-                        <Box sx={{ display: 'flex', gap: 1 }}>
+                      )}
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography
+                          variant="subtitle1"
+                          noWrap
+                          sx={{ fontWeight: 600, mb: 0.5 }}
+                        >
+                          {order.listing?.title}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {new Date(order.createdAt).toLocaleDateString()}
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{ mt: 0.5, fontWeight: 600, color: 'secondary.main' }}
+                        >
+                          {order.priceCents / 100} €
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                          {order.status === 'payment_pending'
+                            ? t(
+                              'order.paymentPending',
+                              'Waiting for seller confirmation – your card is authorized but not yet charged'
+                            )
+                            : order.status === 'payment_secured'
+                              ? t(
+                                'order.paymentSecured',
+                                'Payment secured – seller will ship your dress'
+                              )
+                              : order.status === 'shipped'
+                                ? t('order.shippedSeller', 'Shipped – awaiting buyer confirmation')
+                                : order.status === 'completed'
+                                  ? t('order.completed', 'Completed')
+                                  : t('order.cancelled', 'Payment failed or cancelled')}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
+                        {order.status === 'payment_pending' ? (
+                          <>
+                            <Chip
+                              size="small"
+                              color="warning"
+                              label={t(
+                                'profile.orderAwaitingConfirmation',
+                                'Awaiting your confirmation'
+                              )}
+                            />
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                              <Button
+                                variant="contained"
+                                size="small"
+                                disabled={updatingOrderId === order.id}
+                                onClick={async () => {
+                                  setOrderUpdateError(null);
+                                  setUpdatingOrderId(order.id);
+                                  try {
+                                    await dispatch(
+                                      sellerConfirmOrder({ orderId: order.id })
+                                    ).unwrap();
+                                  } catch (e: any) {
+                                    setOrderUpdateError(
+                                      e?.message ??
+                                      t(
+                                        'profile.orderUpdateError',
+                                        'Failed to update order. Please try again.'
+                                      )
+                                    );
+                                  } finally {
+                                    setUpdatingOrderId(null);
+                                  }
+                                }}
+                              >
+                                {t('profile.confirmOrder', 'Confirm order')}
+                              </Button>
+                              <Button
+                                variant="text"
+                                size="small"
+                                color="inherit"
+                                disabled={updatingOrderId === order.id}
+                                onClick={async () => {
+                                  setOrderUpdateError(null);
+                                  setUpdatingOrderId(order.id);
+                                  try {
+                                    await dispatch(
+                                      sellerRejectOrder({ orderId: order.id })
+                                    ).unwrap();
+                                  } catch (e: any) {
+                                    setOrderUpdateError(
+                                      e?.message ??
+                                      t(
+                                        'profile.orderUpdateError',
+                                        'Failed to update order. Please try again.'
+                                      )
+                                    );
+                                  } finally {
+                                    setUpdatingOrderId(null);
+                                  }
+                                }}
+                              >
+                                {t('profile.rejectOrderNoStock', 'Reject – no stock')}
+                              </Button>
+                            </Box>
+                          </>
+                        ) : (
                           <Button
-                            variant="contained"
+                            variant="outlined"
                             size="small"
-                            disabled={updatingOrderId === order.id}
-                            onClick={async () => {
-                              setOrderUpdateError(null);
-                              setUpdatingOrderId(order.id);
-                              try {
-                                await dispatch(
-                                  sellerConfirmOrder({ orderId: order.id })
-                                ).unwrap();
-                              } catch (e: any) {
-                                setOrderUpdateError(
-                                  e?.message ??
-                                    t(
-                                      'profile.orderUpdateError',
-                                      'Failed to update order. Please try again.'
-                                    )
-                                );
-                              } finally {
-                                setUpdatingOrderId(null);
-                              }
-                            }}
+                            href={`/orders/${order.id}`}
                           >
-                            {t('profile.confirmOrder', 'Confirm order')}
+                            {t('profile.viewOrder', 'View')}
                           </Button>
-                          <Button
-                            variant="text"
-                            size="small"
-                            color="inherit"
-                            disabled={updatingOrderId === order.id}
-                            onClick={async () => {
-                              setOrderUpdateError(null);
-                              setUpdatingOrderId(order.id);
-                              try {
-                                await dispatch(
-                                  sellerRejectOrder({ orderId: order.id })
-                                ).unwrap();
-                              } catch (e: any) {
-                                setOrderUpdateError(
-                                  e?.message ??
-                                    t(
-                                      'profile.orderUpdateError',
-                                      'Failed to update order. Please try again.'
-                                    )
-                                );
-                              } finally {
-                                setUpdatingOrderId(null);
-                              }
-                            }}
-                          >
-                            {t('profile.rejectOrderNoStock', 'Reject – no stock')}
-                          </Button>
-                        </Box>
-                      </>
-                    ) : (
+                        )}
+                      </Box>
+                    </Box>
+                  </Grid>
+                ))}
+              </Grid>
+            )}
+          </>
+        )}
+        {ordersTab === 'buyer' && (
+          <>
+            {buyerOrdersStatus === 'loading' ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <CircularProgress sx={{ color: 'primary.dark' }} />
+              </Box>
+            ) : buyerOrders.length === 0 ? (
+              <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+                {t('profile.noPurchases', 'You have no purchases yet.')}
+              </Typography>
+            ) : (
+              <Grid container spacing={2}>
+                {buyerOrders.map((order) => (
+                  <Grid item xs={12} md={6} key={order.id}>
+                    <Box
+                      sx={{
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        borderRadius: 3,
+                        p: 2,
+                        display: 'flex',
+                        gap: 2,
+                        alignItems: 'center',
+                      }}
+                    >
+                      {order.listing && order.listing.images[0] && (
+                        <Avatar
+                          variant="rounded"
+                          src={getAvatarUrl(order.listing.images[0]) || undefined}
+                          sx={{ width: 72, height: 90, borderRadius: 2 }}
+                        />
+                      )}
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography
+                          variant="subtitle1"
+                          noWrap
+                          sx={{ fontWeight: 600, mb: 0.5 }}
+                        >
+                          {order.listing?.title}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {new Date(order.createdAt).toLocaleDateString()}
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{ mt: 0.5, fontWeight: 600, color: 'secondary.main' }}
+                        >
+                          {order.priceCents / 100} €
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                          {order.status}
+                        </Typography>
+                      </Box>
                       <Button
                         variant="outlined"
                         size="small"
@@ -669,85 +834,44 @@ const Profile: React.FC = () => {
                       >
                         {t('profile.viewOrder', 'View')}
                       </Button>
-                    )}
-                  </Box>
-                </Box>
+                    </Box>
+                  </Grid>
+                ))}
               </Grid>
-            ))}
-          </Grid>
+            )}
+          </>
         )}
       </Box>
 
-      {/* Buyer orders – My purchases */}
-      <Box sx={{ mt: 6 }}>
-        <SectionHeader
-          title={t('profile.myPurchases', 'My purchases')}
-          subtitle={t('profile.myPurchasesSubtitle', 'Your active and past protected orders.')}
-        />
-        {buyerOrdersStatus === 'loading' ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-            <CircularProgress sx={{ color: 'primary.dark' }} />
-          </Box>
-        ) : buyerOrders.length === 0 ? (
-          <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
-            {t('profile.noPurchases', 'You have no purchases yet.')}
+      {/* Stripe redirect dialog – what is Stripe + countdown */}
+      <Dialog open={!!stripeRedirectUrl} onClose={closeStripeDialog} maxWidth="sm" fullWidth>
+        <DialogTitle>{t('profile.stripeDialogTitle', 'Payment setup')}</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            {t(
+              'profile.stripeDescriptionShort',
+              'Stripe is our payment partner so we can send your earnings to your bank (IBAN). You’ll enter your details once on their secure page.'
+            )}
           </Typography>
-        ) : (
-          <Grid container spacing={2}>
-            {buyerOrders.map((order) => (
-              <Grid item xs={12} md={6} key={order.id}>
-                <Box
-                  sx={{
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    borderRadius: 3,
-                    p: 2,
-                    display: 'flex',
-                    gap: 2,
-                    alignItems: 'center',
-                  }}
-                >
-                  {order.listing && order.listing.images[0] && (
-                    <Avatar
-                      variant="rounded"
-                      src={getAvatarUrl(order.listing.images[0]) || undefined}
-                      sx={{ width: 72, height: 90, borderRadius: 2 }}
-                    />
-                  )}
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography
-                      variant="subtitle1"
-                      noWrap
-                      sx={{ fontWeight: 600, mb: 0.5 }}
-                    >
-                      {order.listing?.title}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {new Date(order.createdAt).toLocaleDateString()}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{ mt: 0.5, fontWeight: 600, color: 'secondary.main' }}
-                    >
-                      {order.priceCents / 100} €
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                      {order.status}
-                    </Typography>
-                  </Box>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    href={`/orders/${order.id}`}
-                  >
-                    {t('profile.viewOrder', 'View')}
-                  </Button>
-                </Box>
-              </Grid>
-            ))}
-          </Grid>
-        )}
-      </Box>
+          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+            {stripeCountdown > 0
+              ? t('profile.stripeRedirectCountdown', 'You will be redirected to the setup page in {{count}} seconds…', { count: stripeCountdown })
+              : t('profile.stripeRedirecting', 'Redirecting…')}
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={closeStripeDialog} color="inherit">
+            {t('profile.cancel')}
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => stripeRedirectUrl && (window.location.href = stripeRedirectUrl)}
+            disabled={stripeCountdown <= 0}
+          >
+            {t('profile.stripeContinueNow', 'Continue to setup now')}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Edit profile dialog */}
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth>

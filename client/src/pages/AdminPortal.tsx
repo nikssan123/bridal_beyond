@@ -38,6 +38,7 @@ import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined';
 import GavelOutlinedIcon from '@mui/icons-material/GavelOutlined';
 import PhotoLibraryOutlinedIcon from '@mui/icons-material/PhotoLibraryOutlined';
 import ChatOutlinedIcon from '@mui/icons-material/ChatOutlined';
+import StorefrontOutlinedIcon from '@mui/icons-material/StorefrontOutlined';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import PageContainer from '@/components/PageContainer';
@@ -125,7 +126,7 @@ const AdminPortal: React.FC = () => {
   const [loadingRows, setLoadingRows] = useState(false);
   const [dataError, setDataError] = useState<string | null>(null);
 
-  const [section, setSection] = useState<'tables' | 'disputes' | 'photos' | 'chat'>('tables');
+  const [section, setSection] = useState<'tables' | 'disputes' | 'photos' | 'chat' | 'shops'>('tables');
   const [disputes, setDisputes] = useState<AdminDispute[]>([]);
   const [disputeStatusFilter, setDisputeStatusFilter] = useState<string>('open');
   const [disputesLoading, setDisputesLoading] = useState(false);
@@ -163,6 +164,19 @@ const AdminPortal: React.FC = () => {
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [chatMessages, setChatMessages] = useState<AdminMessage[]>([]);
   const [chatMessagesLoading, setChatMessagesLoading] = useState(false);
+
+  const [adminShops, setAdminShops] = useState<Array<{
+    id: string;
+    name: string;
+    slug: string;
+    status: string;
+    ownerName: string;
+    ownerEmail?: string;
+    createdAt: string;
+  }>>([]);
+  const [adminShopsLoading, setAdminShopsLoading] = useState(false);
+  const [adminShopsStatusFilter, setAdminShopsStatusFilter] = useState<string>('pending');
+  const [shopActionId, setShopActionId] = useState<string | null>(null);
 
   const [discounts, setDiscounts] = useState<{
     limit: number;
@@ -327,6 +341,37 @@ const AdminPortal: React.FC = () => {
     }
   };
 
+  const loadAdminShops = async (currentToken: string) => {
+    setAdminShopsLoading(true);
+    setDataError(null);
+    try {
+      const url = adminShopsStatusFilter
+        ? `/admin/shops?status=${encodeURIComponent(adminShopsStatusFilter)}`
+        : '/admin/shops';
+      const { data } = await api.get<{ shops: Array<{
+        id: string;
+        name: string;
+        slug: string;
+        status: string;
+        ownerName: string;
+        ownerEmail?: string;
+        createdAt: string;
+      }> }>(url, { headers: adminHeaders(currentToken) });
+      setAdminShops(data.shops || []);
+    } catch (err: any) {
+      setDataError(err?.response?.data?.message || err?.message || 'Failed to load shops');
+      setAdminShops([]);
+    } finally {
+      setAdminShopsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (token && section === 'shops') {
+      loadAdminShops(token);
+    }
+  }, [token, section, adminShopsStatusFilter]);
+
   useEffect(() => {
     if (token && section === 'chat') {
       loadChatConversations(token);
@@ -373,6 +418,7 @@ const AdminPortal: React.FC = () => {
     setChatConversations([]);
     setSelectedConversationId(null);
     setChatMessages([]);
+    setAdminShops([]);
   };
 
   const handleResolve = async (
@@ -566,7 +612,9 @@ const AdminPortal: React.FC = () => {
                 ? 'Review and resolve buyer disputes.'
                 : section === 'photos'
                   ? 'Inspect and reorder listing photos to choose the main image.'
-                  : 'Inspect chat threads for moderation.'
+                  : section === 'chat'
+                    ? 'Inspect chat threads for moderation.'
+                    : 'Approve or reject shop enlistment requests.'
           }
         />
         <Button variant="outlined" size="small" onClick={handleLogout}>
@@ -655,6 +703,14 @@ const AdminPortal: React.FC = () => {
               <ChatOutlinedIcon sx={{ mr: 1.5, color: section === 'chat' ? 'primary.main' : 'text.secondary' }} />
               <ListItemText primary="Chat" secondary="Inspect messages" />
             </ListItemButton>
+            <ListItemButton
+              selected={section === 'shops'}
+              onClick={() => setSection('shops')}
+              sx={{ borderRadius: 0 }}
+            >
+              <StorefrontOutlinedIcon sx={{ mr: 1.5, color: section === 'shops' ? 'primary.main' : 'text.secondary' }} />
+              <ListItemText primary="Shops" secondary="Approve shop requests" />
+            </ListItemButton>
           </List>
           {section === 'tables' && (
             <>
@@ -735,6 +791,58 @@ const AdminPortal: React.FC = () => {
               )}
             </>
           )}
+          {section === 'shops' && (
+            <>
+              <Divider />
+              <Box sx={{ p: 2 }}>
+                <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 600 }}>
+                  Status
+                </Typography>
+                <FormControl size="small" fullWidth sx={{ mt: 1 }}>
+                  <InputLabel>Filter</InputLabel>
+                  <Select
+                    value={adminShopsStatusFilter}
+                    label="Filter"
+                    onChange={(e) => setAdminShopsStatusFilter(e.target.value)}
+                  >
+                    <MenuItem value="pending">Pending</MenuItem>
+                    <MenuItem value="approved">Approved</MenuItem>
+                    <MenuItem value="rejected">Rejected</MenuItem>
+                    <MenuItem value="">All</MenuItem>
+                  </Select>
+                </FormControl>
+              </Box>
+              {adminShopsLoading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                  <CircularProgress size={24} />
+                </Box>
+              ) : (
+                <List dense>
+                  {adminShops.map((shop) => (
+                    <ListItemButton
+                      key={shop.id}
+                      sx={{ py: 0.75 }}
+                    >
+                      <ListItemText
+                        primary={shop.name}
+                        secondary={shop.ownerEmail ?? shop.ownerName}
+                        primaryTypographyProps={{ variant: 'body2', noWrap: true }}
+                        secondaryTypographyProps={{ variant: 'caption' }}
+                      />
+                    </ListItemButton>
+                  ))}
+                  {adminShops.length === 0 && !adminShopsLoading && (
+                    <Box sx={{ p: 2 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        No shops found.
+                      </Typography>
+                    </Box>
+                  )}
+                </List>
+              )}
+            </>
+          )}
+
           {section === 'disputes' && (
             <>
               <Divider />
@@ -1447,6 +1555,115 @@ const AdminPortal: React.FC = () => {
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
                   No photos loaded for this listing yet. Check the ID and try again.
                 </Typography>
+              )}
+            </Box>
+          )}
+
+          {section === 'shops' && (
+            <Box sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+                Shop requests
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Approve or reject shops that have applied to list on the platform. Only pending shops can be approved or rejected.
+              </Typography>
+              {adminShopsLoading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+                  <CircularProgress />
+                </Box>
+              ) : adminShops.length === 0 ? (
+                <Typography variant="body2" color="text.secondary">
+                  No shops found for the selected filter.
+                </Typography>
+              ) : (
+                <TableContainer sx={{ overflowX: 'auto' }}>
+                  <Table size="small" sx={{ minWidth: 560 }}>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 600, bgcolor: 'background.default' }}>Name</TableCell>
+                        <TableCell sx={{ fontWeight: 600, bgcolor: 'background.default' }}>Slug</TableCell>
+                        <TableCell sx={{ fontWeight: 600, bgcolor: 'background.default' }}>Owner</TableCell>
+                        <TableCell sx={{ fontWeight: 600, bgcolor: 'background.default' }}>Status</TableCell>
+                        <TableCell sx={{ fontWeight: 600, bgcolor: 'background.default' }}>Created</TableCell>
+                        <TableCell sx={{ fontWeight: 600, bgcolor: 'background.default' }}>Actions</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {adminShops.map((shop) => (
+                        <TableRow key={shop.id} hover>
+                          <TableCell>{shop.name}</TableCell>
+                          <TableCell>{shop.slug}</TableCell>
+                          <TableCell>
+                            {shop.ownerName}
+                            {shop.ownerEmail && (
+                              <Typography variant="caption" display="block" color="text.secondary">
+                                {shop.ownerEmail}
+                              </Typography>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Chip size="small" label={shop.status} color={shop.status === 'pending' ? 'warning' : shop.status === 'approved' ? 'success' : 'default'} />
+                          </TableCell>
+                          <TableCell>{new Date(shop.createdAt).toLocaleDateString()}</TableCell>
+                          <TableCell>
+                            {shop.status === 'pending' && (
+                              <Box sx={{ display: 'flex', gap: 1 }}>
+                                <Button
+                                  size="small"
+                                  variant="contained"
+                                  color="success"
+                                  disabled={shopActionId === shop.id}
+                                  onClick={async () => {
+                                    if (!token) return;
+                                    setShopActionId(shop.id);
+                                    try {
+                                      await api.patch(
+                                        `/admin/shops/${shop.id}/status`,
+                                        { status: 'approved' },
+                                        { headers: adminHeaders(token) }
+                                      );
+                                      loadAdminShops(token);
+                                    } catch (err: any) {
+                                      setDataError(err?.response?.data?.message || err?.message || 'Failed to approve');
+                                    } finally {
+                                      setShopActionId(null);
+                                    }
+                                  }}
+                                >
+                                  {shopActionId === shop.id ? <CircularProgress size={18} color="inherit" /> : 'Approve'}
+                                </Button>
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  color="error"
+                                  disabled={shopActionId === shop.id}
+                                  onClick={async () => {
+                                    if (!token) return;
+                                    setShopActionId(shop.id);
+                                    try {
+                                      await api.patch(
+                                        `/admin/shops/${shop.id}/status`,
+                                        { status: 'rejected' },
+                                        { headers: adminHeaders(token) }
+                                      );
+                                      loadAdminShops(token);
+                                    } catch (err: any) {
+                                      setDataError(err?.response?.data?.message || err?.message || 'Failed to reject');
+                                    } finally {
+                                      setShopActionId(null);
+                                    }
+                                  }}
+                                >
+                                  Reject
+                                </Button>
+                              </Box>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
               )}
             </Box>
           )}

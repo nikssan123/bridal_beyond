@@ -28,7 +28,11 @@ interface ListingRow {
   seller_is_verified: boolean;
 }
 
-function rowToDto(row: ListingRow, images: string[]): ListingDTO {
+function rowToDto(
+  row: ListingRow,
+  images: string[],
+  shop?: { id: string; name: string; slug: string; logo_url: string | null }
+): ListingDTO {
   return {
     id: row.id,
     title: row.title,
@@ -52,6 +56,9 @@ function rowToDto(row: ListingRow, images: string[]): ListingDTO {
       memberSince: row.seller_member_since ? String(row.seller_member_since.getFullYear()) : '',
       isVerified: row.seller_is_verified,
     },
+    ...(shop && {
+      shop: { id: shop.id, name: shop.name, slug: shop.slug, logoUrl: shop.logo_url ?? undefined },
+    }),
     status: row.status ?? undefined,
     createdAt: row.created_at.toISOString().split('T')[0],
   };
@@ -66,6 +73,8 @@ export interface ListFilters {
   search?: string;
   sortBy?: 'newest' | 'price-asc' | 'price-desc';
   sellerId?: string;
+  shopId?: string;
+  fromShop?: boolean;
   status?: string;
   limit?: number;
   offset?: number;
@@ -136,6 +145,12 @@ export async function list(filters: ListFilters): Promise<ListResult> {
     whereBase.seller_id = filters.sellerId;
     where.seller_id = filters.sellerId;
   }
+  if (filters.shopId) {
+    where.shop_id = filters.shopId;
+  }
+  if (filters.fromShop === true) {
+    where.shop_id = { not: null };
+  }
   if (filters.status) {
     whereBase.status = filters.status;
     where.status = filters.status;
@@ -178,6 +193,9 @@ export async function list(filters: ListFilters): Promise<ListResult> {
             reviewsReceived: true,
             listings: true,
           },
+        },
+        shop: {
+          select: { id: true, name: true, slug: true, logo_url: true },
         },
       },
       orderBy: (() => {
@@ -229,7 +247,8 @@ export async function list(filters: ListFilters): Promise<ListResult> {
         seller_listings_count: listingsCount.toString(),
         seller_is_verified: !!l.seller.email_verified_at,
       },
-      l.images.map((img: any) => img.url)
+      l.images.map((img: any) => img.url),
+      l.shop ? { id: l.shop.id, name: l.shop.name, slug: l.shop.slug, logo_url: l.shop.logo_url } : undefined
     );
   });
 
@@ -250,6 +269,9 @@ export async function findById(id: string): Promise<ListingDTO | null> {
       },
       images: {
         orderBy: { position: 'asc' },
+      },
+      shop: {
+        select: { id: true, name: true, slug: true, logo_url: true },
       },
     },
   });
@@ -287,7 +309,8 @@ export async function findById(id: string): Promise<ListingDTO | null> {
       seller_listings_count: listingsCount.toString(),
       seller_is_verified: !!l.seller.email_verified_at,
     },
-    l.images.map((img: any) => img.url)
+    l.images.map((img: any) => img.url),
+    l.shop ? { id: l.shop.id, name: l.shop.name, slug: l.shop.slug, logo_url: l.shop.logo_url } : undefined
   );
 }
 
@@ -308,8 +331,19 @@ export async function create(
     hips: string;
     length: string;
     images: string[];
+    shopId?: string;
   }
 ): Promise<ListingDTO> {
+  let shopId: string | null = null;
+  if (data.shopId) {
+    const shop = await prisma.shop.findUnique({
+      where: { id: data.shopId },
+      select: { id: true, owner_id: true, status: true },
+    });
+    if (shop && shop.owner_id === sellerId && shop.status === 'approved') {
+      shopId = shop.id;
+    }
+  }
   const listing = await prisma.listing.create({
     data: {
       title: data.title,
@@ -326,6 +360,7 @@ export async function create(
       hips: data.hips,
       length: data.length,
       seller_id: sellerId,
+      shop_id: shopId,
       status: 'active',
       images: {
         create: data.images.map((url, index) => ({ url, position: index })),

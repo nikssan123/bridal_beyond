@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Box,
@@ -448,6 +448,16 @@ const ListingDetails: React.FC = () => {
           </Box>
 
           <Divider sx={{ my: 3 }} />
+          {listing.shop && (
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="body2" color="text.secondary">
+                {t('listing.fromShop', 'From shop')}{' '}
+                <Link to={`/shops/${listing.shop.slug || listing.shop.id}`} style={{ fontWeight: 600, color: 'inherit' }}>
+                  {listing.shop.name}
+                </Link>
+              </Typography>
+            </Box>
+          )}
           <SellerCard seller={listing.seller} sellerId={listing.seller.id} />
         </Grid>
       </Grid>

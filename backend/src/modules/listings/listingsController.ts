@@ -16,6 +16,9 @@ export async function list(req: Request, res: Response, next: NextFunction): Pro
     const search = (req.query.search as string) || undefined;
     const sortBy = (req.query.sortBy as 'newest' | 'price-asc' | 'price-desc') || 'newest';
     const sellerId = (req.query.sellerId as string) || undefined;
+    const shopId = (req.query.shopId as string) || undefined;
+    const fromShopParam = (req.query.fromShop as string) || undefined;
+    const fromShop = fromShopParam === 'true';
     let status = (req.query.status as string) || undefined;
     const featuredParam = (req.query.featured as string) || undefined;
     const includeMaxPriceParam = (req.query.includeMaxPrice as string) || undefined;
@@ -41,6 +44,8 @@ export async function list(req: Request, res: Response, next: NextFunction): Pro
       search,
       sortBy,
       sellerId,
+      shopId,
+      fromShop,
       status,
       limit,
       offset,
@@ -95,6 +100,7 @@ export async function create(req: Request, res: Response, next: NextFunction): P
       hips: body.measurements.hips,
       length: body.measurements.length,
       images: Array.isArray(body.images) ? body.images : [],
+      shopId: body.shopId,
     });
     if (!user.stripe_account_id && user.email) {
       const profileUrl = `${env.clientUrl}/profile`;

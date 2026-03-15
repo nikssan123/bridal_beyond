@@ -5,6 +5,7 @@ import {
   Button,
   Grid,
   FormControl,
+  FormControlLabel,
   FormHelperText,
   InputLabel,
   Select,
@@ -16,6 +17,7 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
+  Checkbox,
 } from '@mui/material';
 import PageContainer from '@/components/PageContainer';
 import SectionHeader from '@/components/SectionHeader';
@@ -23,6 +25,7 @@ import ImageUploader from '@/components/ImageUploader';
 import SafetyInfoCard from '@/components/SafetyInfoCard';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { createListing, uploadListingImage } from '@/features/listings/listingsSlice';
+import { fetchMyShop } from '@/features/shops/shopsSlice';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
@@ -42,11 +45,21 @@ const CreateListing: React.FC = () => {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [showNoPaymentModal, setShowNoPaymentModal] = useState(false);
+  const [listAsShop, setListAsShop] = useState(false);
   const [form, setForm] = useState({
     title: '', description: '', price: '', originalPrice: '',
     category: '', size: '', condition: '', color: '', brand: '',
     bust: '', waist: '', hips: '', length: '',
   });
+  const { myShop } = useAppSelector((state) => state.shops);
+
+  React.useEffect(() => {
+    if (user) dispatch(fetchMyShop());
+  }, [dispatch, user]);
+
+  React.useEffect(() => {
+    if (myShop?.status === 'approved') setListAsShop(true);
+  }, [myShop?.id, myShop?.status]);
 
   const update =
     (field: string) =>
@@ -118,6 +131,7 @@ const CreateListing: React.FC = () => {
             length: form.length,
           },
           images,
+          shopId: listAsShop && myShop?.status === 'approved' ? myShop.id : undefined,
         })
       ).unwrap();
       setShowNoPaymentModal(false);
@@ -376,6 +390,21 @@ const CreateListing: React.FC = () => {
           <Grid item xs={6} sm={3}><TextField fullWidth label={t('listing.waist')} value={form.waist} onChange={update('waist')} /></Grid>
           <Grid item xs={6} sm={3}><TextField fullWidth label={t('listing.hips')} value={form.hips} onChange={update('hips')} /></Grid>
           <Grid item xs={6} sm={3}><TextField fullWidth label={t('listing.length')} value={form.length} onChange={update('length')} /></Grid>
+
+          {myShop?.status === 'approved' && (
+            <Grid item xs={12}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={listAsShop}
+                    onChange={(e) => setListAsShop(e.target.checked)}
+                    color="primary"
+                  />
+                }
+                label={t('listing.listAsShop', 'List as {{shopName}}', { shopName: myShop.name })}
+              />
+            </Grid>
+          )}
         </Grid>
 
         <Button type="submit" variant="contained" size="large" fullWidth sx={{ mt: 4, py: 1.5 }}>

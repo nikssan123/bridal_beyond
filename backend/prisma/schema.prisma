@@ -45,7 +45,44 @@ model User {
 
   notifications Notification[]
 
+  shop              Shop?
+  shopReviewsAuthored ShopReview[]
+
   @@map("users")
+}
+
+model Shop {
+  id          String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name        String       @db.VarChar(255)
+  slug        String       @unique @db.VarChar(255)
+  description String?      @db.Text
+  logo_url    String?      @db.Text
+  address     String?      @db.VarChar(500)
+  owner_id    String       @unique @db.Uuid
+  status      String       @default("pending") @db.VarChar(50)
+  created_at  DateTime     @default(now())
+  updated_at  DateTime     @default(now())
+
+  owner    User         @relation(fields: [owner_id], references: [id], onDelete: Cascade)
+  listings Listing[]
+  reviews  ShopReview[]
+
+  @@map("shops")
+}
+
+model ShopReview {
+  id             String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  shop_id        String   @db.Uuid
+  author_user_id String?  @db.Uuid
+  author_name    String   @db.VarChar(255)
+  rating         Int
+  comment        String   @db.Text
+  created_at     DateTime @default(now())
+
+  shop   Shop  @relation(fields: [shop_id], references: [id], onDelete: Cascade)
+  author User? @relation(fields: [author_user_id], references: [id], onDelete: SetNull)
+
+  @@map("shop_reviews")
 }
 
 model Listing {
@@ -64,11 +101,13 @@ model Listing {
   hips           String   @db.VarChar(50)
   length         String   @db.VarChar(50)
   seller_id      String   @db.Uuid
+  shop_id        String?  @db.Uuid
   status         String?  @default("active") @db.VarChar(20)
   is_featured    Boolean  @default(false)
   created_at     DateTime @default(now())
 
   seller        User           @relation("UserListings", fields: [seller_id], references: [id])
+  shop          Shop?          @relation(fields: [shop_id], references: [id], onDelete: SetNull)
   images        ListingImage[]
   favoritedBy   Favorite[]
   conversations Conversation[]

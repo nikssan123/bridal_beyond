@@ -10,6 +10,7 @@ import stripeReducer from '../features/stripe/stripeSlice';
 import ordersReducer from '../features/orders/ordersSlice';
 import adminDisputesReducer from '../features/admin/disputesSlice';
 import sellersReducer from '../features/sellers/sellersSlice';
+import shopsReducer from '../features/shops/shopsSlice';
 import notificationsReducer from '../features/notifications/notificationsSlice';
 
 export const store = configureStore({
@@ -25,6 +26,7 @@ export const store = configureStore({
     orders: ordersReducer,
     adminDisputes: adminDisputesReducer,
     sellers: sellersReducer,
+    shops: shopsReducer,
     notifications: notificationsReducer,
   },
 });

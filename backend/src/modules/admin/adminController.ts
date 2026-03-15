@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { env } from '../../config/env';
 import { prisma } from '../../prisma';
 import * as listingsRepo from '../listings/listingsRepository';
+import * as shopsRepo from '../shops/shopsRepository';
 import * as ordersRepository from '../orders/ordersRepository';
 import * as stripeService from '../../services/stripe.service';
 
@@ -30,6 +31,8 @@ const TABLES: Record<string, (limit: number) => Promise<unknown[]>> = {
   disputes: (limit) =>
     // @ts-ignore: Dispute model exists in Prisma schema
     prisma.dispute.findMany({ take: limit, orderBy: { created_at: 'desc' } }),
+  shops: (limit) =>
+    prisma.shop.findMany({ take: limit, orderBy: { created_at: 'desc' } }),
 };
 
 export function verifyAdminToken(token: string | undefined): boolean {
@@ -436,5 +439,43 @@ export async function updateListingText(req: Request, res: Response): Promise<vo
   });
 
   res.json({ id: updated.id, title: updated.title, description: updated.description });
+}
+
+export async function listShops(req: Request, res: Response): Promise<void> {
+  const token = req.header('x-admin-token');
+  if (!verifyAdminToken(token)) {
+    res.status(401).json({ message: 'Unauthorized' });
+    return;
+  }
+  const status = (req.query.status as string) || undefined;
+  const limit = Math.max(1, Math.min(100, Number(req.query.limit) || 100));
+  const shops = await shopsRepo.listForAdmin(status, limit);
+  res.json({ shops });
+}
+
+const shopStatusBody = z.object({
+  status: z.enum(['approved', 'rejected']),
+});
+
+export async function updateShopStatus(req: Request, res: Response): Promise<void> {
+  const token = req.header('x-admin-token');
+  if (!verifyAdminToken(token)) {
+    res.status(401).json({ message: 'Unauthorized' });
+    return;
+  }
+  const shopId = req.params.id;
+  const parsed = shopStatusBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ message: 'Invalid body', errors: parsed.error.flatten() });
+    return;
+  }
+  const updated = await shopsRepo.updateStatus(shopId, parsed.data.status);
+  if (!updated) {
+    res.status(400).json({
+      message: 'Shop not found or not pending. Only pending shops can be approved or rejected.',
+    });
+    return;
+  }
+  res.json(updated);
 }
 

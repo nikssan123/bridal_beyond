@@ -24,6 +24,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import AddIcon from '@mui/icons-material/Add';
 import ViewListIcon from '@mui/icons-material/ViewList';
+import StorefrontOutlinedIcon from '@mui/icons-material/StorefrontOutlined';
 import PersonIcon from '@mui/icons-material/Person';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
@@ -60,6 +61,7 @@ const Navbar: React.FC = () => {
 
   const navLinks = [
     { label: t('nav.listings', 'Listings'), path: '/listings', icon: <ViewListIcon /> },
+    { label: t('nav.shops', 'Shops'), path: '/shops', icon: <StorefrontOutlinedIcon /> },
   ];
 
   const handleAddListingClick = () => {
@@ -166,7 +168,7 @@ const Navbar: React.FC = () => {
                     onClick={handleOpenNotifications}
                   >
                     <Badge
-                      color="secondary"
+                      color="error"
                       variant={unreadCount > 0 ? 'dot' : 'standard'}
                       badgeContent={unreadCount > 0 ? unreadCount : undefined}
                     >

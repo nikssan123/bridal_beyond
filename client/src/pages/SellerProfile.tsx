@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -40,6 +40,10 @@ const SellerProfile: React.FC = () => {
     sellerId ? state.reviews.reviewsBySeller[sellerId] || [] : []
   );
   const [tab, setTab] = React.useState<'listings' | 'reviews'>('listings');
+  const REVIEWS_PREVIEW = 3;
+  const [reviewsExpanded, setReviewsExpanded] = useState(false);
+  const reviewsToShow = reviewsExpanded ? reviews : reviews.slice(0, REVIEWS_PREVIEW);
+  const hasMoreReviews = reviews.length > REVIEWS_PREVIEW;
 
   useEffect(() => {
     if (sellerId) {
@@ -261,18 +265,39 @@ const SellerProfile: React.FC = () => {
             }
           />
           {reviews.length > 0 && <RatingDisplay rating={avgRating} count={reviews.length} />}
-          <Box
-            sx={{
-              mt: 2,
-              p: 3,
-              border: '1px solid',
-              borderColor: 'divider',
-              borderRadius: 3,
-              bgcolor: 'background.default',
-            }}
-          >
-            <ReviewList reviews={reviews} />
-          </Box>
+          {reviews.length > 0 && (
+            <>
+              <Box
+                sx={{
+                  mt: 2,
+                  p: 3,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 3,
+                  bgcolor: 'background.default',
+                }}
+              >
+                <ReviewList reviews={reviewsToShow} />
+              </Box>
+              {hasMoreReviews && (
+                <Button
+                  variant="text"
+                  size="medium"
+                  onClick={() => setReviewsExpanded((v) => !v)}
+                  sx={{ mt: 1.5, color: 'primary.dark' }}
+                >
+                  {reviewsExpanded
+                    ? t('profile.showLessReviews', 'Show less')
+                    : t('profile.viewAllReviews', 'View all reviews ({{count}})', { count: reviews.length })}
+                </Button>
+              )}
+            </>
+          )}
+          {reviews.length === 0 && (
+            <Typography variant="body2" color="text.secondary" sx={{ py: 4 }}>
+              {t('profile.noReviews', 'No reviews yet')}
+            </Typography>
+          )}
         </>
       )}
     </PageContainer>

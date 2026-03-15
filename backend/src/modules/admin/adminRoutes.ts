@@ -15,6 +15,8 @@ router.get('/listings/:id/images/order', adminController.getListingImagesOrder);
 router.patch('/listings/:id/images/order', adminController.updateListingImagesOrder);
 router.patch('/listings/:id/featured', adminController.updateListingFeatured);
 router.patch('/listings/:id/text', adminController.updateListingText);
+router.get('/shops', adminController.listShops);
+router.patch('/shops/:id/status', adminController.updateShopStatus);
 
 export default router;
 

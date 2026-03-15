@@ -10,9 +10,11 @@ import { setCategory, setSize, setCondition, setPriceRange, resetFilters } from 
 interface Props {
   open: boolean;
   onClose: () => void;
+  /** When true, hide the condition/quality filter (e.g. for /shops where listings are always new) */
+  hideCondition?: boolean;
 }
 
-const FilterContent: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
+const FilterContent: React.FC<{ onClose?: () => void; hideCondition?: boolean }> = ({ onClose, hideCondition }) => {
   const dispatch = useAppDispatch();
   const filters = useAppSelector((state) => state.filters);
   const backendMaxPrice = useAppSelector((state) => state.listings.maxPrice);
@@ -55,16 +57,18 @@ const FilterContent: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
         </Select>
       </FormControl>
 
-      <FormControl fullWidth sx={{ mb: 2.5 }} size="small">
-        <InputLabel>Състояние</InputLabel>
-        <Select value={filters.condition} label="Състояние" onChange={(e) => dispatch(setCondition(e.target.value))}>
-          <MenuItem value="">Всички</MenuItem>
-          <MenuItem value="new">Нова</MenuItem>
-          <MenuItem value="like-new">Като нова</MenuItem>
-          <MenuItem value="good">Добро</MenuItem>
-          <MenuItem value="fair">Задоволително</MenuItem>
-        </Select>
-      </FormControl>
+      {!hideCondition && (
+        <FormControl fullWidth sx={{ mb: 2.5 }} size="small">
+          <InputLabel>Състояние</InputLabel>
+          <Select value={filters.condition} label="Състояние" onChange={(e) => dispatch(setCondition(e.target.value))}>
+            <MenuItem value="">Всички</MenuItem>
+            <MenuItem value="new">Нова</MenuItem>
+            <MenuItem value="like-new">Като нова</MenuItem>
+            <MenuItem value="good">Добро</MenuItem>
+            <MenuItem value="fair">Задоволително</MenuItem>
+          </Select>
+        </FormControl>
+      )}
 
       <Divider sx={{ my: 2 }} />
 
@@ -93,21 +97,21 @@ const FilterContent: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
   );
 };
 
-const FilterSidebar: React.FC<Props> = ({ open, onClose }) => {
+const FilterSidebar: React.FC<Props> = ({ open, onClose, hideCondition }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   if (isMobile) {
     return (
       <Drawer anchor="left" open={open} onClose={onClose}>
-        <FilterContent onClose={onClose} />
+        <FilterContent onClose={onClose} hideCondition={hideCondition} />
       </Drawer>
     );
   }
 
   return (
     <Box sx={{ minWidth: 260, pr: 3 }}>
-      <FilterContent />
+      <FilterContent hideCondition={hideCondition} />
     </Box>
   );
 };

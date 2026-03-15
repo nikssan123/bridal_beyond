@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Card, CardMedia, CardContent, Typography, Box, Chip, IconButton } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
@@ -128,7 +128,7 @@ const ListingCard: React.FC<Props> = ({ listing, isFavorite: isFavoriteProp, onR
             )}
           </IconButton>
         )}
-        <Box sx={{ position: 'absolute', top: 12, left: 12, display: 'flex', gap: 0.5 }}>
+        <Box sx={{ position: 'absolute', top: 12, left: 12, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
           <Chip
             label={categoryLabels[listing.category]}
             size="small"
@@ -139,6 +139,17 @@ const ListingCard: React.FC<Props> = ({ listing, isFavorite: isFavoriteProp, onR
             size="small"
             sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', fontWeight: 500, fontSize: '0.75rem' }}
           />
+          {listing.shop && (
+            <Chip
+              component={RouterLink}
+              to={`/shops/${listing.shop.slug || listing.shop.id}`}
+              label="Shop"
+              size="small"
+              clickable
+              onClick={(e: React.MouseEvent) => e.stopPropagation()}
+              sx={{ bgcolor: 'rgba(255,255,255,0.9)', fontWeight: 500, fontSize: '0.75rem', textDecoration: 'none', '&:hover': { bgcolor: 'rgba(255,255,255,0.95)' } }}
+            />
+          )}
         </Box>
       </Box>
       <CardContent

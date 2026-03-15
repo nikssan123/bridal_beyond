@@ -19,6 +19,8 @@ interface ListingsState {
   selectedListing: Listing | null;
   profileListings: Listing[];
   profileListingsStatus: 'idle' | 'loading' | 'succeeded' | 'failed';
+  shopProfileListings: Listing[];
+  shopProfileListingsStatus: 'idle' | 'loading' | 'succeeded' | 'failed';
   status: 'idle' | 'loading' | 'succeeded' | 'failed';
   error: string | null;
   maxPrice: number;
@@ -34,6 +36,8 @@ const initialState: ListingsState = {
   selectedListing: null,
   profileListings: [],
   profileListingsStatus: 'idle',
+  shopProfileListings: [],
+  shopProfileListingsStatus: 'idle',
   status: 'idle',
   error: null,
   // default max price (EUR) used before backend value arrives
@@ -44,22 +48,26 @@ const initialState: ListingsState = {
 
 export const fetchListings = createAsyncThunk(
   'listings/fetchListings',
-  async (payload: { append?: boolean }, { getState }) => {
+  async (payload: { append?: boolean; shopId?: string; fromShop?: boolean }, { getState }) => {
     const state = getState() as RootState;
     const f = state.filters;
     const append = payload?.append ?? false;
+    const shopId = payload?.shopId;
+    const fromShop = payload?.fromShop;
     const offset = append ? state.listings.listings.length : 0;
     const { data } = await api.get<ListResponse>('/listings', {
       params: {
         category: f.category || undefined,
         size: f.size || undefined,
-        condition: f.condition || undefined,
+        ...(!fromShop && { condition: f.condition || undefined }),
         minPrice: f.priceRange[0],
         maxPrice: f.priceRange[1],
         search: f.searchQuery || undefined,
         sortBy: f.sortBy || 'newest',
         limit: PAGE_SIZE,
         offset,
+        ...(shopId && { shopId }),
+        ...(fromShop && { fromShop: 'true' }),
         includeMaxPrice: !append && state.listings.maxPrice === 0 ? 'true' : 'false',
       },
     });
@@ -81,7 +89,7 @@ export type CreateListingPayload = Omit<Listing, 'id' | 'createdAt' | 'seller'> 
 
 export const createListing = createAsyncThunk(
   'listings/createListing',
-  async (payload: CreateListingPayload) => {
+  async (payload: CreateListingPayload & { shopId?: string }) => {
     const { data } = await api.post<Listing>('/listings', {
       title: payload.title,
       description: payload.description,
@@ -94,6 +102,7 @@ export const createListing = createAsyncThunk(
       brand: payload.brand,
       measurements: payload.measurements,
       images: payload.images?.length ? payload.images : ['/placeholder.svg'],
+      ...(payload.shopId && { shopId: payload.shopId }),
     });
     return data;
   }
@@ -145,6 +154,16 @@ export const fetchListingsBySeller = createAsyncThunk(
   async (params: { sellerId: string; status?: string }) => {
     const { data } = await api.get<ListResponse>('/listings', {
       params: { sellerId: params.sellerId, status: params.status || undefined, limit: 100 },
+    });
+    return data.listings;
+  }
+);
+
+export const fetchListingsByShop = createAsyncThunk(
+  'listings/fetchListingsByShop',
+  async (params: { shopId: string; status?: string }) => {
+    const { data } = await api.get<ListResponse>('/listings', {
+      params: { shopId: params.shopId, status: params.status || undefined, limit: 100 },
     });
     return data.listings;
   }
@@ -230,7 +249,13 @@ const listingsSlice = createSlice({
         state.profileListingsStatus = 'succeeded';
         state.profileListings = action.payload;
       })
-      .addCase(fetchListingsBySeller.rejected, (state) => { state.profileListingsStatus = 'failed'; });
+      .addCase(fetchListingsBySeller.rejected, (state) => { state.profileListingsStatus = 'failed'; })
+      .addCase(fetchListingsByShop.pending, (state) => { state.shopProfileListingsStatus = 'loading'; })
+      .addCase(fetchListingsByShop.fulfilled, (state, action) => {
+        state.shopProfileListingsStatus = 'succeeded';
+        state.shopProfileListings = action.payload;
+      })
+      .addCase(fetchListingsByShop.rejected, (state) => { state.shopProfileListingsStatus = 'failed'; });
       builder
         .addCase(fetchFeaturedListings.pending, (state) => {
           state.featuredStatus = 'loading';

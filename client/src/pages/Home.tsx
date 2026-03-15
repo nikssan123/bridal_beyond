@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import StorefrontOutlinedIcon from '@mui/icons-material/StorefrontOutlined';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import heroImg from '@/assets/test.png';
 import SeoHelmet from '@/components/SeoHelmet';
@@ -98,7 +99,7 @@ const Home: React.FC = () => {
             >
               {t('home.heroSubtitle')}
             </Typography>
-            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
               <Button
                 variant="contained"
                 size="large"
@@ -134,6 +135,21 @@ const Home: React.FC = () => {
                 }}
               >
                 {t('home.sellDress')}
+              </Button>
+              <Button
+                variant="outlined"
+                size="large"
+                startIcon={<StorefrontOutlinedIcon />}
+                onClick={() => navigate('/shops')}
+                sx={{
+                  borderColor: 'rgba(250,247,245,0.6)',
+                  color: '#FAF7F5',
+                  px: 4,
+                  py: 1.5,
+                  '&:hover': { borderColor: '#FAF7F5', bgcolor: 'rgba(250,247,245,0.1)' },
+                }}
+              >
+                {t('home.browseShops')}
               </Button>
             </Box>
           </Box>
