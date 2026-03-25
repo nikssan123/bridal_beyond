@@ -79,6 +79,7 @@ const Footer: React.FC = () => {
               { label: t('footer.weddingDresses'), to: '/listings?category=wedding' },
               { label: t('footer.graduationDresses'), to: '/listings?category=graduation' },
               { label: t('footer.eveningDresses'), to: '/listings?category=evening' },
+              { label: t('footer.sportDancesDresses'), to: '/listings?category=sport_dances' },
             ].map((link) => (
               <MuiLink
                 key={link.to}

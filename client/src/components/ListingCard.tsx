@@ -19,6 +19,7 @@ const categoryLabels: Record<string, string> = {
   wedding: 'Сватбена',
   graduation: 'Абитуриентска',
   evening: 'Вечерна',
+  sport_dances: 'Спортни Танци',
 };
 
 interface Props {

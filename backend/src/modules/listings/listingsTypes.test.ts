@@ -2,11 +2,12 @@ import { categories, conditions } from './listingsTypes';
 
 describe('listingsTypes', () => {
   describe('categories', () => {
-    it('includes wedding, graduation, evening', () => {
+    it('includes wedding, graduation, evening, sport_dances', () => {
       expect(categories).toContain('wedding');
       expect(categories).toContain('graduation');
       expect(categories).toContain('evening');
-      expect(categories).toHaveLength(3);
+      expect(categories).toContain('sport_dances');
+      expect(categories).toHaveLength(4);
     });
   });
 

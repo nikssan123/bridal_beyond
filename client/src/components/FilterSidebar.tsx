@@ -46,6 +46,7 @@ const FilterContent: React.FC<{ onClose?: () => void; hideCondition?: boolean }>
           <MenuItem value="wedding">Сватбени</MenuItem>
           <MenuItem value="graduation">Абитуриентски</MenuItem>
           <MenuItem value="evening">Вечерни</MenuItem>
+          <MenuItem value="sport_dances">Спортни Танци</MenuItem>
         </Select>
       </FormControl>
 

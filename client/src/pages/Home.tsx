@@ -164,6 +164,7 @@ const Home: React.FC = () => {
             { label: t('home.wedding'), emoji: '👰', value: 'wedding' },
             { label: t('home.graduation'), emoji: '🎓', value: 'graduation' },
             { label: t('home.evening'), emoji: '✨', value: 'evening' },
+            { label: t('home.sport_dances', 'Sport dances'), emoji: '💃', value: 'sport_dances' },
           ].map((cat) => (
             <Chip
               key={cat.value}

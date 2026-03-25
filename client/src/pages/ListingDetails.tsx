@@ -159,10 +159,12 @@ const ListingDetails: React.FC = () => {
       <SeoHelmet
         title={`${listing.title} – ${
           listing.category === 'wedding'
-            ? t('home.weddingDresses', 'Wedding dresses')
+            ? t('listing.category_wedding', 'Wedding')
             : listing.category === 'graduation'
-              ? t('home.graduationDresses', 'Graduation dresses')
-              : t('home.eveningDresses', 'Evening dresses')
+              ? t('listing.category_graduation', 'Graduation')
+              : listing.category === 'evening'
+                ? t('listing.category_evening', 'Evening')
+                : t('listing.category_sport_dances', 'Sport dances')
         } | LoveReWorn`}
         description={
           listing.description?.slice(0, 150) ||

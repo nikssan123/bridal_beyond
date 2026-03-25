@@ -11,7 +11,7 @@ export interface Listing {
   description: string;
   price: number;
   originalPrice: number;
-  category: 'wedding' | 'graduation' | 'evening';
+  category: 'wedding' | 'graduation' | 'evening' | 'sport_dances';
   size: string;
   condition: 'new' | 'like-new' | 'good' | 'fair';
   color: string;
@@ -128,6 +128,22 @@ export const mockListings: Listing[] = [
     images: [dress6],
     seller: { id: 's3', name: 'Десислава Тодорова', avatar: '', rating: 4.5, listings: 8, location: 'Варна', memberSince: '2024' },
     createdAt: '2025-02-08',
+  },
+  {
+    id: '7',
+    title: 'Турнирна рокля за спортни танци',
+    description: 'Комфортна турнирна рокля за спортни танци с ефектни детайли и удобна кройка.',
+    price: 250,
+    originalPrice: 600,
+    category: 'sport_dances',
+    size: 'S',
+    condition: 'good',
+    color: 'Бяла',
+    brand: 'Custom',
+    measurements: { bust: '84 см', waist: '64 см', hips: '90 см', length: '150 см' },
+    images: [dress2],
+    seller: { id: 's2', name: 'Елена Петрова', avatar: '', rating: 5.0, listings: 3, location: 'Пловдив', memberSince: '2023' },
+    createdAt: '2025-02-05',
   },
 ];
 

@@ -12,7 +12,7 @@ import { setCategory } from '@/features/filters/filtersSlice';
 import { useTranslation } from 'react-i18next';
 import SeoHelmet from '@/components/SeoHelmet';
 
-const ALLOWED_CATEGORIES = ['wedding', 'graduation', 'evening'] as const;
+const ALLOWED_CATEGORIES = ['wedding', 'graduation', 'evening', 'sport_dances'] as const;
 
 const BrowseListings: React.FC = () => {
   const { t } = useTranslation();
@@ -77,7 +77,7 @@ const BrowseListings: React.FC = () => {
         title={t('listings.metaTitle', 'Browse dresses – LoveReWorn')}
         description={t(
           'listings.metaDescription',
-          'Browse pre-owned wedding, graduation and evening dresses with buyer protection and secure payments.'
+          'Browse pre-owned wedding, graduation, evening and sport dances dresses with buyer protection and secure payments.'
         )}
       />
       {listings.length > 0 && (

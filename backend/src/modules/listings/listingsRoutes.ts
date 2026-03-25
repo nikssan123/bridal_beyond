@@ -10,7 +10,7 @@ const listingBodySchema = z.object({
   description: z.string().min(1),
   price: z.number().min(10, 'Minimum price is 10 €'),
   originalPrice: z.number().positive().optional(),
-  category: z.enum(['wedding', 'graduation', 'evening']),
+  category: z.enum(['wedding', 'graduation', 'evening', 'sport_dances']),
   size: z.string().min(1).max(20),
   condition: z.enum(['new', 'like-new', 'good', 'fair']),
   color: z.string().max(100).optional().default(''),

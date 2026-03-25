@@ -116,7 +116,7 @@ const EditListing: React.FC = () => {
             description: form.description,
             price: Number(form.price),
             originalPrice: Number(form.originalPrice),
-            category: form.category as 'wedding' | 'graduation' | 'evening',
+            category: form.category as 'wedding' | 'graduation' | 'evening' | 'sport_dances',
             size: form.size,
             condition: form.condition as 'new' | 'like-new' | 'good' | 'fair',
             color: form.color,
@@ -320,6 +320,7 @@ const EditListing: React.FC = () => {
                 <MenuItem value="wedding">{t('listing.category_wedding')}</MenuItem>
                 <MenuItem value="graduation">{t('listing.category_graduation')}</MenuItem>
                 <MenuItem value="evening">{t('listing.category_evening')}</MenuItem>
+                <MenuItem value="sport_dances">{t('listing.category_sport_dances', 'Sport dances')}</MenuItem>
               </Select>
             </FormControl>
           </Grid>

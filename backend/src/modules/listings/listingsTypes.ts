@@ -1,4 +1,4 @@
-export const categories = ['wedding', 'graduation', 'evening'] as const;
+export const categories = ['wedding', 'graduation', 'evening', 'sport_dances'] as const;
 export const conditions = ['new', 'like-new', 'good', 'fair'] as const;
 export type Category = (typeof categories)[number];
 export type Condition = (typeof conditions)[number];
