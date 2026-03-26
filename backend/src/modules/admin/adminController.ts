@@ -35,6 +35,23 @@ const TABLES: Record<string, (limit: number) => Promise<unknown[]>> = {
     prisma.shop.findMany({ take: limit, orderBy: { created_at: 'desc' } }),
 };
 
+const TABLE_COUNTS: Record<string, () => Promise<number>> = {
+  users: () => prisma.user.count(),
+  listings: () => prisma.listing.count(),
+  listing_images: () => prisma.listingImage.count(),
+  reviews: () => prisma.review.count(),
+  favorites: () => prisma.favorite.count(),
+  conversations: () => prisma.conversation.count(),
+  conversation_participants: () => prisma.conversationParticipant.count(),
+  messages: () => prisma.message.count(),
+  payments: () => prisma.payment.count(),
+  orders: () => prisma.order.count(),
+  disputes: async () =>
+    // @ts-ignore: Dispute model exists in Prisma schema
+    prisma.dispute.count(),
+  shops: () => prisma.shop.count(),
+};
+
 export function verifyAdminToken(token: string | undefined): boolean {
   if (!token) return false;
   // For now, the admin token is simply the configured username; can be made stronger later.
@@ -98,6 +115,22 @@ export async function getTable(req: Request, res: Response): Promise<void> {
   }
   const rows = await fetcher(limit);
   res.json({ rows });
+}
+
+export async function getTableCount(req: Request, res: Response): Promise<void> {
+  const token = req.header('x-admin-token');
+  if (!verifyAdminToken(token)) {
+    res.status(401).json({ message: 'Unauthorized' });
+    return;
+  }
+  const name = req.params.name;
+  const counter = TABLE_COUNTS[name];
+  if (!counter) {
+    res.status(404).json({ message: 'Unknown table' });
+    return;
+  }
+  const count = await counter();
+  res.json({ name, count });
 }
 
 export async function listConversations(req: Request, res: Response): Promise<void> {

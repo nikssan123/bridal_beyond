@@ -125,6 +125,8 @@ const AdminPortal: React.FC = () => {
   const [loadingTables, setLoadingTables] = useState(false);
   const [loadingRows, setLoadingRows] = useState(false);
   const [dataError, setDataError] = useState<string | null>(null);
+  const [tableCount, setTableCount] = useState<number | null>(null);
+  const [loadingTableCount, setLoadingTableCount] = useState(false);
 
   const [section, setSection] = useState<'tables' | 'disputes' | 'photos' | 'chat' | 'shops'>('tables');
   const [disputes, setDisputes] = useState<AdminDispute[]>([]);
@@ -226,6 +228,20 @@ const AdminPortal: React.FC = () => {
     }
   };
 
+  const loadTableCount = async (table: string, currentToken: string) => {
+    setLoadingTableCount(true);
+    try {
+      const { data } = await api.get<{ name: string; count: number }>(`/admin/tables/${table}/count`, {
+        headers: adminHeaders(currentToken),
+      });
+      setTableCount(typeof data.count === 'number' ? data.count : null);
+    } catch {
+      setTableCount(null);
+    } finally {
+      setLoadingTableCount(false);
+    }
+  };
+
   const loadDisputes = async (currentToken: string) => {
     setDisputesLoading(true);
     setDisputesError(null);
@@ -291,6 +307,9 @@ const AdminPortal: React.FC = () => {
   useEffect(() => {
     if (token && selectedTable && section === 'tables') {
       loadRows(selectedTable, token, tableLimit);
+      loadTableCount(selectedTable, token);
+    } else {
+      setTableCount(null);
     }
   }, [token, selectedTable, section, tableLimit]);
 
@@ -923,7 +942,18 @@ const AdminPortal: React.FC = () => {
                     {selectedTable || 'Select a table'}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    {selectedTable ? `Up to ${tableLimit} rows. Listings table supports delete.` : 'Choose a table from the sidebar.'}
+                    {selectedTable
+                      ? [
+                          tableCount != null
+                            ? `Total: ${tableCount}${tableCount > tableLimit ? ` (showing ${rows.length})` : ''}`
+                            : loadingTableCount
+                              ? 'Total: …'
+                              : undefined,
+                          `Up to ${tableLimit} rows. Listings table supports delete.`,
+                        ]
+                          .filter(Boolean)
+                          .join(' • ')
+                      : 'Choose a table from the sidebar.'}
                   </Typography>
                 </Box>
                 {selectedTable && (

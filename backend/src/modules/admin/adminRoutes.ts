@@ -6,6 +6,7 @@ const router = Router();
 router.post('/login', adminController.login);
 router.get('/discounts', adminController.getDiscounts);
 router.get('/tables', adminController.listTables);
+router.get('/tables/:name/count', adminController.getTableCount);
 router.get('/tables/:name', adminController.getTable);
 router.get('/conversations', adminController.listConversations);
 router.get('/conversations/:id/messages', adminController.getConversationMessages);
