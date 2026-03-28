@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import useEmblaCarousel from 'embla-carousel-react';
 import {
   Box,
   Grid,
@@ -21,6 +22,7 @@ import FavoriteIcon from '@mui/icons-material/Favorite';
 import ShareIcon from '@mui/icons-material/Share';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import CloseIcon from '@mui/icons-material/Close';
 import PageContainer from '@/components/PageContainer';
 import SellerCard from '@/components/SellerCard';
 import ReviewList from '@/components/ReviewList';
@@ -66,6 +68,52 @@ const ListingDetails: React.FC = () => {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, align: 'start' });
+  const galleryOpenedRef = useRef(false);
+
+  const openGallery = useCallback((index: number) => {
+    setSelectedImg(index);
+    setAdvanceReset((k) => k + 1);
+    setGalleryOpen(true);
+  }, []);
+
+  useEffect(() => {
+    if (!galleryOpen) {
+      galleryOpenedRef.current = false;
+      return;
+    }
+    if (!emblaApi) return;
+    if (!galleryOpenedRef.current) {
+      galleryOpenedRef.current = true;
+      const id = window.requestAnimationFrame(() => emblaApi.scrollTo(selectedImg, true));
+      return () => window.cancelAnimationFrame(id);
+    }
+    return undefined;
+  }, [galleryOpen, emblaApi, selectedImg]);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    const onSelect = () => {
+      const i = emblaApi.selectedScrollSnap();
+      setSelectedImg(i);
+      setAdvanceReset((k) => k + 1);
+    };
+    emblaApi.on('select', onSelect);
+    return () => {
+      emblaApi.off('select', onSelect);
+    };
+  }, [emblaApi]);
+
+  useEffect(() => {
+    if (!galleryOpen || !emblaApi) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') emblaApi.scrollPrev();
+      if (e.key === 'ArrowRight') emblaApi.scrollNext();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [galleryOpen, emblaApi]);
 
   useEffect(() => {
     if (id) {
@@ -205,12 +253,22 @@ const ListingDetails: React.FC = () => {
               key={selectedImg}
               src={getAvatarUrl(listing.images[selectedImg]) || listing.images[selectedImg]}
               alt={listing.title}
+              onClick={() => openGallery(selectedImg)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  openGallery(selectedImg);
+                }
+              }}
+              role="button"
+              tabIndex={0}
               style={{
                 width: '100%',
                 maxHeight: 560,
                 objectFit: 'cover',
                 borderRadius: 12,
                 transition: 'opacity 0.3s ease',
+                cursor: 'pointer',
               }}
             />
             {listing.images.length > 1 && (
@@ -286,7 +344,7 @@ const ListingDetails: React.FC = () => {
               {listing.images.map((img, idx) => (
                 <Box
                   key={idx}
-                  onClick={() => setSelectedImg(idx)}
+                  onClick={() => openGallery(idx)}
                   sx={{
                     width: 80, height: 80, borderRadius: 2, overflow: 'hidden', cursor: 'pointer',
                     border: selectedImg === idx ? '2px solid' : '1px solid',
@@ -484,6 +542,146 @@ const ListingDetails: React.FC = () => {
         message={snackbarMessage}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       />
+      <Dialog
+        fullScreen
+        open={galleryOpen && listing.images.length > 0}
+        onClose={() => setGalleryOpen(false)}
+        PaperProps={{
+          sx: {
+            m: 0,
+            bgcolor: 'rgba(0,0,0,0.94)',
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100%',
+          },
+        }}
+      >
+        <Box sx={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+          <IconButton
+            onClick={() => setGalleryOpen(false)}
+            sx={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              zIndex: 2,
+              color: 'common.white',
+              bgcolor: 'rgba(255,255,255,0.12)',
+              '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' },
+            }}
+            aria-label={t('listing.closeGallery', 'Close gallery')}
+          >
+            <CloseIcon />
+          </IconButton>
+          {listing.images.length > 1 && (
+            <Typography
+              sx={{
+                position: 'absolute',
+                top: 16,
+                left: 0,
+                right: 0,
+                textAlign: 'center',
+                color: 'common.white',
+                zIndex: 1,
+                pointerEvents: 'none',
+                textShadow: '0 1px 4px rgba(0,0,0,0.8)',
+              }}
+              variant="body2"
+            >
+              {selectedImg + 1} / {listing.images.length}
+            </Typography>
+          )}
+          {listing.images.length > 1 && (
+            <>
+              <IconButton
+                onClick={() => emblaApi?.scrollPrev()}
+                sx={{
+                  position: 'absolute',
+                  left: 8,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  zIndex: 2,
+                  color: 'common.white',
+                  bgcolor: 'rgba(255,255,255,0.12)',
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' },
+                }}
+                aria-label={t('listing.previousImage', 'Previous image')}
+              >
+                <ChevronLeftIcon sx={{ fontSize: 36 }} />
+              </IconButton>
+              <IconButton
+                onClick={() => emblaApi?.scrollNext()}
+                sx={{
+                  position: 'absolute',
+                  right: 8,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  zIndex: 2,
+                  color: 'common.white',
+                  bgcolor: 'rgba(255,255,255,0.12)',
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' },
+                }}
+                aria-label={t('listing.nextImage', 'Next image')}
+              >
+                <ChevronRightIcon sx={{ fontSize: 36 }} />
+              </IconButton>
+            </>
+          )}
+          <Box
+            ref={emblaRef}
+            sx={{
+              overflow: 'hidden',
+              flex: 1,
+              minHeight: 0,
+              width: '100%',
+              alignSelf: 'stretch',
+            }}
+          >
+            <Box sx={{ display: 'flex', height: '100%', minHeight: 0 }}>
+              {listing.images.map((img, idx) => (
+                <Box
+                  key={idx}
+                  sx={{
+                    flex: '0 0 100%',
+                    minWidth: 0,
+                    minHeight: 0,
+                    height: '100%',
+                    boxSizing: 'border-box',
+                    px: { xs: 1, sm: 2 },
+                    py: 2,
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: '100%',
+                      height: '100%',
+                      minHeight: 0,
+                      display: 'grid',
+                      placeItems: 'center',
+                    }}
+                  >
+                    <Box
+                      component="img"
+                      src={getAvatarUrl(img) || img}
+                      alt=""
+                      draggable={false}
+                      sx={{
+                        display: 'block',
+                        maxWidth: '100%',
+                        maxHeight: '100%',
+                        width: 'auto',
+                        height: 'auto',
+                        objectFit: 'contain',
+                        objectPosition: 'center',
+                        userSelect: 'none',
+                      }}
+                    />
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        </Box>
+      </Dialog>
       <Dialog
         open={deleteDialogOpen}
         onClose={() => (deleteLoading ? undefined : setDeleteDialogOpen(false))}
