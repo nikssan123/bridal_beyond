@@ -1,8 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import { env } from '../../config/env';
 import * as listingsRepo from './listingsRepository';
+import * as ordersRepository from '../orders/ordersRepository';
 import * as authRepository from '../auth/authRepository';
 import { sendListingCreatedNoPaymentEmail } from '../../services/mailService';
+import * as stripeService from '../../services/stripe.service';
 import { notFound, unauthorized, badRequest, forbidden } from '../../middleware/errorHandler';
 import { ListingCreateInput } from './listingsTypes';
 
@@ -133,6 +135,11 @@ export async function update(req: Request, res: Response, next: NextFunction): P
       next(forbidden('You can only edit your own listings.'));
       return;
     }
+    const activeOrder = await ordersRepository.findActiveByListingId(id);
+    if (activeOrder) {
+      next(forbidden('This listing cannot be edited while an order is in progress.'));
+      return;
+    }
     const body = req.body as ListingCreateInput;
     const updated = await listingsRepo.update(id, {
       title: body.title,
@@ -171,6 +178,16 @@ export async function remove(req: Request, res: Response, next: NextFunction): P
     if (existing.seller.id !== req.user.id) {
       next(forbidden('You can only delete your own listings.'));
       return;
+    }
+    const activeOrder = await ordersRepository.findActiveByListingId(id);
+    if (activeOrder) {
+      try {
+        await stripeService.cancelPaymentIntent(activeOrder.payment_intent_id);
+      } catch (err: any) {
+        // If already cancelled/captured, continue — the important thing is the listing is removed
+        console.error('Stripe cancel on listing delete:', err?.message);
+      }
+      await ordersRepository.updateStatus(activeOrder.id, 'cancelled');
     }
     await listingsRepo.remove(id);
     res.status(204).send();

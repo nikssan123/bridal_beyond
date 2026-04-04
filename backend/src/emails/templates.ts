@@ -937,3 +937,44 @@ export function getSellerBuyerWantsToBuyText(params: {
     .join('\n');
 }
 
+// --- Admin: custom message ---
+
+export function getAdminCustomEmailHtml(params: { title: string; message: string }): string {
+  const { title, message } = params;
+  const htmlMessage = message.replace(/\n/g, '<br>');
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title}</title>
+</head>
+<body style="margin:0; padding:0; background-color:#FAF7F5; font-family:'Work Sans',sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#FAF7F5; padding:24px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" style="max-width:480px; border-radius:16px; border:1px solid #E8E0DC; background:#fff;">
+          <tr>
+            <td style="padding:32px 24px;">
+              <h1 style="margin:0 0 24px; font-family:'Playfair Display',serif; font-size:24px; font-weight:600; color:#D4A99A;">
+                ${title}
+              </h1>
+              <p style="margin:0; font-size:16px; line-height:1.7; color:#2D2D2D;">
+                ${htmlMessage}
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`.trim();
+}
+
+export function getAdminCustomEmailText(params: { title: string; message: string }): string {
+  return [params.title, '', params.message].join('\n');
+}
+

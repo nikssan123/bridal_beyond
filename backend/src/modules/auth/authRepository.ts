@@ -213,7 +213,7 @@ export async function deleteUserListingsExceptActive(userId: string): Promise<vo
   for (const o of orders) {
     const isActive = ACTIVE_ORDER_STATUSES.includes(o.status as (typeof ACTIVE_ORDER_STATUSES)[number]);
     const hasOpenDispute = orderIdsWithOpenDispute.includes(o.id);
-    if (isActive || hasOpenDispute) protectedListingIds.add(o.listing_id);
+    if ((isActive || hasOpenDispute) && o.listing_id) protectedListingIds.add(o.listing_id);
   }
   const toDelete = listingIds.filter((id) => !protectedListingIds.has(id));
   for (const listingId of toDelete) {

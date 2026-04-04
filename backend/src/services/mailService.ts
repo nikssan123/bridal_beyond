@@ -1,6 +1,8 @@
 import nodemailer from 'nodemailer';
 import { mailConfig, isMailConfigured } from '../config/mail';
 import {
+  getAdminCustomEmailHtml,
+  getAdminCustomEmailText,
   getVerificationSubject,
   getVerificationHtml,
   getVerificationText,
@@ -469,6 +471,29 @@ export async function sendPasswordResetEmail(
     from: mailConfig.smtpUser,
     to: params.to,
     subject,
+    text,
+    html,
+  });
+}
+
+export interface SendAdminCustomEmailParams {
+  to: string;
+  subject: string;
+  message: string;
+}
+
+export async function sendAdminCustomEmail(params: SendAdminCustomEmailParams): Promise<void> {
+  const t = getTransport();
+  if (!t) {
+    console.warn('[mail] SMTP not configured; skipping admin custom email to', params.to);
+    return;
+  }
+  const html = getAdminCustomEmailHtml({ title: params.subject, message: params.message });
+  const text = getAdminCustomEmailText({ title: params.subject, message: params.message });
+  await t.sendMail({
+    from: mailConfig.smtpUser,
+    to: params.to,
+    subject: params.subject,
     text,
     html,
   });

@@ -212,7 +212,7 @@ model Payment {
 
 model Order {
   id                 String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  listing_id         String   @db.Uuid
+  listing_id         String?  @db.Uuid
   buyer_id           String?  @db.Uuid
   seller_id          String   @db.Uuid
   price_cents        Int
@@ -237,9 +237,9 @@ model Order {
   updated_at          DateTime @default(now())
   payout_released_at  DateTime?
 
-  listing Listing @relation(fields: [listing_id], references: [id], onDelete: Cascade)
-  buyer   User?   @relation("UserOrdersAsBuyer", fields: [buyer_id], references: [id], onDelete: Cascade)
-  seller  User    @relation("UserOrdersAsSeller", fields: [seller_id], references: [id], onDelete: Cascade)
+  listing Listing? @relation(fields: [listing_id], references: [id], onDelete: SetNull)
+  buyer   User?    @relation("UserOrdersAsBuyer", fields: [buyer_id], references: [id], onDelete: Cascade)
+  seller  User     @relation("UserOrdersAsSeller", fields: [seller_id], references: [id], onDelete: Cascade)
 
   disputes Dispute[]
 

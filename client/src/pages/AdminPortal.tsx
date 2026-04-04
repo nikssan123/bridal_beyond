@@ -39,6 +39,7 @@ import GavelOutlinedIcon from '@mui/icons-material/GavelOutlined';
 import PhotoLibraryOutlinedIcon from '@mui/icons-material/PhotoLibraryOutlined';
 import ChatOutlinedIcon from '@mui/icons-material/ChatOutlined';
 import StorefrontOutlinedIcon from '@mui/icons-material/StorefrontOutlined';
+import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import PageContainer from '@/components/PageContainer';
@@ -128,7 +129,7 @@ const AdminPortal: React.FC = () => {
   const [tableCount, setTableCount] = useState<number | null>(null);
   const [loadingTableCount, setLoadingTableCount] = useState(false);
 
-  const [section, setSection] = useState<'tables' | 'disputes' | 'photos' | 'chat' | 'shops'>('tables');
+  const [section, setSection] = useState<'tables' | 'disputes' | 'photos' | 'chat' | 'shops' | 'email'>('tables');
   const [disputes, setDisputes] = useState<AdminDispute[]>([]);
   const [disputeStatusFilter, setDisputeStatusFilter] = useState<string>('open');
   const [disputesLoading, setDisputesLoading] = useState(false);
@@ -160,6 +161,10 @@ const AdminPortal: React.FC = () => {
   const [captureLoading, setCaptureLoading] = useState(false);
   const [captureMessage, setCaptureMessage] = useState<string | null>(null);
 
+  const [refundOrderId, setRefundOrderId] = useState('');
+  const [refundLoading, setRefundLoading] = useState(false);
+  const [refundMessage, setRefundMessage] = useState<string | null>(null);
+
   const [tableLimit, setTableLimit] = useState(50);
   const [chatConversations, setChatConversations] = useState<AdminConversation[]>([]);
   const [chatConversationsLoading, setChatConversationsLoading] = useState(false);
@@ -179,6 +184,14 @@ const AdminPortal: React.FC = () => {
   const [adminShopsLoading, setAdminShopsLoading] = useState(false);
   const [adminShopsStatusFilter, setAdminShopsStatusFilter] = useState<string>('pending');
   const [shopActionId, setShopActionId] = useState<string | null>(null);
+
+  const [emailRecipientInput, setEmailRecipientInput] = useState('');
+  const [emailRecipients, setEmailRecipients] = useState<string[]>([]);
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailMessage, setEmailMessage] = useState('');
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailResults, setEmailResults] = useState<{ email: string; ok: boolean; error?: string }[] | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   const [discounts, setDiscounts] = useState<{
     limit: number;
@@ -633,7 +646,9 @@ const AdminPortal: React.FC = () => {
                   ? 'Inspect and reorder listing photos to choose the main image.'
                   : section === 'chat'
                     ? 'Inspect chat threads for moderation.'
-                    : 'Approve or reject shop enlistment requests.'
+                    : section === 'shops'
+                      ? 'Approve or reject shop enlistment requests.'
+                      : 'Send a custom email to one or more users using the site template.'
           }
         />
         <Button variant="outlined" size="small" onClick={handleLogout}>
@@ -729,6 +744,14 @@ const AdminPortal: React.FC = () => {
             >
               <StorefrontOutlinedIcon sx={{ mr: 1.5, color: section === 'shops' ? 'primary.main' : 'text.secondary' }} />
               <ListItemText primary="Shops" secondary="Approve shop requests" />
+            </ListItemButton>
+            <ListItemButton
+              selected={section === 'email'}
+              onClick={() => setSection('email')}
+              sx={{ borderRadius: 0 }}
+            >
+              <EmailOutlinedIcon sx={{ mr: 1.5, color: section === 'email' ? 'primary.main' : 'text.secondary' }} />
+              <ListItemText primary="Send email" secondary="Message users directly" />
             </ListItemButton>
           </List>
           {section === 'tables' && (
@@ -1031,6 +1054,67 @@ const AdminPortal: React.FC = () => {
                   )}
                 </Box>
               </Box>
+              <Box sx={{ px: 3, py: 2, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'background.default' }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                  Manual refund (orders)
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  Enter an order ID to refund the buyer. For completed orders a Stripe refund is issued; for non-captured orders the payment intent is cancelled.
+                </Typography>
+                <Box
+                  component="form"
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (!token || !refundOrderId.trim()) return;
+                    setRefundLoading(true);
+                    setRefundMessage(null);
+                    try {
+                      const { data } = await api.post(
+                        `/admin/orders/${encodeURIComponent(refundOrderId.trim())}/refund`,
+                        {},
+                        { headers: adminHeaders(token) },
+                      );
+                      setRefundMessage(`Refunded successfully. New status: ${data.status}`);
+                      setRefundOrderId('');
+                    } catch (err: any) {
+                      const msg =
+                        err?.response?.data?.message || err?.message || 'Failed to refund order';
+                      setRefundMessage(msg);
+                    } finally {
+                      setRefundLoading(false);
+                    }
+                  }}
+                >
+                  <Grid container spacing={1} alignItems="center">
+                    <Grid item xs={12} sm={8}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Order ID"
+                        value={refundOrderId}
+                        onChange={(e) => setRefundOrderId(e.target.value)}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <Button
+                        type="submit"
+                        fullWidth
+                        variant="contained"
+                        size="small"
+                        color="error"
+                        disabled={refundLoading || !refundOrderId.trim()}
+                      >
+                        {refundLoading ? 'Refunding…' : 'Refund buyer'}
+                      </Button>
+                    </Grid>
+                  </Grid>
+                  {refundMessage && (
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                      {refundMessage}
+                    </Typography>
+                  )}
+                </Box>
+              </Box>
               {loadingRows ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
                   <CircularProgress />
@@ -1052,22 +1136,22 @@ const AdminPortal: React.FC = () => {
                   <Table size="small" stickyHeader sx={{ minWidth: 640 }}>
                     <TableHead>
                       <TableRow>
-                        {allColumns.map((col) => (
-                          <TableCell
-                            key={col}
-                            sx={{
-                              fontWeight: 600,
-                              bgcolor: 'background.default',
-                              minWidth: col === 'id' ? 80 : col === 'email' ? 140 : 90,
-                              maxWidth: 200,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {col}
-                          </TableCell>
-                        ))}
+                        {allColumns.map((col) => {
+                          const isIdCol = col === 'id' || col.endsWith('_id');
+                          return (
+                            <TableCell
+                              key={col}
+                              sx={{
+                                fontWeight: 600,
+                                bgcolor: 'background.default',
+                                minWidth: isIdCol ? 290 : col === 'email' ? 160 : 90,
+                                ...(isIdCol ? {} : { maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }),
+                              }}
+                            >
+                              {col}
+                            </TableCell>
+                          );
+                        })}
                         {showFeaturedColumn && (
                           <TableCell sx={{ fontWeight: 600, bgcolor: 'background.default', width: 100 }}>
                             Featured
@@ -1105,15 +1189,15 @@ const AdminPortal: React.FC = () => {
                                     : String(val ?? '');
                               const fullText =
                                 typeof val === 'object' && val !== null ? JSON.stringify(val) : String(val ?? '');
+                              const isIdCol = col === 'id' || col.endsWith('_id');
                               return (
                                 <TableCell
                                   key={col}
                                   sx={{
-                                    maxWidth: 200,
-                                    minWidth: col === 'id' ? 80 : col === 'email' ? 140 : 90,
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap',
+                                    minWidth: isIdCol ? 290 : col === 'email' ? 160 : 90,
+                                    ...(isIdCol
+                                      ? { fontFamily: 'monospace', fontSize: '0.75rem', userSelect: 'all' }
+                                      : { maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }),
                                   }}
                                   title={fullText}
                                 >
@@ -1695,6 +1779,136 @@ const AdminPortal: React.FC = () => {
                   </Table>
                 </TableContainer>
               )}
+            </Box>
+          )}
+          {section === 'email' && (
+            <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                Send email
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Emails are sent using the site template. Add recipients one at a time or paste a comma-separated list.
+              </Typography>
+
+              {emailError && (
+                <Alert severity="error" onClose={() => setEmailError(null)}>
+                  {emailError}
+                </Alert>
+              )}
+              {emailResults && (
+                <Alert
+                  severity={emailResults.every((r) => r.ok) ? 'success' : emailResults.some((r) => r.ok) ? 'warning' : 'error'}
+                  onClose={() => setEmailResults(null)}
+                >
+                  {emailResults.map((r) => (
+                    <Typography key={r.email} variant="body2">
+                      {r.email}: {r.ok ? 'Sent' : `Failed — ${r.error}`}
+                    </Typography>
+                  ))}
+                </Alert>
+              )}
+
+              <Box>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                  Recipients
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="Email address"
+                    value={emailRecipientInput}
+                    onChange={(e) => setEmailRecipientInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ',') {
+                        e.preventDefault();
+                        const entries = emailRecipientInput.split(',').map((s) => s.trim()).filter(Boolean);
+                        setEmailRecipients((prev) => [...new Set([...prev, ...entries])]);
+                        setEmailRecipientInput('');
+                      }
+                    }}
+                    placeholder="user@example.com — press Enter or comma to add"
+                    helperText="You can also paste multiple comma-separated addresses and press Enter."
+                  />
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    sx={{ whiteSpace: 'nowrap', alignSelf: 'flex-start', mt: 0.25 }}
+                    onClick={() => {
+                      const entries = emailRecipientInput.split(',').map((s) => s.trim()).filter(Boolean);
+                      setEmailRecipients((prev) => [...new Set([...prev, ...entries])]);
+                      setEmailRecipientInput('');
+                    }}
+                    disabled={!emailRecipientInput.trim()}
+                  >
+                    Add
+                  </Button>
+                </Box>
+                {emailRecipients.length > 0 && (
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                    {emailRecipients.map((email) => (
+                      <Chip
+                        key={email}
+                        label={email}
+                        size="small"
+                        onDelete={() => setEmailRecipients((prev) => prev.filter((e) => e !== email))}
+                      />
+                    ))}
+                  </Box>
+                )}
+              </Box>
+
+              <TextField
+                fullWidth
+                size="small"
+                label="Subject"
+                value={emailSubject}
+                onChange={(e) => setEmailSubject(e.target.value)}
+                inputProps={{ maxLength: 200 }}
+              />
+
+              <TextField
+                fullWidth
+                multiline
+                minRows={6}
+                label="Message"
+                value={emailMessage}
+                onChange={(e) => setEmailMessage(e.target.value)}
+                inputProps={{ maxLength: 10000 }}
+                helperText="Plain text. Line breaks are preserved."
+              />
+
+              <Box>
+                <Button
+                  variant="contained"
+                  disabled={emailSending || emailRecipients.length === 0 || !emailSubject.trim() || !emailMessage.trim()}
+                  onClick={async () => {
+                    if (!token) return;
+                    setEmailSending(true);
+                    setEmailError(null);
+                    setEmailResults(null);
+                    try {
+                      const { data } = await api.post<{ results: { email: string; ok: boolean; error?: string }[] }>(
+                        '/admin/send-email',
+                        { emails: emailRecipients, subject: emailSubject.trim(), message: emailMessage.trim() },
+                        { headers: adminHeaders(token) },
+                      );
+                      setEmailResults(data.results);
+                      if (data.results.every((r) => r.ok)) {
+                        setEmailRecipients([]);
+                        setEmailSubject('');
+                        setEmailMessage('');
+                      }
+                    } catch (err: any) {
+                      setEmailError(err?.response?.data?.message || err?.message || 'Failed to send');
+                    } finally {
+                      setEmailSending(false);
+                    }
+                  }}
+                >
+                  {emailSending ? <CircularProgress size={20} color="inherit" /> : `Send to ${emailRecipients.length || ''} recipient${emailRecipients.length === 1 ? '' : 's'}`}
+                </Button>
+              </Box>
             </Box>
           )}
         </Paper>

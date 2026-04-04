@@ -11,11 +11,13 @@ router.get('/tables/:name', adminController.getTable);
 router.get('/conversations', adminController.listConversations);
 router.get('/conversations/:id/messages', adminController.getConversationMessages);
 router.post('/orders/:id/capture', adminController.captureOrderPayment);
+router.post('/orders/:id/refund', adminController.refundOrder);
 router.delete('/listings/:id', adminController.deleteListing);
 router.get('/listings/:id/images/order', adminController.getListingImagesOrder);
 router.patch('/listings/:id/images/order', adminController.updateListingImagesOrder);
 router.patch('/listings/:id/featured', adminController.updateListingFeatured);
 router.patch('/listings/:id/text', adminController.updateListingText);
+router.post('/send-email', adminController.sendEmail);
 router.get('/shops', adminController.listShops);
 router.patch('/shops/:id/status', adminController.updateShopStatus);
 
